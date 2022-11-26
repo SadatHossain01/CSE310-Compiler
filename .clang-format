@@ -1,2 +1,5 @@
 BasedOnStyle: Google
 IndentWidth: 4
+BreakBeforeBraces: Attach
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
