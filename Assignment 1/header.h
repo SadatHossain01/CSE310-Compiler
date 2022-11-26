@@ -8,13 +8,18 @@ class SymbolInfo {
     SymbolInfo *next;
 
    public:
+    SymbolInfo(string name = "", string type = "") {
+        this->name = name;
+        this->type = type;
+        next = nullptr;
+    }
     string get_name() { return name; }
     string get_type() { return type; }
     SymbolInfo *get_next() { return next; }
-    void set_name(const string &name) { this->name = name; }
-    void set_type(const string &type) { this->type = type; }
+    void set_name(const string name) { this->name = name; }
+    void set_type(const string type) { this->type = type; }
     void set_next(SymbolInfo *next) { this->next = next; }
-    void print(ofstream &out) { out << "<" << name << "," << type << ">"; }
+    void print() { cout << "<" << name << "," << type << ">"; }
 };
 
 class ScopeTable {
@@ -39,36 +44,69 @@ class ScopeTable {
     unsigned int myhash(const string &s) { return SDBMHash(s) % num_buckets; }
 
    public:
-    ScopeTable(int num_buckets) {
+    ScopeTable(int num_buckets, int id) {
         this->num_buckets = num_buckets;
+        this->id = id;
         arr = new SymbolInfo *[num_buckets];
         parent_scope = nullptr;
+        cout << "\t";
+        cout << "ScopeTable #" << id << " created\n ";
     }
 
     void set_parent(ScopeTable *par) { parent_scope = par; }
 
     void set_id(int id) { this->id = id; }
 
+    int get_id() { return id; }
+
     ScopeTable *get_parent() { return parent_scope; }
 
     SymbolInfo *search(const string &s) {
         int hash_value = myhash(s);
         SymbolInfo *now = arr[hash_value];
+        int pos = 0;
         while (now != nullptr) {
-            if (now->get_name() == s) return now;
+            pos++;
+            if (now->get_name() == s) {
+                cout << "\t";
+                cout << "\'" << s << "\' found in ScopeTable# " << id
+                     << " at position " << hash_value + 1 << ", " << pos
+                     << "\n";
+                return now;
+            }
+            now = now->get_next();
         }
         return nullptr;
     }
 
     bool insert(SymbolInfo ss) {
         SymbolInfo *found = search(ss.get_name());
-        if (found != nullptr)
+        if (found != nullptr) {
+            cout << "\t";
+            cout << "\'" << ss.get_name()
+                 << "\' already exists in the current ScopeTable\n";
             return false;  // already present, so not possible to insert again
-        else {
+        } else {
             int hash_value = myhash(ss.get_name());
             SymbolInfo *temp = arr[hash_value];
-            ss.set_next(temp);
-            arr[hash_value] = &ss;
+            ss.set_next(nullptr);
+            int pos = 0;
+            SymbolInfo *si = new SymbolInfo(ss.get_name(), ss.get_type());
+            if (temp == nullptr) {
+                arr[hash_value] = si;
+                pos = 0;
+            } else {
+                pos++;
+                while (temp->get_next() != nullptr) {
+                    temp = temp->get_next();
+                    pos++;
+                }
+                temp->set_next(si);
+            }
+            cout << "\t";
+            cout << "Inserted in ScopeTable# " << id << " at position "
+                 << hash_value + 1 << ", " << pos + 1 << "\n";
+            return true;
         }
     }
 
@@ -76,28 +114,47 @@ class ScopeTable {
         int hash_value = myhash(s);
         SymbolInfo *now = arr[hash_value];
         if (now == nullptr) return false;  // no element in this bucket
-        while (true) {
-            if (now->get_next()->get_name() == s) {
-                SymbolInfo *temp = now->get_next();
-                now->set_next(temp->get_next());
-                delete temp;
-                return true;  // delete successful
+        int pos = 0;
+        bool del = false;
+        if (now != nullptr && now->get_name() == s) {
+            del = true;
+            pos = 1;
+            delete arr[hash_value];
+            arr[hash_value] = nullptr;
+        } else {
+            pos = 1;
+            while (true) {
+                pos++;
+                if (now->get_next()->get_name() == s) {
+                    SymbolInfo *temp = now->get_next();
+                    now->set_next(temp->get_next());
+                    del = true;
+                    delete temp;
+                }
+                if (now->get_next() == nullptr) break;
+                now = now->get_next();
             }
-            if (now->get_next() == nullptr)
-                return false;  // not found, so break
-            now = now->get_next();
         }
+        if (del) {
+            cout << "\t";
+            cout << "Deleted \'" << s << "\' from ScopeTable# " << id
+                 << " at position " << hash_value + 1 << ", " << pos << "\n";
+        } else {
+            cout << "\t";
+            cout << "Not found in the current ScopeTable\n";
+        }
+        return del;
     }
 
-    void print(ofstream &out) {
-        out << "/tScopeTable# " << id << "\n";
+    void print() {
+        cout << "\tScopeTable# " << id << "\n";
         for (int i = 0; i < num_buckets; i++) {
-            out << "/t" << i + 1 << "-->";
+            cout << "\t" << i + 1 << "-->";
             SymbolInfo *cur = arr[i];
             while (cur != nullptr) {
-                cur->print(out);
+                cur->print();
             }
-            out << "\n";
+            cout << "\n";
         }
     }
 
@@ -113,6 +170,8 @@ class ScopeTable {
             }
         }
         delete[] arr;
+        // cout << "\t";
+        // cout << "ScopeTable# " << id << " removed\n";
     }
 };
 
@@ -120,20 +179,28 @@ class SymbolTable {
    private:
     ScopeTable *current_scope;
     int num_buckets;
-    int scope_cont;
+    int scope_cont = 0;
 
    public:
+    SymbolTable(int num_buckets) {
+        this->num_buckets = num_buckets;
+        current_scope = new ScopeTable(num_buckets, ++scope_cont);
+    }
+
     void enter_scope() {
         ScopeTable *prev = current_scope;
-        current_scope = new ScopeTable(num_buckets);
+        current_scope = new ScopeTable(num_buckets, ++scope_cont);
         current_scope->set_parent(prev);
-        current_scope->set_id(++scope_cont);
     }
 
     bool exit_scope() {
-        if (current_scope->get_parent() == nullptr)
+        if (current_scope->get_parent() == nullptr) {
+            cout << "\t";
+            cout << "ScopeTable# 1 cannot be removed\n";
             return false;  // this is the root scope, can't exit
-        else {
+        } else {
+            cout << "\t";
+            cout << "ScopeTable# " << current_scope->get_id() << " removed\n";
             current_scope =
                 current_scope
                     ->get_parent();  // do I have to explicitly call the
@@ -152,18 +219,24 @@ class SymbolTable {
             SymbolInfo *res = cur->search(s);
             if (res != nullptr) return res;
             else cur = cur->get_parent();
-            if (cur->get_parent() == nullptr) return nullptr;
+            if (cur->get_parent() == nullptr) {
+                cout << "\t";
+                cout << "\'" << s << "\' not found in any of the ScopeTables\n";
+                return nullptr;
+            }
         }
     }
 
-    void print_current(ofstream &out) { current_scope->print(out); }
-
-    void print_all(ofstream &out) {
-        ScopeTable *cur = current_scope;
-        while (true) {
-            cur->print(out);
-            if (cur->get_parent() == nullptr) return;
-            else cur = cur->get_parent();
+    void print(char type) {
+        if (type == 'c' || type == 'A') {
+            current_scope->print();
+        } else {
+            ScopeTable *cur = current_scope;
+            while (true) {
+                cur->print();
+                if (cur->get_parent() == nullptr) return;
+                else cur = cur->get_parent();
+            }
         }
     }
 };
