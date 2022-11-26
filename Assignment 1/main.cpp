@@ -86,12 +86,9 @@ int main() {
             // insertion
             if (cnt != 3) show_error('m', c);
             else {
-                SymbolInfo si;
                 string* ret = tokenize(s, 2);
                 // cout << ret[0] << " " << ret[1] << "\n";
-                si.set_name(ret[0]);
-                si.set_type(ret[1]);
-                sym.insert(si);
+                sym.insert(ret[0], ret[1]);
                 delete ret;
             }
         } else if (c == 'L') {

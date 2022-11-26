@@ -79,19 +79,18 @@ class ScopeTable {
         return nullptr;
     }
 
-    bool insert(SymbolInfo ss) {
-        SymbolInfo *found = search(ss.get_name());
+    bool insert(string name, string type) {
+        SymbolInfo *found = search(name);
         if (found != nullptr) {
             cout << "\t";
-            cout << "\'" << ss.get_name()
+            cout << "\'" << name
                  << "\' already exists in the current ScopeTable\n";
             return false;  // already present, so not possible to insert again
         } else {
-            int hash_value = myhash(ss.get_name());
+            int hash_value = myhash(name);
             SymbolInfo *temp = arr[hash_value];
-            ss.set_next(nullptr);
             int pos = 0;
-            SymbolInfo *si = new SymbolInfo(ss.get_name(), ss.get_type());
+            SymbolInfo *si = new SymbolInfo(name, type);
             if (temp == nullptr) {
                 arr[hash_value] = si;
                 pos = 0;
@@ -209,7 +208,9 @@ class SymbolTable {
         }
     }
 
-    bool insert(SymbolInfo ss) { return current_scope->insert(ss); }
+    bool insert(string name, string type) {
+        return current_scope->insert(name, type);
+    }
 
     bool remove(const string &s) { return current_scope->remove(s); }
 
