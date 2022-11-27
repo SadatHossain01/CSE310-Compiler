@@ -1,7 +1,6 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <cassert>
 
 using namespace std;
 
@@ -67,7 +66,7 @@ class ScopeTable {
     ScopeTable *get_parent() { return parent_scope; }
 
     SymbolInfo *search(const string &s) {
-        int hash_value = myhash(s);
+        unsigned int hash_value = myhash(s);
         SymbolInfo *now = arr[hash_value];
         int pos = 0;
 
@@ -87,7 +86,7 @@ class ScopeTable {
     }
 
     bool insert(string name, string type) {
-        int hash_value = myhash(name);
+        unsigned int hash_value = myhash(name);
         int pos = 0;
         bool success = false;
         SymbolInfo *cur = arr[hash_value];
@@ -102,7 +101,12 @@ class ScopeTable {
                  << hash_value + 1 << ", " << pos << "\n";
         } else {
             pos = 1;
-            while (cur->get_next() != nullptr) {
+
+            if (cur->get_name() == name) {
+                pos = -1;
+            }
+
+            while (pos != -1 && cur->get_next() != nullptr) {
                 if (cur->get_name() == name) {
                     pos = -1;
                     break;
@@ -132,7 +136,7 @@ class ScopeTable {
     }
 
     bool remove(const string &s) {
-        int hash_value = myhash(s);
+        unsigned int hash_value = myhash(s);
         SymbolInfo *now = arr[hash_value];
 
         if (now == nullptr) {
@@ -213,6 +217,7 @@ class SymbolTable {
     ScopeTable *current_scope;
     int num_buckets;
     int scope_cont = 0;
+    bool terminated = false;
 
    public:
     SymbolTable(int num_buckets) {
@@ -229,13 +234,12 @@ class SymbolTable {
     bool exit_scope() {
         if (current_scope->get_parent() == nullptr) {
             cout << "\t";
-            cout << "ScopeTable# " << current_scope->get_id() << " cannot be removed\n";
+            cout << "ScopeTable# " << current_scope->get_id()
+                 << " cannot be removed\n";
             return false;  // this is the root scope, can't exit
         } else {
-            ScopeTable* temp = current_scope;
-            current_scope =
-                current_scope
-                    ->get_parent(); 
+            ScopeTable *temp = current_scope;
+            current_scope = current_scope->get_parent();
             delete temp;
             return true;
         }
@@ -267,6 +271,7 @@ class SymbolTable {
             exit_scope();
         }
         delete current_scope;
+        terminated = true;
     }
 
     void print(char type) {
@@ -280,5 +285,9 @@ class SymbolTable {
                 else cur = cur->get_parent();
             }
         }
+    }
+
+    ~SymbolTable() {
+        if (!terminated) this->terminate();
     }
 };

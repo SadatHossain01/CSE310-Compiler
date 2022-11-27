@@ -68,9 +68,9 @@ Cmd 16: P C
 	6--> 
 	7--> <<=,RELOP> 
 Cmd 17: I <= RELOP
-	Inserted in ScopeTable# 2 at position 7, 2
+	'<=' already exists in the current ScopeTable
 Cmd 18: I foo FUNCTION
-	Inserted in ScopeTable# 2 at position 7, 3
+	Inserted in ScopeTable# 2 at position 7, 2
 Cmd 19: D ==
 	Deleted '==' from ScopeTable# 2 at position 2, 1
 Cmd 20: D 23
@@ -85,7 +85,7 @@ Cmd 22: P A
 	4--> <>=,RELOP> 
 	5--> 
 	6--> 
-	7--> <<=,RELOP> <<=,RELOP> <foo,FUNCTION> 
+	7--> <<=,RELOP> <foo,FUNCTION> 
 	ScopeTable# 1
 	1--> 
 	2--> 
@@ -118,7 +118,7 @@ Cmd 27: P A
 	4--> <>=,RELOP> 
 	5--> 
 	6--> 
-	7--> <<=,RELOP> <<=,RELOP> <foo,FUNCTION> 
+	7--> <<=,RELOP> <foo,FUNCTION> 
 	ScopeTable# 1
 	1--> 
 	2--> 
@@ -128,11 +128,11 @@ Cmd 27: P A
 	6--> 
 	7--> <foo,FUNCTION> 
 Cmd 28: L foo
-	'foo' found in ScopeTable# 2 at position 7, 3
+	'foo' found in ScopeTable# 2 at position 7, 2
 Cmd 29: E
 	ScopeTable# 3 removed
 Cmd 30: I num VAR
-	Inserted in ScopeTable# 2 at position 7, 4
+	Inserted in ScopeTable# 2 at position 7, 3
 Cmd 31: S
 	ScopeTable# 4 created
 Cmd 32: I true BOOL
@@ -155,7 +155,7 @@ Cmd 34: P A
 	4--> <>=,RELOP> 
 	5--> 
 	6--> 
-	7--> <<=,RELOP> <<=,RELOP> <foo,FUNCTION> <num,VAR> 
+	7--> <<=,RELOP> <foo,FUNCTION> <num,VAR> 
 	ScopeTable# 1
 	1--> 
 	2--> 
