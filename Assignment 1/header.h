@@ -88,13 +88,17 @@ class ScopeTable {
         int hash_value = myhash(name);
         int pos = 0;
         bool success = false;
-        if (arr[hash_value] == nullptr) {
+        SymbolInfo *cur = arr[hash_value];
+
+        if (cur == nullptr) {
             SymbolInfo *si = new SymbolInfo(name, type);
             arr[hash_value] = si;
             success = true;
             pos = 1;
+            cout << "\t";
+            cout << "Inserted in ScopeTable# " << id << " at position "
+                 << hash_value + 1 << ", " << pos << "\n";
         } else {
-            SymbolInfo *cur = arr[hash_value];
             pos = 1;
             while (cur->get_next() != nullptr) {
                 if (cur->get_name() == name) {
@@ -246,9 +250,10 @@ class SymbolTable {
         ScopeTable *cur = current_scope;
         while (true) {
             SymbolInfo *res = cur->search(s);
-            if (res != nullptr) return res;
+            if (res != nullptr)
+                return res;  // search message printed in scope table's search
             else cur = cur->get_parent();
-            if (cur->get_parent() == nullptr) {
+            if (cur == nullptr) {
                 cout << "\t";
                 cout << "\'" << s << "\' not found in any of the ScopeTables\n";
                 return nullptr;
