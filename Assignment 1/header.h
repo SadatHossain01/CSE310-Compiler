@@ -1,6 +1,8 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <cassert>
+
 using namespace std;
 
 class SymbolInfo {
@@ -20,7 +22,7 @@ class SymbolInfo {
     void set_name(const string &name) { this->name = name; }
     void set_type(const string &type) { this->type = type; }
     void set_next(SymbolInfo *next) { this->next = next; }
-    void print() { cout << "<" << name << "," << type << ">"; }
+    void print() { cout << "<" << name << "," << type << "> "; }
 };
 
 class ScopeTable {
@@ -36,7 +38,7 @@ class ScopeTable {
         unsigned int len = str.length();
 
         for (i = 0; i < len; i++) {
-            hash = (str[i]) + (hash << 6) + (hash << 16) - hash;
+            hash = ((str[i]) + (hash << 6) + (hash << 16) - hash) % num_buckets;
         }
 
         return hash;
@@ -53,7 +55,7 @@ class ScopeTable {
             arr[i] = nullptr;  // not writing this caused the initial issues
         parent_scope = nullptr;
         cout << "\t";
-        cout << "ScopeTable #" << id << " created\n";
+        cout << "ScopeTable# " << id << " created\n";
     }
 
     void set_parent(ScopeTable *par) { parent_scope = par; }
@@ -143,15 +145,15 @@ class ScopeTable {
         bool del = false;
 
         if (now->get_name() == s) {
-            del = true;
             pos = 1;
             delete arr[hash_value];
             arr[hash_value] = nullptr;
+            del = true;
         } else {
             pos = 1;
-
             while (true) {
                 pos++;
+                if (now == nullptr || now->get_next() == nullptr) break;
                 if (now->get_next()->get_name() == s) {
                     SymbolInfo *temp = now->get_next();
                     now->set_next(temp->get_next());
@@ -160,7 +162,6 @@ class ScopeTable {
                     break;
                 }
 
-                if (now->get_next() == nullptr) break;
                 now = now->get_next();
             }
         }
@@ -180,10 +181,11 @@ class ScopeTable {
         cout << "\tScopeTable# " << id << "\n";
 
         for (int i = 0; i < num_buckets; i++) {
-            cout << "\t" << i + 1 << "-->";
+            cout << "\t" << i + 1 << "--> ";
             SymbolInfo *cur = arr[i];
             while (cur != nullptr) {
                 cur->print();
+                cur = cur->get_next();
             }
             cout << "\n";
         }
@@ -201,8 +203,8 @@ class ScopeTable {
             }
         }
         delete[] arr;
-        // cout << "\t";
-        // cout << "ScopeTable# " << id << " removed\n";
+        cout << "\t";
+        cout << "ScopeTable# " << id << " removed\n";
     }
 };
 
@@ -227,15 +229,14 @@ class SymbolTable {
     bool exit_scope() {
         if (current_scope->get_parent() == nullptr) {
             cout << "\t";
-            cout << "ScopeTable# 1 cannot be removed\n";
+            cout << "ScopeTable# " << current_scope->get_id() << " cannot be removed\n";
             return false;  // this is the root scope, can't exit
         } else {
-            cout << "\t";
-            cout << "ScopeTable# " << current_scope->get_id() << " removed\n";
+            ScopeTable* temp = current_scope;
             current_scope =
                 current_scope
-                    ->get_parent();  // do I have to explicitly call the
-                                     // destructor for the current scope?
+                    ->get_parent(); 
+            delete temp;
             return true;
         }
     }
@@ -261,8 +262,15 @@ class SymbolTable {
         }
     }
 
+    void terminate() {
+        while (current_scope->get_parent() != nullptr) {
+            exit_scope();
+        }
+        delete current_scope;
+    }
+
     void print(char type) {
-        if (type == 'c' || type == 'A') {
+        if (type == 'c' || type == 'C') {
             current_scope->print();
         } else {
             ScopeTable *cur = current_scope;

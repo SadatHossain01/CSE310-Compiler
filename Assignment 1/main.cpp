@@ -1,17 +1,45 @@
 #include <iostream>
+#include <sstream>
 
 #include "header.h"
 using namespace std;
 
-int param_count(const string& s) {
-    int cont = 0;
+void trim(string& s) {
+    // trims leading and trailing spaces
+    //  cout << "before: " << s << " ";
+    int idx = 0;
+    while (idx < s.size() && s[idx] == ' ') idx++;
+    if (idx == s.size()) {
+        s = "";
+        // cout << "after: " << s << "\n";
+        return;
+    }
+    for (int i = idx; i < s.size(); i++) s[i - idx] = s[i];
+    for (int i = 0; i < idx; i++) s.pop_back();
+    // cout << "after: " << s << "\n";
+}
+
+string remove_redundant_spaces(const string& s) {
+    string ret = "";
+    // cout << "Given: " << s << "\n";
     const int sz = s.size();
     for (int i = 0; i < sz; i++) {
         if (s[i] == ' ') continue;
         int idx = i;
-        cont++;
         while (idx < sz && s[idx] != ' ') idx++;
-        i = idx;
+        // so from i to idx - 1 is a token
+        ret += s.substr(i, idx - i) + " ";
+        i = idx - 1;
+    }
+    if (ret.back() == ' ') ret.pop_back();
+    // cout << "Returned: " << ret << "\n";
+    return ret;
+}
+
+int char_count(const string& s, char c) {
+    int cont = 0;
+    for (char cc : s) {
+        if (cc == c) cont++;
     }
     return cont;
 }
@@ -24,114 +52,87 @@ void show_error(char fi, char type = 'm') {
     }
 }
 
-string* tokenize(const string& s, int nn) {
-    string* ret = new string[nn];
-    int cont = 0;
-    const int sz = s.size();
-    for (int i = 0; i < sz; i++) {
-        if (s[i] == ' ') continue;
-        int idx = i;
-        int start = i;
-        int len = 1;
-        while (idx < sz && s[idx] != ' ') {
-            idx++;
-            len++;
-        }
-        // cout << s.substr(start, len) << "\n";
-        if (cont > 0) ret[cont - 1] = s.substr(start, len);
-        i = idx;
-        cont++;
-    }
-    return ret;
-}
-
-void trim(string& s) {
-    // cout << "Before: " << s << "\n";
-    // trims leading and trailing spaces
-    int idx = 0;
-    while (idx < s.size() && s[idx] == ' ') idx++;
-    if (idx == s.size()) {
-        s = "";
-    } else {
-        for (int i = idx; i < s.size(); i++) {
-            s[i - idx] = s[i];
-        }
-        for (int i = 0; i < idx; i++) {
-            s.pop_back();
-        }
-        while (s.back() == ' ') s.pop_back();
-    }
-    // cout << "After: " << s << "\n";
-}
-
 int main() {
     freopen("in.txt", "r", stdin);
-    // freopen("out.txt", "w", stdout);
+    freopen("out.txt", "w", stdout);
 
     int n;
     cin >> n;
     cin.ignore();
     int cmd = 0;
 
-    SymbolTable sym(n);
+    SymbolTable st(n);
+
     while (true) {
         string s;
         getline(cin, s);
-        trim(s);
-        if (s.empty() || s[0] == ' ') continue;
         cout << "Cmd " << ++cmd << ": " << s << "\n";
-        char c = s.front();
-        int cnt = param_count(s);
-        if (c == 'Q') break;
-        else if (c == 'I') {
-            // insertion
-            if (cnt != 3) show_error('m', c);
+
+        string concise = remove_redundant_spaces(s);
+        stringstream line(concise);
+        string ss;
+
+        char start = s.front();
+        int sp_count = char_count(concise, ' ');
+        string comm;
+
+        if (start == 'I') {
+            if (sp_count != 2) show_error(start, 'm');
             else {
-                string* ret = tokenize(s, 2);
-                // cout << ret[0] << " " << ret[1] << "\n";
-                sym.insert(ret[0], ret[1]);
-                delete ret;
+                string name, type;
+                getline(line, comm, ' ');
+                getline(line, name, ' ');
+                getline(line, type, ' ');
+                // cout << name << " " << type << "\n";
+                st.insert(name, type);
             }
-        } else if (c == 'L') {
-            if (cnt != 2) show_error('m', c);
+        }
+
+        else if (start == 'L') {
+            if (sp_count != 1) show_error(start, 'm');
             else {
-                string* ret = tokenize(s, 1);
-                sym.search(ret[0]);
-                delete ret;
+                string key;
+                getline(line, comm, ' ');
+                getline(line, key, ' ');
+                // cout << key << "\n";
+                st.search(key);
             }
-        } else if (c == 'D') {
-            if (cnt != 2) show_error('m', c);
+        }
+
+        else if (start == 'D') {
+            if (sp_count != 1) show_error(start, 'm');
             else {
-                string* ret = tokenize(s, 1);
-                sym.remove(ret[0]);
-                delete ret;
+                string key;
+                getline(line, comm, ' ');
+                getline(line, key, ' ');
+                // cout << key << "\n";
+                st.remove(key);
             }
-        } else if (c == 'P') {
-            if (cnt != 2) show_error('m', c);
+        }
+
+        else if (start == 'P') {
+            if (sp_count != 1) show_error(start, 'm');
             else {
-                string* ret = tokenize(s, 1);
-                if (ret[0].size() == 1 && (ret[0] == "A" || ret[0] == "C")) {
-                    sym.print(ret[0][0]);
-                } else
-                    cout << "\t"
-                         << "P should be followed by either A or C\n";
-                delete ret;
+                st.print(concise[2]);
             }
-        } else if (c == 'S') {
-            if (cnt != 1) show_error('m', c);
+        }
+
+        else if (start == 'S') {
+            if (sp_count != 0) show_error(start, 'm');
+            else st.enter_scope();
+        }
+
+        else if (start == 'E') {
+            if (sp_count != 0) show_error(start, 'm');
+            else st.exit_scope();
+        }
+
+        else if (start == 'Q') {
+            if (sp_count != 0) show_error(start, 'm');
             else {
-                sym.enter_scope();
+                st.terminate();
+                break;
             }
-        } else if (c == 'E') {
-            if (cnt != 1) show_error('m', c);
-            else {
-                sym.exit_scope();
-            }
-        } else if (c != ' ') {
-            cout << "\t";
-            cout << "Invalid Command\n";
-        } else {
-            cmd--;
         }
     }
 }

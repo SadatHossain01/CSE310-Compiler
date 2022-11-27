@@ -1,5 +1,5 @@
 7
-I       foo FUNCTION
+I foo FUNCTION
 I i VAR
 L i
 L i j
