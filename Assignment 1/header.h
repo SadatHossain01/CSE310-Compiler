@@ -1,4 +1,5 @@
 #include <fstream>
+#include <iostream>
 #include <string>
 using namespace std;
 
@@ -16,8 +17,8 @@ class SymbolInfo {
     string get_name() { return name; }
     string get_type() { return type; }
     SymbolInfo *get_next() { return next; }
-    void set_name(const string name) { this->name = name; }
-    void set_type(const string type) { this->type = type; }
+    void set_name(const string &name) { this->name = name; }
+    void set_type(const string &type) { this->type = type; }
     void set_next(SymbolInfo *next) { this->next = next; }
     void print() { cout << "<" << name << "," << type << ">"; }
 };
@@ -29,7 +30,7 @@ class ScopeTable {
     int id;
     int num_buckets;
 
-    unsigned int SDBMHash(string str) {
+    unsigned int SDBMHash(const string &str) {
         unsigned int hash = 0;
         unsigned int i = 0;
         unsigned int len = str.length();
@@ -48,9 +49,11 @@ class ScopeTable {
         this->num_buckets = num_buckets;
         this->id = id;
         arr = new SymbolInfo *[num_buckets];
+        for (int i = 0; i < num_buckets; i++)
+            arr[i] = nullptr;  // not writing this caused the initial issues
         parent_scope = nullptr;
         cout << "\t";
-        cout << "ScopeTable #" << id << " created\n ";
+        cout << "ScopeTable #" << id << " created\n";
     }
 
     void set_parent(ScopeTable *par) { parent_scope = par; }
@@ -65,6 +68,7 @@ class ScopeTable {
         int hash_value = myhash(s);
         SymbolInfo *now = arr[hash_value];
         int pos = 0;
+
         while (now != nullptr) {
             pos++;
             if (now->get_name() == s) {
@@ -76,52 +80,72 @@ class ScopeTable {
             }
             now = now->get_next();
         }
+
         return nullptr;
     }
 
     bool insert(string name, string type) {
-        SymbolInfo *found = search(name);
-        if (found != nullptr) {
-            cout << "\t";
-            cout << "\'" << name
-                 << "\' already exists in the current ScopeTable\n";
-            return false;  // already present, so not possible to insert again
-        } else {
-            int hash_value = myhash(name);
-            SymbolInfo *temp = arr[hash_value];
-            int pos = 0;
+        int hash_value = myhash(name);
+        int pos = 0;
+        bool success = false;
+        if (arr[hash_value] == nullptr) {
             SymbolInfo *si = new SymbolInfo(name, type);
-            if (temp == nullptr) {
-                arr[hash_value] = si;
-                pos = 0;
-            } else {
-                pos++;
-                while (temp->get_next() != nullptr) {
-                    temp = temp->get_next();
-                    pos++;
+            arr[hash_value] = si;
+            success = true;
+            pos = 1;
+        } else {
+            SymbolInfo *cur = arr[hash_value];
+            pos = 1;
+            while (cur->get_next() != nullptr) {
+                if (cur->get_name() == name) {
+                    pos = -1;
+                    break;
                 }
-                temp->set_next(si);
+                cur = cur->get_next();
+                pos++;
             }
-            cout << "\t";
-            cout << "Inserted in ScopeTable# " << id << " at position "
-                 << hash_value + 1 << ", " << pos + 1 << "\n";
-            return true;
+
+            if (pos == -1) {
+                cout << "\t";
+                cout << "\'" << name
+                     << "\' already exists in the current ScopeTable\n";
+            }
+
+            else {
+                pos++;
+                SymbolInfo *si = new SymbolInfo(name, type);
+                cur->set_next(si);
+                success = true;
+                cout << "\t";
+                cout << "Inserted in ScopeTable# " << id << " at position "
+                     << hash_value + 1 << ", " << pos << "\n";
+            }
         }
+
+        return success;
     }
 
     bool remove(const string &s) {
         int hash_value = myhash(s);
         SymbolInfo *now = arr[hash_value];
-        if (now == nullptr) return false;  // no element in this bucket
+
+        if (now == nullptr) {
+            cout << "\t";
+            cout << "Not found in the current ScopeTable\n";
+            return false;  // no element in this bucket
+        }
+
         int pos = 0;
         bool del = false;
-        if (now != nullptr && now->get_name() == s) {
+
+        if (now->get_name() == s) {
             del = true;
             pos = 1;
             delete arr[hash_value];
             arr[hash_value] = nullptr;
         } else {
             pos = 1;
+
             while (true) {
                 pos++;
                 if (now->get_next()->get_name() == s) {
@@ -129,11 +153,14 @@ class ScopeTable {
                     now->set_next(temp->get_next());
                     del = true;
                     delete temp;
+                    break;
                 }
+
                 if (now->get_next() == nullptr) break;
                 now = now->get_next();
             }
         }
+
         if (del) {
             cout << "\t";
             cout << "Deleted \'" << s << "\' from ScopeTable# " << id
@@ -147,6 +174,7 @@ class ScopeTable {
 
     void print() {
         cout << "\tScopeTable# " << id << "\n";
+
         for (int i = 0; i < num_buckets; i++) {
             cout << "\t" << i + 1 << "-->";
             SymbolInfo *cur = arr[i];

@@ -70,6 +70,7 @@ int main() {
 
     int n;
     cin >> n;
+    cin.ignore();
     int cmd = 0;
 
     SymbolTable sym(n);
