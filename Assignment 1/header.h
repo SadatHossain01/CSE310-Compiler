@@ -150,8 +150,9 @@ class ScopeTable {
 
         if (now->get_name() == s) {
             pos = 1;
+            SymbolInfo *temp = arr[hash_value]->get_next();
             delete arr[hash_value];
-            arr[hash_value] = nullptr;
+            arr[hash_value] = temp;
             del = true;
         } else {
             pos = 1;
