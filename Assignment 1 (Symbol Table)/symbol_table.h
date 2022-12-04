@@ -278,7 +278,7 @@ class SymbolTable {
     void print(char type) {
         if (type == 'c' || type == 'C') {
             current_scope->print();
-        } else {
+        } else if (type == 'a' || type == 'A') {
             ScopeTable *cur = current_scope;
             while (true) {
                 cur->print();

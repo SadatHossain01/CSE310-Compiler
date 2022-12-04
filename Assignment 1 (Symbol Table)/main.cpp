@@ -1,7 +1,7 @@
 #include <iostream>
 #include <sstream>
 
-#include "header.h"
+#include "symbol_table.h"
 using namespace std;
 
 void trim(string& s) {
