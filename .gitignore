@@ -2,5 +2,6 @@
 .vscode/
 *.out
 *.exe
-Assignment 1/*.txt
-Assignment 1/stress.cpp
+Assignment 1 (Symbol Table)/*.txt
+Assignment 1 (Symbol Table)/test/*
+Assignment 1 (Symbol Table)/stress.cpp
