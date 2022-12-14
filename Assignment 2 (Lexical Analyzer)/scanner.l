@@ -20,7 +20,10 @@ int error_count = 0;
 ofstream logout;
 ofstream tokenout;
 
+int cur_len;
 string cur_string;
+
+enum error_type {MULTICHAR, UNFINISHED_CHAR, UNRECOGNIZED};
 
 SymbolTable sym(BUCKET_SIZE);
 
@@ -33,6 +36,20 @@ string capitalize(const string& s) {
 void printOpPunc(const string& token) {
 	tokenout << "<" << token << ", " << yytext << ">" << endl;
 	logout << "Line# " << line_count << ": Token <" << token << "> Lexeme " << yytext << " found" << endl;	
+}
+
+void show_error(error_type e, const string& str) {
+	logout << "Error at line# " << line_count << ": ";
+
+	if (e == MULTICHAR) {
+		logout << "MULTICHAR_CONST_CHAR " << str << endl;
+	}
+	else if (e == UNFINISHED_CHAR) {
+		logout << "UNFINISHED_CONST_CHAR " << str << endl;
+	}
+	else if (e == UNRECOGNIZED) {
+		logout << "UNRECOGNIZED_CHAR " << str << endl;
+	}
 }
 
 %}
@@ -115,27 +132,45 @@ FLOAT_DECIMAL ({DIGIT}*\.{DIGIT}+([Ee][-+]?{DIGIT}+)?)|({DIGIT}+[Ee][-+]?{DIGIT}
 
 \'					{
 						cur_string.clear();
+						cur_len = 0;
 						BEGIN STATE_CHAR;
 					}
 
-<STATE_CHAR>\\\'	{ cur_string += "\'"; }
-<STATE_CHAR>\\\"	{ cur_string += "\""; }
-<STATE_CHAR>\\n		{ cur_string += "\n"; }
-<STATE_CHAR>\\t		{ cur_string += "\t"; }
-<STATE_CHAR>\\\\	{ cur_string += "\\"; }
-<STATE_CHAR>\\a		{ cur_string += "\a"; }
-<STATE_CHAR>\\f		{ cur_string += "\f"; }
-<STATE_CHAR>\\r		{ cur_string += "\r"; }
-<STATE_CHAR>\\b		{ cur_string += "\b"; }
-<STATE_CHAR>\\v		{ cur_string += "\v"; }
-<STATE_CHAR>\\0		{ cur_string += "\0"; }
+<STATE_CHAR>\\\'	{ cur_string += "\'"; cur_len++; }
+<STATE_CHAR>\\\"	{ cur_string += "\""; cur_len++; }
+<STATE_CHAR>\\n		{ cur_string += "\n"; cur_len++; }
+<STATE_CHAR>\\t		{ cur_string += "\t"; cur_len++; }
+<STATE_CHAR>\\\\	{ cur_string += "\\"; cur_len++; }
+<STATE_CHAR>\\a		{ cur_string += "\a"; cur_len++; }
+<STATE_CHAR>\\f		{ cur_string += "\f"; cur_len++; }
+<STATE_CHAR>\\r		{ cur_string += "\r"; cur_len++; }
+<STATE_CHAR>\\b		{ cur_string += "\b"; cur_len++; }
+<STATE_CHAR>\\v		{ cur_string += "\v"; cur_len++; }
+<STATE_CHAR>\\0		{ cur_string += "\0"; cur_len++; }
 <STATE_CHAR>\'		{ 
-						tokenout << "<CONST_CHAR, " << cur_string << ">" << endl;
-						logout << "Line# " << line_count << ": Token <CONST_CHAR> Lexeme " << cur_string << " found" << endl;
+						if (cur_len == 0) {
+							string str = "\'\'";
+							show_error(MULTICHAR, str);
+							error_count++;
+						}
+						else if (cur_len > 1) {
+							string str = "\'" + cur_string + "\'";
+							show_error(MULTICHAR, str);
+							error_count++;
+						}
+						else {
+							tokenout << "<CONST_CHAR, " << cur_string << ">" << endl;
+							logout << "Line# " << line_count << ": Token <CONST_CHAR> Lexeme " << cur_string << " found" << endl;
+						}
+						BEGIN INITIAL;
+					}
+<STATE_CHAR><<EOF>>	{
+						string str = "\'" + cur_string;
+						show_error(UNFINISHED_CHAR, str);
 						BEGIN INITIAL;
 					}
 
-. 					{}
+. 					{ show_error(UNRECOGNIZED, yytext); }
 
 %%
 
