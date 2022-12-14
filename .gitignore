@@ -4,3 +4,4 @@
 *.exe
 Assignment 1/*.txt
 Assignment 1/stress.cpp
+*.yy.c
