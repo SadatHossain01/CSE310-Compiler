@@ -1,6 +1,8 @@
 %option noyywrap
 
 %x STATE_CHAR
+%x STATE_SSTRING
+%x STATE_MSTRING
 
 %{
 	
@@ -177,7 +179,19 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 					}
 <STATE_CHAR>\\\'	{ cur_string += "\'"; cur_len++; }
 <STATE_CHAR>\\\"	{ cur_string += "\""; cur_len++; }
-<STATE_CHAR>\\n		{ cur_string += "\n"; cur_len++; }
+<STATE_CHAR>\\n		{ 
+						// a character can only be in two lines if it is '\n'
+						// so if we encounter '\n' in a character state, we will accept if it is the first one
+						// else we will terminate the running one, show unfinished error, and BEGIN INITIAL
+						if (cur_len == 0) {
+							cur_string += "\n"; cur_len++; 
+						}
+						else {
+							string str = "\'" + cur_string;
+							show_error(UNFINISHED_CHAR, str);
+							BEGIN INITIAL;	
+						}
+					}
 <STATE_CHAR>\\t		{ cur_string += "\t"; cur_len++; }
 <STATE_CHAR>\\\\	{ cur_string += "\\"; cur_len++; }
 <STATE_CHAR>\\a		{ cur_string += "\a"; cur_len++; }
@@ -186,7 +200,7 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 <STATE_CHAR>\\b		{ cur_string += "\b"; cur_len++; }
 <STATE_CHAR>\\v		{ cur_string += "\v"; cur_len++; }
 <STATE_CHAR>\\0		{ cur_string += "\0"; cur_len++; }
-<STATE_CHAR>\'		{	 
+<STATE_CHAR>\'		{	 	
 						if (cur_len == 0) {
 							string str = "\'\'";
 							show_error(EMPTY_CHAR, str);
@@ -206,8 +220,7 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 						show_error(UNFINISHED_CHAR, str);
 						BEGIN INITIAL;
 					}
-<STATE_CHAR>.		{ cur_string += yytext; cur_len++; }
-
+<STATE_CHAR>.		{ cur_string += yytext[0]; cur_len++; }
 
 . 					{ show_error(UNRECOGNIZED, yytext); }
 
