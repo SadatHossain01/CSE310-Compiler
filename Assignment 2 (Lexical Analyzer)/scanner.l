@@ -20,7 +20,7 @@ int error_count = 0;
 ofstream logout;
 ofstream tokenout;
 
-string cur_char;
+string cur_string;
 
 SymbolTable sym(BUCKET_SIZE);
 
@@ -28,6 +28,11 @@ string capitalize(const string& s) {
 	string ret = s;
 	for (char& c : ret) c = toupper(c);
 	return ret;
+}
+
+void printOpPunc(const string& token) {
+	tokenout << "<" << token << ", " << yytext << ">" << endl;
+	logout << "Line# " << line_count << ": Token <" << token << "> Lexeme " << yytext << " found" << endl;	
 }
 
 %}
@@ -61,10 +66,11 @@ FLOAT_DECIMAL ({DIGIT}*\.{DIGIT}+([Ee][-+]?{DIGIT}+)?)|({DIGIT}+[Ee][-+]?{DIGIT}
 "case"				|
 "default"			|
 "continue"			{
-						tokenout << "<" << capitalize(yytext) << ", " << yytext << endl;
+						tokenout << "<" << capitalize(yytext) << ", " << yytext << ">" << endl;
 						logout << "Line# " << line_count << ": Token <" << capitalize(yytext) << "> Lexeme " << yytext << " found" << endl;
 					}
 		
+
 {DIGIT}+ 			{
 						tokenout << "<CONST_INT, " << yytext << ">" << endl;
 						logout << "Line# " << line_count << ": Token <CONST_INT> Lexeme " << yytext << " found" << endl;
@@ -75,25 +81,57 @@ FLOAT_DECIMAL ({DIGIT}*\.{DIGIT}+([Ee][-+]?{DIGIT}+)?)|({DIGIT}+[Ee][-+]?{DIGIT}
 						logout << "Line# " << line_count << ": Token <CONST_FLOAT> Lexeme " << yytext << " found" << endl;
 					}
 
+"+"					|
+"-"					{ printOpPunc("ADDOP"); }
+"*"					|
+"/"					|
+"%"					{ printOpPunc("MULOP"); }
+"++"				|
+"--"				{ printOpPunc("INCOP"); }
+"<"					|
+"<="				|
+">"					|
+">="				|
+"=="				|
+"!="				{ printOpPunc("RELOP"); }
+"="					{ printOpPunc("ASSIGNOP"); }
+"&&"				|
+"||"				{ printOpPunc("LOGICOP"); }
+"&"					|
+"|"					|
+"^"					|
+"<<"				|
+">>"				{ printOpPunc("BITOP"); }
+"!"					{ printOpPunc("NOT"); }
+"("					{ printOpPunc("LPAREN"); }
+")"					{ printOpPunc("RPAREN"); }
+"{"					{ printOpPunc("LCURL"); }
+"}"					{ printOpPunc("RCURL"); }
+"["					{ printOpPunc("LSQUARE"); }
+"]"					{ printOpPunc("RSQUARE"); }
+","					{ printOpPunc("COMMA"); }
+";"					{ printOpPunc("SEMICOLON"); }
+
+
 \'					{
-						cur_char.clear();
+						cur_string.clear();
 						BEGIN STATE_CHAR;
 					}
 
-<STATE_CHAR>\\\'	{ cur_char += "\'"; }
-<STATE_CHAR>\\\"	{ cur_char += "\""; }
-<STATE_CHAR>\\n		{ cur_char += "\n"; }
-<STATE_CHAR>\\t		{ cur_char += "\t"; }
-<STATE_CHAR>\\\\	{ cur_char += "\\"; }
-<STATE_CHAR>\\a		{ cur_char += "\a"; }
-<STATE_CHAR>\\f		{ cur_char += "\f"; }
-<STATE_CHAR>\\r		{ cur_char += "\r"; }
-<STATE_CHAR>\\b		{ cur_char += "\b"; }
-<STATE_CHAR>\\v		{ cur_char += "\v"; }
-<STATE_CHAR>\\0		{ cur_char += "\0"; }
+<STATE_CHAR>\\\'	{ cur_string += "\'"; }
+<STATE_CHAR>\\\"	{ cur_string += "\""; }
+<STATE_CHAR>\\n		{ cur_string += "\n"; }
+<STATE_CHAR>\\t		{ cur_string += "\t"; }
+<STATE_CHAR>\\\\	{ cur_string += "\\"; }
+<STATE_CHAR>\\a		{ cur_string += "\a"; }
+<STATE_CHAR>\\f		{ cur_string += "\f"; }
+<STATE_CHAR>\\r		{ cur_string += "\r"; }
+<STATE_CHAR>\\b		{ cur_string += "\b"; }
+<STATE_CHAR>\\v		{ cur_string += "\v"; }
+<STATE_CHAR>\\0		{ cur_string += "\0"; }
 <STATE_CHAR>\'		{ 
-						tokenout << "<CONST_CHAR, " << cur_char << ">" << endl;
-						logout << "Line# " << line_count << ": Token <CONST_CHAR> Lexeme " << cur_char << " found" << endl;
+						tokenout << "<CONST_CHAR, " << cur_string << ">" << endl;
+						logout << "Line# " << line_count << ": Token <CONST_CHAR> Lexeme " << cur_string << " found" << endl;
 						BEGIN INITIAL;
 					}
 
@@ -102,13 +140,13 @@ FLOAT_DECIMAL ({DIGIT}*\.{DIGIT}+([Ee][-+]?{DIGIT}+)?)|({DIGIT}+[Ee][-+]?{DIGIT}
 %%
 
 int main(int argc, char** argv) {
-	if(argc!=2){
+	if(argc != 2){
 		printf("Please provide input file name and try again\n");
 		return 0;
 	}
 	
-	FILE *fin=fopen(argv[1],"r");
-	if(fin==NULL){
+	FILE *fin=fopen(argv[1], "r");
+	if(fin == NULL){
 		printf("Cannot open specified file\n");
 		return 0;
 	}
@@ -116,9 +154,8 @@ int main(int argc, char** argv) {
 	logout.open("1905001_log.txt");
 	tokenout.open("1905001_token.txt");
 
-	yyin= fin;
+	yyin = fin;
 	yylex();
-	// st.print();
 	fclose(yyin);
 	tokenout.close();
 	logout.close();
