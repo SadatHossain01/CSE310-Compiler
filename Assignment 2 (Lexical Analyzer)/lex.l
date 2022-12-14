@@ -1,6 +1,5 @@
 %option noyywrap
 
-%x INIT
 %x STATE_CHAR
 
 %{
@@ -95,7 +94,7 @@ FLOAT_DECIMAL ({DIGIT}*\.{DIGIT}+([Ee][-+]?{DIGIT}+)?)|({DIGIT}+[Ee][-+]?{DIGIT}
 <STATE_CHAR>\'		{ 
 						tokenout << "<CONST_CHAR, " << cur_char << ">" << endl;
 						logout << "Line# " << line_count << ": Token <CONST_CHAR> Lexeme " << cur_char << " found" << endl;
-						BEGIN INIT;
+						BEGIN INITIAL;
 					}
 
 . 					{}
