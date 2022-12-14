@@ -22,7 +22,7 @@ ofstream tokenout;
 int cur_len;
 string cur_string;
 
-enum error_type {MULTICHAR, UNFINISHED_CHAR, UNRECOGNIZED, TOO_DECIMAL, ILL_FORMED, INVALID_SUFFIX};
+enum error_type {MULTICHAR, EMPTY_CHAR, UNFINISHED_CHAR, UNRECOGNIZED, TOO_DECIMAL, ILL_FORMED, INVALID_SUFFIX};
 enum num_type {INTEGER, FLOAT};
 
 SymbolTable sym(BUCKET_SIZE);
@@ -63,6 +63,9 @@ void show_error(error_type e, const string& str) {
 	if (e == MULTICHAR) {
 		logout << "MULTICHAR_CONST_CHAR " << str << endl;
 	}
+	else if (e == EMPTY_CHAR) {
+		logout << "EMPTY_CONST_CHAR " << str << endl;
+	}
 	else if (e == UNFINISHED_CHAR) {
 		logout << "UNFINISHED_CONST_CHAR " << str << endl;
 	}
@@ -102,7 +105,6 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 %%
 
 {WHITESPACE} 		{}
-
 {NEWLINE} 			{ line_count++; }
 
 "if"				|
@@ -124,21 +126,17 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 		
 
 {INTEGER} 			{ printNum(INTEGER); }
-			
 {FLOATING_POINT}	{ printNum(FLOAT); }
-
 {TOO_DECIMAL}		{ show_error(TOO_DECIMAL, yytext); }					
-
 {ILL_FORMED}		{ show_error(ILL_FORMED, yytext); }
-
 {IDENTIFIER} 		{
 						logout << "Line# " << line_count << ": Token <ID> Lexeme " << yytext << " found" << endl;
 						tokenout << "<ID, " << yytext << ">" << endl;
 						bool success = sym.insert(yytext, "ID", logout);
 						if (success) sym.print('A', logout);
 					}
-
 {NON_IDENTIFIER} 	{ show_error(INVALID_SUFFIX, yytext); }
+
 
 "+"					|
 "-"					{ printOpPunc("ADDOP"); }
@@ -164,8 +162,8 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 "!"					{ printOpPunc("NOT"); }
 "("					{ printOpPunc("LPAREN"); }
 ")"					{ printOpPunc("RPAREN"); }
-"{"					{ printOpPunc("LCURL"); }
-"}"					{ printOpPunc("RCURL"); }
+"{"					{ printOpPunc("LCURL"); sym.enter_scope(); }
+"}"					{ printOpPunc("RCURL"); sym.exit_scope(); }
 "["					{ printOpPunc("LSQUARE"); }
 "]"					{ printOpPunc("RSQUARE"); }
 ","					{ printOpPunc("COMMA"); }
@@ -177,7 +175,6 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 						cur_len = 0;
 						BEGIN STATE_CHAR;
 					}
-
 <STATE_CHAR>\\\'	{ cur_string += "\'"; cur_len++; }
 <STATE_CHAR>\\\"	{ cur_string += "\""; cur_len++; }
 <STATE_CHAR>\\n		{ cur_string += "\n"; cur_len++; }
@@ -189,10 +186,10 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 <STATE_CHAR>\\b		{ cur_string += "\b"; cur_len++; }
 <STATE_CHAR>\\v		{ cur_string += "\v"; cur_len++; }
 <STATE_CHAR>\\0		{ cur_string += "\0"; cur_len++; }
-<STATE_CHAR>\'		{ 
+<STATE_CHAR>\'		{	 
 						if (cur_len == 0) {
 							string str = "\'\'";
-							show_error(MULTICHAR, str);
+							show_error(EMPTY_CHAR, str);
 						}
 						else if (cur_len > 1) {
 							string str = "\'" + cur_string + "\'";
@@ -209,6 +206,8 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 						show_error(UNFINISHED_CHAR, str);
 						BEGIN INITIAL;
 					}
+<STATE_CHAR>.		{ cur_string += yytext; cur_len++; }
+
 
 . 					{ show_error(UNRECOGNIZED, yytext); }
 
