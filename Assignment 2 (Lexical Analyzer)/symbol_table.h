@@ -21,7 +21,9 @@ class SymbolInfo {
     void set_name(const string &name) { this->name = name; }
     void set_type(const string &type) { this->type = type; }
     void set_next(SymbolInfo *next) { this->next = next; }
-    void print() { cout << "<" << name << "," << type << "> "; }
+    void print(ostream &out = cout) {
+        out << "<" << name << "," << type << "> ";
+    }
 };
 
 class ScopeTable {
@@ -85,7 +87,7 @@ class ScopeTable {
         return nullptr;
     }
 
-    bool insert(string name, string type) {
+    bool insert(string name, string type, ostream &out = cout) {
         unsigned int hash_value = myhash(name);
         int pos = 0;
         bool success = false;
@@ -96,9 +98,9 @@ class ScopeTable {
             arr[hash_value] = si;
             success = true;
             pos = 1;
-            cout << "\t";
-            cout << "Inserted in ScopeTable# " << id << " at position "
-                 << hash_value + 1 << ", " << pos << "\n";
+            // cout << "\t";
+            // cout << "Inserted in ScopeTable# " << id << " at position "
+            //      << hash_value + 1 << ", " << pos << "\n";
         } else {
             pos = 1;
 
@@ -116,9 +118,10 @@ class ScopeTable {
             }
 
             if (pos == -1) {
-                cout << "\t";
-                cout << "\'" << name
-                     << "\' already exists in the current ScopeTable\n";
+                // changed the following two lines to print to log file
+                out << "\t";
+                out << "\'" << name
+                    << "\' already exists in the current ScopeTable\n";
             }
 
             else {
@@ -126,9 +129,9 @@ class ScopeTable {
                 SymbolInfo *si = new SymbolInfo(name, type);
                 cur->set_next(si);
                 success = true;
-                cout << "\t";
-                cout << "Inserted in ScopeTable# " << id << " at position "
-                     << hash_value + 1 << ", " << pos << "\n";
+                // cout << "\t";
+                // cout << "Inserted in ScopeTable# " << id << " at position "
+                //      << hash_value + 1 << ", " << pos << "\n";
             }
         }
 
@@ -182,17 +185,18 @@ class ScopeTable {
         return del;
     }
 
-    void print() {
-        cout << "\tScopeTable# " << id << "\n";
+    void print(ostream &out = cout) {
+        out << "\tScopeTable# " << id << "\n";
 
         for (int i = 0; i < num_buckets; i++) {
-            cout << "\t" << i + 1 << "--> ";
+            if (arr[i] == nullptr) continue;
+            out << "\t" << i + 1 << "--> ";
             SymbolInfo *cur = arr[i];
             while (cur != nullptr) {
-                cur->print();
+                cur->print(out);
                 cur = cur->get_next();
             }
-            cout << "\n";
+            out << "\n";
         }
     }
 
@@ -246,8 +250,8 @@ class SymbolTable {
         }
     }
 
-    bool insert(string name, string type) {
-        return current_scope->insert(name, type);
+    bool insert(string name, string type, ostream &out = cout) {
+        return current_scope->insert(name, type, out);
     }
 
     bool remove(const string &s) { return current_scope->remove(s); }
@@ -275,13 +279,13 @@ class SymbolTable {
         terminated = true;
     }
 
-    void print(char type) {
+    void print(char type, ostream &out = cout) {
         if (type == 'c' || type == 'C') {
-            current_scope->print();
+            current_scope->print(out);
         } else if (type == 'a' || type == 'A') {
             ScopeTable *cur = current_scope;
             while (true) {
-                cur->print();
+                cur->print(out);
                 if (cur->get_parent() == nullptr) return;
                 else cur = cur->get_parent();
             }

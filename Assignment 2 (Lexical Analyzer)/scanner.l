@@ -6,7 +6,6 @@
 	
 #include<cstdio>
 #include<cstdlib>
-#include<string>
 #include<vector>
 #include "symbol_table.h"
 
@@ -23,7 +22,8 @@ ofstream tokenout;
 int cur_len;
 string cur_string;
 
-enum error_type {MULTICHAR, UNFINISHED_CHAR, UNRECOGNIZED, TOO_DECIMAL, ILL_FORMED};
+enum error_type {MULTICHAR, UNFINISHED_CHAR, UNRECOGNIZED, TOO_DECIMAL, ILL_FORMED, INVALID_SUFFIX};
+enum num_type {INTEGER, FLOAT};
 
 SymbolTable sym(BUCKET_SIZE);
 
@@ -31,6 +31,23 @@ string capitalize(const string& s) {
 	string ret = s;
 	for (char& c : ret) c = toupper(c);
 	return ret;
+}
+
+void printKeyword() {
+	string cap = capitalize(yytext);
+	tokenout << "<" << cap << ", " << yytext << ">" << endl;
+	logout << "Line# " << line_count << ": Token <" << cap << "> Lexeme " << yytext << " found" << endl;
+}
+
+void printNum(num_type nt) {
+	if (nt == INTEGER) {
+		tokenout << "<CONST_INT, " << yytext << ">" << endl;
+		logout << "Line# " << line_count << ": Token <CONST_INT> Lexeme " << yytext << " found" << endl;
+	}
+	else if (nt == FLOAT) {
+		tokenout << "<CONST_FLOAT, " << yytext << ">" << endl;
+		logout << "Line# " << line_count << ": Token <CONST_FLOAT> Lexeme " << yytext << " found" << endl;
+	}
 }
 
 void printOpPunc(const string& token) {
@@ -57,6 +74,9 @@ void show_error(error_type e, const string& str) {
 	}
 	else if (e == ILL_FORMED) {
 		logout << "ILLFORMED_NUMBER " << str << endl;
+	}
+	else if (e == INVALID_SUFFIX) {
+		logout << "INVALID_ID_SUFFIX_NUM_PREFIX " << str << endl;
 	}
 }
 
@@ -100,29 +120,25 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 "switch"			|
 "case"				|
 "default"			|
-"continue"			{
-						tokenout << "<" << capitalize(yytext) << ", " << yytext << ">" << endl;
-						logout << "Line# " << line_count << ": Token <" << capitalize(yytext) << "> Lexeme " << yytext << " found" << endl;
-					}
+"continue"			{ printKeyword(); }
 		
 
-{INTEGER} 			{
-						tokenout << "<CONST_INT, " << yytext << ">" << endl;
-						logout << "Line# " << line_count << ": Token <CONST_INT> Lexeme " << yytext << " found" << endl;
-					}
+{INTEGER} 			{ printNum(INTEGER); }
 			
-{FLOATING_POINT}	{
-						tokenout << "<CONST_FLOAT, " << yytext << ">" << endl;
-						logout << "Line# " << line_count << ": Token <CONST_FLOAT> Lexeme " << yytext << " found" << endl;
+{FLOATING_POINT}	{ printNum(FLOAT); }
+
+{TOO_DECIMAL}		{ show_error(TOO_DECIMAL, yytext); }					
+
+{ILL_FORMED}		{ show_error(ILL_FORMED, yytext); }
+
+{IDENTIFIER} 		{
+						logout << "Line# " << line_count << ": Token <ID> Lexeme " << yytext << " found" << endl;
+						tokenout << "<ID, " << yytext << ">" << endl;
+						bool success = sym.insert(yytext, "ID", logout);
+						if (success) sym.print('A', logout);
 					}
 
-{TOO_DECIMAL}		{
-						show_error(TOO_DECIMAL, yytext);
-					}					
-
-{ILL_FORMED}		{
-						show_error(ILL_FORMED, yytext);
-					}
+{NON_IDENTIFIER} 	{ show_error(INVALID_SUFFIX, yytext); }
 
 "+"					|
 "-"					{ printOpPunc("ADDOP"); }
@@ -216,6 +232,8 @@ int main(int argc, char** argv) {
 	yyin = fin;
 	yylex();
 	fclose(yyin);
+	logout << "Total lines: " << line_count << endl;
+	logout << "Total errors: " << error_count << endl;
 	tokenout.close();
 	logout.close();
 	return 0;
