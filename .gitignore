@@ -3,7 +3,6 @@
 *.out
 *.exe
 *.yy.c
-=======
 Assignment 1 (Symbol Table)/*.txt
 Assignment 1 (Symbol Table)/test/*
 Assignment 1 (Symbol Table)/stress.cpp
