@@ -23,7 +23,7 @@ ofstream tokenout;
 int cur_len;
 string cur_string;
 
-enum error_type {MULTICHAR, UNFINISHED_CHAR, UNRECOGNIZED};
+enum error_type {MULTICHAR, UNFINISHED_CHAR, UNRECOGNIZED, TOO_DECIMAL};
 
 SymbolTable sym(BUCKET_SIZE);
 
@@ -39,8 +39,10 @@ void printOpPunc(const string& token) {
 }
 
 void show_error(error_type e, const string& str) {
-	logout << "Error at line# " << line_count << ": ";
+	error_count++;
 
+	logout << "Error at line# " << line_count << ": ";
+	
 	if (e == MULTICHAR) {
 		logout << "MULTICHAR_CONST_CHAR " << str << endl;
 	}
@@ -50,16 +52,29 @@ void show_error(error_type e, const string& str) {
 	else if (e == UNRECOGNIZED) {
 		logout << "UNRECOGNIZED_CHAR " << str << endl;
 	}
+	else if (e == TOO_DECIMAL) {
+		logout << "TOO MANY DECIMAL POINTS " << str << endl;
+	}
 }
 
 %}
 
 WHITESPACE [ \t\f\r\v]+
-LETTER [_a-zA-Z]
+LETTER [a-zA-Z]
 DIGIT [0-9]
-NEWLINE \n
-ALPHANUMERIC ({LETTER}|{DIGIT})*
-FLOAT_DECIMAL ({DIGIT}*\.{DIGIT}+([Ee][-+]?{DIGIT}+)?)|({DIGIT}+[Ee][-+]?{DIGIT}+)
+NEWLINE \r?\n
+ALPHABET {LETTER}|_
+ALPHANUMERIC {ALPHABET}|{DIGIT}
+
+IDENTIFIER {ALPHABET}{ALPHANUMERIC}*
+NON_IDENTIFIER {DIGIT}{ALPHANUMERIC}*
+
+FRACTION (\.{DIGIT}+)
+
+INTEGER {DIGIT}+
+FLOATING_POINT (({INTEGER}{FRACTION}?)|{FRACTION})([Ee][-+]?{INTEGER})?
+TOO_DECIMAL ({DIGIT}*(\.{DIGIT}*)\.[-+0-9\.Ee]*)
+ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 
 %%
 
@@ -88,15 +103,19 @@ FLOAT_DECIMAL ({DIGIT}*\.{DIGIT}+([Ee][-+]?{DIGIT}+)?)|({DIGIT}+[Ee][-+]?{DIGIT}
 					}
 		
 
-{DIGIT}+ 			{
+{INTEGER} 			{
 						tokenout << "<CONST_INT, " << yytext << ">" << endl;
 						logout << "Line# " << line_count << ": Token <CONST_INT> Lexeme " << yytext << " found" << endl;
 					}
 			
-{FLOAT_DECIMAL}		{
+{FLOATING_POINT}	{
 						tokenout << "<CONST_FLOAT, " << yytext << ">" << endl;
 						logout << "Line# " << line_count << ": Token <CONST_FLOAT> Lexeme " << yytext << " found" << endl;
 					}
+
+{TOO_DECIMAL}		{
+						show_error(TOO_DECIMAL, yytext);
+					}					
 
 "+"					|
 "-"					{ printOpPunc("ADDOP"); }
@@ -151,12 +170,10 @@ FLOAT_DECIMAL ({DIGIT}*\.{DIGIT}+([Ee][-+]?{DIGIT}+)?)|({DIGIT}+[Ee][-+]?{DIGIT}
 						if (cur_len == 0) {
 							string str = "\'\'";
 							show_error(MULTICHAR, str);
-							error_count++;
 						}
 						else if (cur_len > 1) {
 							string str = "\'" + cur_string + "\'";
 							show_error(MULTICHAR, str);
-							error_count++;
 						}
 						else {
 							tokenout << "<CONST_CHAR, " << cur_string << ">" << endl;
