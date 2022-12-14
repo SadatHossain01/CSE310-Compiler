@@ -23,7 +23,7 @@ ofstream tokenout;
 int cur_len;
 string cur_string;
 
-enum error_type {MULTICHAR, UNFINISHED_CHAR, UNRECOGNIZED, TOO_DECIMAL};
+enum error_type {MULTICHAR, UNFINISHED_CHAR, UNRECOGNIZED, TOO_DECIMAL, ILL_FORMED};
 
 SymbolTable sym(BUCKET_SIZE);
 
@@ -54,6 +54,9 @@ void show_error(error_type e, const string& str) {
 	}
 	else if (e == TOO_DECIMAL) {
 		logout << "TOO MANY DECIMAL POINTS " << str << endl;
+	}
+	else if (e == ILL_FORMED) {
+		logout << "ILLFORMED_NUMBER " << str << endl;
 	}
 }
 
@@ -116,6 +119,10 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 {TOO_DECIMAL}		{
 						show_error(TOO_DECIMAL, yytext);
 					}					
+
+{ILL_FORMED}		{
+						show_error(ILL_FORMED, yytext);
+					}
 
 "+"					|
 "-"					{ printOpPunc("ADDOP"); }
