@@ -93,14 +93,14 @@ void printIdentifier() {
 	if (success) sym.print('A', logout);
 }
 
-void printNum(num_type nt) {
+void printNum(num_type nt, const string& str) {
 	if (nt == INTEGER) {
-		tokenout << "<CONST_INT, " << yytext << ">" << endl;
-		logout << "Line# " << line_count << ": Token <CONST_INT> Lexeme " << yytext << " found" << endl;
+		tokenout << "<CONST_INT, " << str << ">" << endl;
+		logout << "Line# " << line_count << ": Token <CONST_INT> Lexeme " << str << " found" << endl;
 	}
 	else if (nt == FLOAT) {
-		tokenout << "<CONST_FLOAT, " << yytext << ">" << endl;
-		logout << "Line# " << line_count << ": Token <CONST_FLOAT> Lexeme " << yytext << " found" << endl;
+		tokenout << "<CONST_FLOAT, " << str << ">" << endl;
+		logout << "Line# " << line_count << ": Token <CONST_FLOAT> Lexeme " << str << " found" << endl;
 	}
 }
 
@@ -212,8 +212,9 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[E]*{FLOATING_POINT}*
 "continue"				{ printKeyword(); }
 		
 
-{INTEGER} 				{ printNum(INTEGER); }
-{FLOATING_POINT}		{ printNum(FLOAT); }
+{INTEGER} 				{ printNum(INTEGER, yytext); }
+{FLOATING_POINT}		{ printNum(FLOAT, yytext); }
+{INTEGER}\.				{ string str = yytext; str += "0"; printNum(FLOAT, str); }
 {TOO_DECIMAL}			{ show_error(TOO_DECIMAL, yytext); }
 {ILL_FORMED}			{ show_error(ILL_FORMED, yytext); }
 
