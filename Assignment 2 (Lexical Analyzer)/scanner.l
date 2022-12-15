@@ -22,18 +22,18 @@ int error_count = 0;
 ofstream logout;
 ofstream tokenout;
 
-// if a string stretches multiple lines, we need to show the starting line no, 
-// hence needs to keep the line no. unchanged while the string is on.
+// if a string stretches multiple lines, we need to show the starting line no in case of token printing, 
+// hence we need to keep the line no. unchanged while the string is running
 int inside_line = 0; 
 
-// in case of printing char, comment, strings, if it is unfinished then we print
+// in case of printing character and strings, if it is unfinished then we print
 // characters like \n \b as they are (not their original behaviour), but if they are 
 // completed properly, then \n will be replaced by newline...
 
 string cur_char, cur_char_raw;
 string cur_string, cur_string_raw;
 string cur_comment;
-int char_len, str_len; // will hold the length of the original one, not raw one
+int char_len; // will hold the length of the original one, not raw one
 
 enum error_type {
 		MULTICHAR, EMPTY_CHAR, UNFINISHED_CHAR, UNRECOGNIZED, TOO_DECIMAL, 
@@ -55,7 +55,6 @@ void reset(reset_type rt) {
 	else if (rt == STRING) {
 		cur_string.clear();
 		cur_string_raw.clear();
-		str_len = 0;
 	}
 	else if (rt == COMMENT) {
 		cur_comment.clear();
@@ -72,6 +71,13 @@ void printKeyword() {
 	string cap = capitalize(yytext);
 	tokenout << "<" << cap << ", " << yytext << ">" << endl;
 	logout << "Line# " << line_count << ": Token <" << cap << "> Lexeme " << yytext << " found" << endl;
+}
+
+void printIdentifier() {
+	logout << "Line# " << line_count << ": Token <ID> Lexeme " << yytext << " found" << endl;
+	tokenout << "<ID, " << yytext << ">" << endl;
+	bool success = sym.insert(yytext, "ID", logout);
+	if (success) sym.print('A', logout);
 }
 
 void printNum(num_type nt) {
@@ -197,12 +203,7 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 {ILL_FORMED}		{ show_error(ILL_FORMED, yytext); }
 
 
-{IDENTIFIER} 		{
-						logout << "Line# " << line_count << ": Token <ID> Lexeme " << yytext << " found" << endl;
-						tokenout << "<ID, " << yytext << ">" << endl;
-						bool success = sym.insert(yytext, "ID", logout);
-						if (success) sym.print('A', logout);
-					}
+{IDENTIFIER} 		{ printIdentifier(); }
 {NON_IDENTIFIER} 	{ show_error(INVALID_SUFFIX, yytext); }
 
 
@@ -259,7 +260,6 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 							string str = "\'" + cur_char_raw;
 							show_error(UNFINISHED_CHAR, str);
 							BEGIN INITIAL;
-							reset(CHAR);
 						}
 <STATE_CHAR>\'			{	 	
 							if (char_len == 0) {
@@ -267,7 +267,6 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 								show_error(EMPTY_CHAR, str);
 							}
 							else if (char_len > 1) {
-								// review this line later
 								string str = "\'" + cur_char + "\'";
 								show_error(MULTICHAR, str);
 							}
@@ -283,17 +282,17 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 <STATE_CHAR>.			{ cur_char += yytext[0]; cur_char_raw += yytext[0]; char_len++; }
 
 
-<STATE_STRING>\\\'		{ cur_string += "\'"; cur_string_raw += "\\\'"; str_len++; }
-<STATE_STRING>\\\"		{ cur_string += "\""; cur_string_raw += "\\\""; str_len++; }
-<STATE_STRING>\\t		{ cur_string += "\t"; cur_string_raw += "\\t"; str_len++; }
-<STATE_STRING>\\n		{ cur_string += "\n"; cur_string_raw += "\\n"; str_len++; }
-<STATE_STRING>\\\\		{ cur_string += "\\"; cur_string_raw += "\\\\"; str_len++; }
-<STATE_STRING>\\a		{ cur_string += "\a"; cur_string_raw += "\\a"; str_len++; }
-<STATE_STRING>\\f		{ cur_string += "\f"; cur_string_raw += "\\f"; str_len++; }
-<STATE_STRING>\\r		{ cur_string += "\r"; cur_string_raw += "\\r"; str_len++; }
-<STATE_STRING>\\b		{ cur_string += "\b"; cur_string_raw += "\\b"; str_len++; }
-<STATE_STRING>\\v		{ cur_string += "\v"; cur_string_raw += "\\v"; str_len++; }
-<STATE_STRING>\\0		{ cur_string += "\0"; cur_string_raw += "\\0"; str_len++; }
+<STATE_STRING>\\\'		{ cur_string += "\'"; cur_string_raw += "\\\'"; }
+<STATE_STRING>\\\"		{ cur_string += "\""; cur_string_raw += "\\\""; }
+<STATE_STRING>\\n		{ cur_string += "\n"; cur_string_raw += "\\n"; }
+<STATE_STRING>\\t		{ cur_string += "\t"; cur_string_raw += "\\t"; }
+<STATE_STRING>\\\\		{ cur_string += "\\"; cur_string_raw += "\\\\"; }
+<STATE_STRING>\\a		{ cur_string += "\a"; cur_string_raw += "\\a"; }
+<STATE_STRING>\\f		{ cur_string += "\f"; cur_string_raw += "\\f"; }
+<STATE_STRING>\\r		{ cur_string += "\r"; cur_string_raw += "\\r"; }
+<STATE_STRING>\\b		{ cur_string += "\b"; cur_string_raw += "\\b"; }
+<STATE_STRING>\\v		{ cur_string += "\v"; cur_string_raw += "\\v"; }
+<STATE_STRING>\\0		{ cur_string += "\0"; cur_string_raw += "\\0"; }
 <STATE_STRING>\\\n 		{ 
 							// an example comment like this: "abc\
 							def"
@@ -303,22 +302,11 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 							def
 							// the string is actually "abcdef"
 							cur_string_raw += "\\\n";
-							str_len++; 
 						}
 <STATE_STRING>\\\r\n 	{ 
 							// similar to previous one
 							inside_line++; 
 							cur_string_raw += "\\\r\n";
-							str_len++; 
-						}
-<STATE_STRING>{NEWLINE} {
-							// error as multiline string must have '\' at the end of a line
-							// if error, print the raw version
-							string str = "\"" + cur_string_raw;
-							line_count += inside_line;
-							show_error(UNFINISHED_STRING, str);
-							line_count++;
-							BEGIN INITIAL; 
 						}
 <STATE_STRING><<EOF>> 	{
 							// if error, print the raw version
@@ -337,17 +325,20 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 							line_count += inside_line;
 							BEGIN INITIAL;
 						}
-<STATE_STRING>.			{ cur_string += yytext[0]; cur_string_raw += yytext[0]; str_len++; }
+<STATE_STRING>{NEWLINE} {
+							// error as multiline string must have '\' at the end of a line
+							// if error, print the raw version
+							string str = "\"" + cur_string_raw;
+							line_count += inside_line;
+							show_error(UNFINISHED_STRING, str);
+							line_count++;
+							BEGIN INITIAL; 
+						}
+<STATE_STRING>.			{ cur_string += yytext[0]; cur_string_raw += yytext[0]; }
 
 
-<STATE_S_COMMENT>\\\n		{
-								inside_line++;
-								cur_comment += "\\\n";
-							}
-<STATE_S_COMMENT>\\\r\n		{
-								inside_line++;
-								cur_comment += "\\\r\n";
-							}
+<STATE_S_COMMENT>\\\n		{ inside_line++; cur_comment += "\\\n"; }
+<STATE_S_COMMENT>\\\r\n		{ inside_line++; cur_comment += "\\\r\n"; }
 <STATE_S_COMMENT>{NEWLINE}	{
 								inside_line++;
 								string str = "//" + cur_comment;
@@ -361,7 +352,6 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 								line_count += inside_line;
 								BEGIN INITIAL;
 							}
-<STATE_S_COMMENT>\\			{ cur_comment += "\\"; }
 <STATE_S_COMMENT>.			{ cur_comment += yytext[0]; }
 
 
@@ -380,7 +370,7 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 							}
 <STATE_D_COMMENT>.			{ cur_comment += yytext[0]; }							
 
-
+<<EOF>>						{ return 0; }
 . 							{ show_error(UNRECOGNIZED, yytext); }
 
 %%
@@ -403,9 +393,11 @@ int main(int argc, char** argv) {
 	yyin = fin;
 	yylex();
 	fclose(yyin);
+
 	sym.print('A', logout);
 	logout << "Total lines: " << line_count << endl;
 	logout << "Total errors: " << error_count << endl;
+	
 	tokenout.close();
 	logout.close();
 	return 0;
