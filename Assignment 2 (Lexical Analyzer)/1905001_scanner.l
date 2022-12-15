@@ -293,21 +293,16 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 <STATE_STRING>\\b		{ cur_string += "\b"; cur_string_raw += "\\b"; }
 <STATE_STRING>\\v		{ cur_string += "\v"; cur_string_raw += "\\v"; }
 <STATE_STRING>\\0		{ cur_string += "\0"; cur_string_raw += "\\0"; }
-<STATE_STRING>\\\n 		{ 
-							// an example comment like this: "abc\
-							def"
-							inside_line++; 
-							// not adding to cur_string, as multiline string ultimately is not multiline
-							// if the string is like this: abc\
-							def
-							// the string is actually "abcdef"
-							cur_string_raw += "\\\n";
-						}
-<STATE_STRING>\\\r\n 	{ 
-							// similar to previous one
-							inside_line++; 
-							cur_string_raw += "\\\r\n";
-						}
+<STATE_STRING>\\{NEWLINE}	{ 
+								// an example comment like this: 
+								//"abc\
+								def"
+								// not adding to cur_string, as multiline string ultimately is not multiline
+								// the aforementioned string is actually "abcdef"
+								// so only add to raw string
+								inside_line++; 
+								cur_string_raw += yytext;
+							}
 <STATE_STRING><<EOF>> 	{
 							// if error, print the raw version
 							string str = "\"" + cur_string_raw;
@@ -362,13 +357,14 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 								show_error(UNFINISHED_COMMENT, str);
 								BEGIN INITIAL;
 							}
-<STATE_STAR_COMMENT>\*\/		{
+<STATE_STAR_COMMENT>\*\/	{
 								string str = "/*" + cur_comment + "*/";
 								printComment(MULTILINE, str);
 								line_count += inside_line;
 								BEGIN INITIAL;
 							}
-<STATE_STAR_COMMENT>.			{ cur_comment += yytext[0]; }							
+<STATE_STAR_COMMENT>.		{ cur_comment += yytext[0]; }							
+
 
 <<EOF>>						{ return 0; }
 . 							{ show_error(UNRECOGNIZED, yytext); }
