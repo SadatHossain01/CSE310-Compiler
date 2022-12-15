@@ -182,12 +182,15 @@ MISC [ntafbvr0\'\"\\]
 IDENTIFIER {ALPHABET}{ALPHANUMERIC}*
 NOT_ID {DIGIT}{ALPHANUMERIC}*
 
-FRACTION (\.{DIGIT}+)
-
 INTEGER {DIGIT}+
-FLOATING_POINT (({INTEGER}{FRACTION}?)|{FRACTION})([E][-+]?{INTEGER})?
-TOO_DECIMAL ({DIGIT}*(\.{DIGIT}*)\.[-+0-9\.E]*)
-ILL_FORMED ({INTEGER}|{FLOATING_POINT})[E]*{FLOATING_POINT}*
+
+FRACTION (\.{INTEGER})
+EXPONENT ([Ee][-+]?{INTEGER})
+
+FLOATING_POINT ({INTEGER}\.?{INTEGER}?{EXPONENT})|({FRACTION}{EXPONENT})|({INTEGER}?{FRACTION})|({INTEGER}\.)
+
+TOO_DECIMAL ({DIGIT}*(\.{DIGIT}*)\.[-+0-9\.Ee]*)
+ILL_FORMED (({INTEGER}|{FLOATING_POINT})[Ee]*{FLOATING_POINT}*)|(\.[Ee]{INTEGER}?)|({INTEGER}\.[Ee])
 
 %%
 
@@ -214,7 +217,6 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[E]*{FLOATING_POINT}*
 
 {INTEGER} 				{ printNum(INTEGER, yytext); }
 {FLOATING_POINT}		{ printNum(FLOAT, yytext); }
-{INTEGER}\.				{ string str = yytext; str += "0"; printNum(FLOAT, str); }
 {TOO_DECIMAL}			{ show_error(TOO_DECIMAL, yytext); }
 {ILL_FORMED}			{ show_error(ILL_FORMED, yytext); }
 
@@ -364,7 +366,8 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[E]*{FLOATING_POINT}*
 
 
 <C_COMMENT>\n			{ 
-							inside_line++; cur_comment += "\n"; 
+							inside_line++; 
+							cur_comment += "\n"; 
 						}
 <C_COMMENT><<EOF>>		{
 							string str = "/*" + cur_comment;
