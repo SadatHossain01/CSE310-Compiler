@@ -32,14 +32,15 @@ int inside_line = 0;
 
 string cur_char, cur_char_raw;
 string cur_string, cur_string_raw;
-string cur_comment, cur_comment_raw;
-int char_len, str_len, comment_len; // will hold the length of the original one, not raw one
+string cur_comment;
+int char_len, str_len; // will hold the length of the original one, not raw one
 
 enum error_type {
-	MULTICHAR, EMPTY_CHAR, UNFINISHED_CHAR, UNRECOGNIZED, TOO_DECIMAL, 
-	ILL_FORMED, INVALID_SUFFIX, UNFINISHED_STRING};
+		MULTICHAR, EMPTY_CHAR, UNFINISHED_CHAR, UNRECOGNIZED, TOO_DECIMAL, 
+		ILL_FORMED, INVALID_SUFFIX, UNFINISHED_STRING, UNFINISHED_COMMENT
+	};
 enum num_type {INTEGER, FLOAT};
-enum string_type {SINGLE_LINE, MULTILINE};
+enum line_type {SINGLE_LINE, MULTILINE};
 enum reset_type {CHAR, STRING, COMMENT};
 
 SymbolTable sym(BUCKET_SIZE);
@@ -58,8 +59,6 @@ void reset(reset_type rt) {
 	}
 	else if (rt == COMMENT) {
 		cur_comment.clear();
-		cur_comment_raw.clear();
-		comment_len = 0;
 	}
 }
 
@@ -96,14 +95,23 @@ void printChar(const string& str) {
 	logout << "Line# " << line_count << ": Token <CONST_CHAR> Lexeme " << str << " found" << endl;
 }
 
-void printString(string_type st, const string& str1, const string& str2) {
-	if (st == SINGLE_LINE) {
+void printString(line_type lt, const string& str1, const string& str2) {
+	if (lt == SINGLE_LINE) {
 		logout << "Line# " << line_count << ": Token <SINGLE LINE STRING> Lexeme " << str1 << " found" << endl;
 		tokenout << "<SINGLE LINE STRING, " << str2 << ">" << endl; 
 	}
-	else if (st == MULTILINE) {
+	else if (lt == MULTILINE) {
 		logout << "Line# " << line_count << ": Token <MULTI LINE STRING> Lexeme " << str1 << " found" << endl;
 		tokenout << "<MULTI LINE STRING, " << str2 << ">" << endl;
+	}
+}
+
+void printComment(line_type lt, const string& str) {
+	if (lt == SINGLE_LINE) {
+		logout << "Line# " << line_count << ": Token <SINGLE LINE COMMENT> Lexeme " << str << " found" << endl;
+	}
+	else if (lt == MULTILINE) {
+		logout << "Line# " << line_count << ": Token <MULTI LINE COMMENT> Lexeme " << str << " found" << endl;
 	}
 }
 
@@ -135,6 +143,9 @@ void show_error(error_type e, const string& str) {
 	}
 	else if (e == UNFINISHED_STRING) {
 		logout << "UNFINISHED_STRING " << str << endl;
+	}
+	else if (e == UNFINISHED_COMMENT) {
+		logout << "UNFINISHED COMMENT " << str << endl;
 	}
 }
 
@@ -229,71 +240,71 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 
 \'					{ BEGIN STATE_CHAR; reset(CHAR); }
 \"					{ BEGIN STATE_STRING; reset(STRING); }
-\/\/				{ /*BEGIN STATE_S_COMMENT; reset(COMMENT);*/ }
+\/\/				{ BEGIN STATE_S_COMMENT; reset(COMMENT); }
 \/\*				{ BEGIN STATE_D_COMMENT; reset(COMMENT); }
 
 
-<STATE_CHAR>\\\'	{ cur_char += "\'"; cur_char_raw += "\\\'"; char_len++; }
-<STATE_CHAR>\\\"	{ cur_char += "\""; cur_char_raw += "\\\""; char_len++; }
-<STATE_CHAR>\\n		{ cur_char += "\n"; cur_char_raw += "\\n"; char_len++; }
-<STATE_CHAR>\\t		{ cur_char += "\t"; cur_char_raw += "\\t"; char_len++; }
-<STATE_CHAR>\\\\	{ cur_char += "\\"; cur_char_raw += "\\\\"; char_len++; }
-<STATE_CHAR>\\a		{ cur_char += "\a"; cur_char_raw += "\\a"; char_len++; }
-<STATE_CHAR>\\f		{ cur_char += "\f"; cur_char_raw += "\\f"; char_len++; }
-<STATE_CHAR>\\r		{ cur_char += "\r"; cur_char_raw += "\\r"; char_len++; }
-<STATE_CHAR>\\b		{ cur_char += "\b"; cur_char_raw += "\\b"; char_len++; }
-<STATE_CHAR>\\v		{ cur_char += "\v"; cur_char_raw += "\\v"; char_len++; }
-<STATE_CHAR>\\0		{ cur_char += "\0"; cur_char_raw += "\\0"; char_len++; }
-<STATE_CHAR><<EOF>>	{
-						string str = "\'" + cur_char_raw;
-						show_error(UNFINISHED_CHAR, str);
-						BEGIN INITIAL;
-						reset(CHAR);
-					}
-<STATE_CHAR>\'		{	 	
-						if (char_len == 0) {
-							string str = "\'\'";
-							show_error(EMPTY_CHAR, str);
+<STATE_CHAR>\\\'		{ cur_char += "\'"; cur_char_raw += "\\\'"; char_len++; }
+<STATE_CHAR>\\\"		{ cur_char += "\""; cur_char_raw += "\\\""; char_len++; }
+<STATE_CHAR>\\n			{ cur_char += "\n"; cur_char_raw += "\\n"; char_len++; }
+<STATE_CHAR>\\t			{ cur_char += "\t"; cur_char_raw += "\\t"; char_len++; }
+<STATE_CHAR>\\\\		{ cur_char += "\\"; cur_char_raw += "\\\\"; char_len++; }
+<STATE_CHAR>\\a			{ cur_char += "\a"; cur_char_raw += "\\a"; char_len++; }
+<STATE_CHAR>\\f			{ cur_char += "\f"; cur_char_raw += "\\f"; char_len++; }
+<STATE_CHAR>\\r			{ cur_char += "\r"; cur_char_raw += "\\r"; char_len++; }
+<STATE_CHAR>\\b			{ cur_char += "\b"; cur_char_raw += "\\b"; char_len++; }
+<STATE_CHAR>\\v			{ cur_char += "\v"; cur_char_raw += "\\v"; char_len++; }
+<STATE_CHAR>\\0			{ cur_char += "\0"; cur_char_raw += "\\0"; char_len++; }
+<STATE_CHAR><<EOF>>		{
+							string str = "\'" + cur_char_raw;
+							show_error(UNFINISHED_CHAR, str);
+							BEGIN INITIAL;
+							reset(CHAR);
 						}
-						else if (char_len > 1) {
-							// review this line later
-							string str = "\'" + cur_char + "\'";
-							show_error(MULTICHAR, str);
+<STATE_CHAR>\'			{	 	
+							if (char_len == 0) {
+								string str = "\'\'";
+								show_error(EMPTY_CHAR, str);
+							}
+							else if (char_len > 1) {
+								// review this line later
+								string str = "\'" + cur_char + "\'";
+								show_error(MULTICHAR, str);
+							}
+							else printChar(cur_char);
+							BEGIN INITIAL;
 						}
-						else printChar(cur_char);
-						BEGIN INITIAL;
-					}
-<STATE_CHAR>{NEWLINE} { 
-						string str = "\'" + cur_char_raw;
-						show_error(UNFINISHED_CHAR, str); 
-						line_count++;
-						BEGIN INITIAL;
-					  }
-<STATE_CHAR>.		{ cur_char += yytext[0]; cur_char_raw += yytext[0]; char_len++; }
+<STATE_CHAR>{NEWLINE} 	{ 
+							string str = "\'" + cur_char_raw;
+							show_error(UNFINISHED_CHAR, str); 
+							line_count++;
+							BEGIN INITIAL;
+						}
+<STATE_CHAR>.			{ cur_char += yytext[0]; cur_char_raw += yytext[0]; char_len++; }
 
 
-<STATE_STRING>\\\'	{ cur_string += "\'"; cur_string_raw += "\\\'"; str_len++; }
-<STATE_STRING>\\\"	{ cur_string += "\""; cur_string_raw += "\\\""; str_len++; }
-<STATE_STRING>\\t	{ cur_string += "\t"; cur_string_raw += "\\t"; str_len++; }
-<STATE_STRING>\\n	{ cur_string += "\n"; cur_string_raw += "\\n"; str_len++; }
-<STATE_STRING>\\\\	{ cur_string += "\\"; cur_string_raw += "\\\\"; str_len++; }
-<STATE_STRING>\\a	{ cur_string += "\a"; cur_string_raw += "\\a"; str_len++; }
-<STATE_STRING>\\f	{ cur_string += "\f"; cur_string_raw += "\\f"; str_len++; }
-<STATE_STRING>\\r	{ cur_string += "\r"; cur_string_raw += "\\r"; str_len++; }
-<STATE_STRING>\\b	{ cur_string += "\b"; cur_string_raw += "\\b"; str_len++; }
-<STATE_STRING>\\v	{ cur_string += "\v"; cur_string_raw += "\\v"; str_len++; }
-<STATE_STRING>\\0	{ cur_string += "\0"; cur_string_raw += "\\0"; str_len++; }
-<STATE_STRING>\\\n 	{ 
-						// an example comment like this: "abc\
-						def"
-						inside_line++; 
-						// not adding to cur_string, as multiline string ultimately is not multiline
-						// if the string is like this: abc\
-						def
-						// the string is actually "abcdef"
-						cur_string_raw += "\\\n";
-						str_len++; 
-					}
+<STATE_STRING>\\\'		{ cur_string += "\'"; cur_string_raw += "\\\'"; str_len++; }
+<STATE_STRING>\\\"		{ cur_string += "\""; cur_string_raw += "\\\""; str_len++; }
+<STATE_STRING>\\t		{ cur_string += "\t"; cur_string_raw += "\\t"; str_len++; }
+<STATE_STRING>\\n		{ cur_string += "\n"; cur_string_raw += "\\n"; str_len++; }
+<STATE_STRING>\\\\		{ cur_string += "\\"; cur_string_raw += "\\\\"; str_len++; }
+<STATE_STRING>\\a		{ cur_string += "\a"; cur_string_raw += "\\a"; str_len++; }
+<STATE_STRING>\\f		{ cur_string += "\f"; cur_string_raw += "\\f"; str_len++; }
+<STATE_STRING>\\r		{ cur_string += "\r"; cur_string_raw += "\\r"; str_len++; }
+<STATE_STRING>\\b		{ cur_string += "\b"; cur_string_raw += "\\b"; str_len++; }
+<STATE_STRING>\\v		{ cur_string += "\v"; cur_string_raw += "\\v"; str_len++; }
+<STATE_STRING>\\0		{ cur_string += "\0"; cur_string_raw += "\\0"; str_len++; }
+<STATE_STRING>\\\n 		{ 
+							// an example comment like this: "abc\
+							def"
+							inside_line++; 
+							// not adding to cur_string, as multiline string ultimately is not multiline
+							// if the string is like this: abc\
+							def
+							// the string is actually "abcdef"
+							cur_string_raw += "\\\n";
+							str_len++; 
+						}
 <STATE_STRING>\\\r\n 	{ 
 							// similar to previous one
 							inside_line++; 
@@ -316,19 +327,61 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 							line_count += inside_line;
 							BEGIN INITIAL;
 						}
-<STATE_STRING>\"	{
-						// print the raw version to log file
-						// and the original one to token file
-						string str = "\"" + cur_string_raw + "\"";
-						string str2 = cur_string;
-						if (inside_line == 0) printString(SINGLE_LINE, str, str2);
-						else printString(MULTILINE, str, str2);
-						line_count += inside_line;
-						BEGIN INITIAL;
-					}
-<STATE_STRING>.		{ cur_string += yytext[0]; cur_string_raw += yytext[0]; str_len++; }
+<STATE_STRING>\"		{
+							// print the raw version to log file
+							// and the original one to token file
+							string str = "\"" + cur_string_raw + "\"";
+							string str2 = cur_string;
+							if (inside_line == 0) printString(SINGLE_LINE, str, str2);
+							else printString(MULTILINE, str, str2);
+							line_count += inside_line;
+							BEGIN INITIAL;
+						}
+<STATE_STRING>.			{ cur_string += yytext[0]; cur_string_raw += yytext[0]; str_len++; }
 
-. 					{ show_error(UNRECOGNIZED, yytext); }
+
+<STATE_S_COMMENT>\\\n		{
+								inside_line++;
+								cur_comment += "\\\n";
+							}
+<STATE_S_COMMENT>\\\r\n		{
+								inside_line++;
+								cur_comment += "\\\r\n";
+							}
+<STATE_S_COMMENT>{NEWLINE}	{
+								inside_line++;
+								string str = "//" + cur_comment;
+								printComment(SINGLE_LINE, str);
+								line_count += inside_line;
+								BEGIN INITIAL;
+							}
+<STATE_S_COMMENT><<EOF>>	{
+								string str = "//" + cur_comment;
+								printComment(SINGLE_LINE, str);
+								line_count += inside_line;
+								BEGIN INITIAL;
+							}
+<STATE_S_COMMENT>\\			{ cur_comment += "\\"; }
+<STATE_S_COMMENT>.			{ cur_comment += yytext[0]; }
+
+
+<STATE_D_COMMENT>\n			{ inside_line++; cur_comment += "\n"; } 
+<STATE_D_COMMENT><<EOF>>	{
+								string str = "/*" + cur_comment;
+								show_error(UNFINISHED_COMMENT, str);
+								line_count += inside_line;
+								BEGIN INITIAL;
+							}
+<STATE_D_COMMENT>\*\/		{
+								string str = "/*" + cur_comment + "*/";
+								printComment(MULTILINE, str);
+								line_count += inside_line;
+								BEGIN INITIAL;
+							}
+<STATE_D_COMMENT>.			{ cur_comment += yytext[0]; }							
+
+
+. 							{ show_error(UNRECOGNIZED, yytext); }
 
 %%
 
