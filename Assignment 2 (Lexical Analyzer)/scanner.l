@@ -397,7 +397,7 @@ int main(int argc, char** argv) {
 	sym.print('A', logout);
 	logout << "Total lines: " << line_count << endl;
 	logout << "Total errors: " << error_count << endl;
-	
+
 	tokenout.close();
 	logout.close();
 	return 0;
