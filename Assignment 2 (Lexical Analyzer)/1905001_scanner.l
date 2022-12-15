@@ -3,14 +3,14 @@
 %x STATE_CHAR
 %x STATE_STRING
 %x STATE_S_COMMENT
-%x STATE_D_COMMENT
+%x STATE_STAR_COMMENT
 
 %{
 	
 #include<cstdio>
 #include<cstdlib>
 #include<vector>
-#include "symbol_table.h"
+#include "1905001_symbol_table.h"
 
 using namespace std;
 
@@ -242,7 +242,7 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 \'					{ BEGIN STATE_CHAR; reset(CHAR); }
 \"					{ BEGIN STATE_STRING; reset(STRING); }
 \/\/				{ BEGIN STATE_S_COMMENT; reset(COMMENT); }
-\/\*				{ BEGIN STATE_D_COMMENT; reset(COMMENT); }
+\/\*				{ BEGIN STATE_STAR_COMMENT; reset(COMMENT); }
 
 
 <STATE_CHAR>\\\'		{ cur_char += "\'"; cur_char_raw += "\\\'"; char_len++; }
@@ -267,7 +267,7 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 								show_error(EMPTY_CHAR, str);
 							}
 							else if (char_len > 1) {
-								string str = "\'" + cur_char + "\'";
+								string str = "\'" + cur_char_raw + "\'";
 								show_error(MULTICHAR, str);
 							}
 							else printChar(cur_char);
@@ -355,20 +355,20 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 <STATE_S_COMMENT>.			{ cur_comment += yytext[0]; }
 
 
-<STATE_D_COMMENT>\n			{ inside_line++; cur_comment += "\n"; } 
-<STATE_D_COMMENT><<EOF>>	{
+<STATE_STAR_COMMENT>\n			{ inside_line++; cur_comment += "\n"; } 
+<STATE_STAR_COMMENT><<EOF>>	{
 								string str = "/*" + cur_comment;
 								line_count += inside_line;
 								show_error(UNFINISHED_COMMENT, str);
 								BEGIN INITIAL;
 							}
-<STATE_D_COMMENT>\*\/		{
+<STATE_STAR_COMMENT>\*\/		{
 								string str = "/*" + cur_comment + "*/";
 								printComment(MULTILINE, str);
 								line_count += inside_line;
 								BEGIN INITIAL;
 							}
-<STATE_D_COMMENT>.			{ cur_comment += yytext[0]; }							
+<STATE_STAR_COMMENT>.			{ cur_comment += yytext[0]; }							
 
 <<EOF>>						{ return 0; }
 . 							{ show_error(UNRECOGNIZED, yytext); }

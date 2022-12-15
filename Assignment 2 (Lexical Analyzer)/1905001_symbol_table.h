@@ -122,7 +122,7 @@ class ScopeTable {
                 out << "\t";
                 // out << "\'" << name
                 //     << "\' already exists in the current ScopeTable\n";
-                out << name << " already exists in the current ScopeTable\n";
+                out << name << " already exisits in the current ScopeTable\n";
             }
 
             else {
