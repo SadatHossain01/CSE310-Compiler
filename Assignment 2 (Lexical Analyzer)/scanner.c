@@ -776,7 +776,7 @@ void show_error(error_type e, const string& str) {
 		logout << "UNRECOGNIZED_CHAR " << str << endl;
 	}
 	else if (e == TOO_DECIMAL) {
-		logout << "TOO MANY DECIMAL POINTS " << str << endl;
+		logout << "TOO_MANY_DECIMAL_POINTS " << str << endl;
 	}
 	else if (e == ILL_FORMED) {
 		logout << "ILLFORMED_NUMBER " << str << endl;
@@ -788,7 +788,7 @@ void show_error(error_type e, const string& str) {
 		logout << "UNFINISHED_STRING " << str << endl;
 	}
 	else if (e == UNFINISHED_COMMENT) {
-		logout << "UNFINISHED COMMENT " << str << endl;
+		logout << "UNFINISHED_COMMENT " << str << endl;
 	}
 }
 
@@ -1468,11 +1468,11 @@ YY_RULE_SETUP
 #line 313 "scanner.l"
 {
 							// error as multiline string must have '\' at the end of a line
-							inside_line++;
 							// if error, print the raw version
 							string str = "\"" + cur_string_raw;
-							show_error(UNFINISHED_STRING, str);
 							line_count += inside_line;
+							show_error(UNFINISHED_STRING, str);
+							line_count++;
 							BEGIN INITIAL; 
 						}
 	YY_BREAK
@@ -1481,8 +1481,8 @@ case YY_STATE_EOF(STATE_STRING):
 {
 							// if error, print the raw version
 							string str = "\"" + cur_string_raw;
-							show_error(UNFINISHED_STRING, str);
 							line_count += inside_line;
+							show_error(UNFINISHED_STRING, str);
 							BEGIN INITIAL;
 						}
 	YY_BREAK
@@ -1564,8 +1564,8 @@ case YY_STATE_EOF(STATE_D_COMMENT):
 #line 368 "scanner.l"
 {
 								string str = "/*" + cur_comment;
-								show_error(UNFINISHED_COMMENT, str);
 								line_count += inside_line;
+								show_error(UNFINISHED_COMMENT, str);
 								BEGIN INITIAL;
 							}
 	YY_BREAK
@@ -2620,6 +2620,7 @@ int main(int argc, char** argv) {
 	yyin = fin;
 	yylex();
 	fclose(yyin);
+	sym.print('A', logout);
 	logout << "Total lines: " << line_count << endl;
 	logout << "Total errors: " << error_count << endl;
 	tokenout.close();

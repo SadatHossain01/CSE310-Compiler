@@ -133,7 +133,7 @@ void show_error(error_type e, const string& str) {
 		logout << "UNRECOGNIZED_CHAR " << str << endl;
 	}
 	else if (e == TOO_DECIMAL) {
-		logout << "TOO MANY DECIMAL POINTS " << str << endl;
+		logout << "TOO_MANY_DECIMAL_POINTS " << str << endl;
 	}
 	else if (e == ILL_FORMED) {
 		logout << "ILLFORMED_NUMBER " << str << endl;
@@ -145,7 +145,7 @@ void show_error(error_type e, const string& str) {
 		logout << "UNFINISHED_STRING " << str << endl;
 	}
 	else if (e == UNFINISHED_COMMENT) {
-		logout << "UNFINISHED COMMENT " << str << endl;
+		logout << "UNFINISHED_COMMENT " << str << endl;
 	}
 }
 
@@ -313,18 +313,18 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 						}
 <STATE_STRING>{NEWLINE} {
 							// error as multiline string must have '\' at the end of a line
-							inside_line++;
 							// if error, print the raw version
 							string str = "\"" + cur_string_raw;
-							show_error(UNFINISHED_STRING, str);
 							line_count += inside_line;
+							show_error(UNFINISHED_STRING, str);
+							line_count++;
 							BEGIN INITIAL; 
 						}
 <STATE_STRING><<EOF>> 	{
 							// if error, print the raw version
 							string str = "\"" + cur_string_raw;
-							show_error(UNFINISHED_STRING, str);
 							line_count += inside_line;
+							show_error(UNFINISHED_STRING, str);
 							BEGIN INITIAL;
 						}
 <STATE_STRING>\"		{
@@ -368,8 +368,8 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 <STATE_D_COMMENT>\n			{ inside_line++; cur_comment += "\n"; } 
 <STATE_D_COMMENT><<EOF>>	{
 								string str = "/*" + cur_comment;
-								show_error(UNFINISHED_COMMENT, str);
 								line_count += inside_line;
+								show_error(UNFINISHED_COMMENT, str);
 								BEGIN INITIAL;
 							}
 <STATE_D_COMMENT>\*\/		{
@@ -403,6 +403,7 @@ int main(int argc, char** argv) {
 	yyin = fin;
 	yylex();
 	fclose(yyin);
+	sym.print('A', logout);
 	logout << "Total lines: " << line_count << endl;
 	logout << "Total errors: " << error_count << endl;
 	tokenout.close();
