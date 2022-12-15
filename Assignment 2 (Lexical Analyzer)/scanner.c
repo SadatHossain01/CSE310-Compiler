@@ -683,6 +683,7 @@ enum reset_type {CHAR, STRING, COMMENT};
 SymbolTable sym(BUCKET_SIZE);
 
 void reset(reset_type rt) {
+	inside_line = 0;
 	if (rt == CHAR) {
 		cur_char.clear();
 		cur_char_raw.clear();
@@ -733,12 +734,14 @@ void printChar(const string& str) {
 	logout << "Line# " << line_count << ": Token <CONST_CHAR> Lexeme " << str << " found" << endl;
 }
 
-void printString(string_type st, const string& str) {
+void printString(string_type st, const string& str1, const string& str2) {
 	if (st == SINGLE_LINE) {
-		logout << "Line# " << line_count << ": Token <SINGLE LINE STRING> Lexeme " << str << " found" << endl;
+		logout << "Line# " << line_count << ": Token <SINGLE LINE STRING> Lexeme " << str1 << " found" << endl;
+		tokenout << "<SINGLE LINE STRING, " << str2 << ">" << endl; 
 	}
 	else if (st == MULTILINE) {
-		logout << "Line# " << line_count << ": Token <MULTI LINE STRING> Lexeme " << str << " found" << endl;
+		logout << "Line# " << line_count << ": Token <MULTI LINE STRING> Lexeme " << str1 << " found" << endl;
+		tokenout << "<MULTI LINE STRING, " << str2 << ">" << endl;
 	}
 }
 
@@ -773,8 +776,8 @@ void show_error(error_type e, const string& str) {
 	}
 }
 
-#line 777 "scanner.c"
-#line 778 "scanner.c"
+#line 780 "scanner.c"
+#line 781 "scanner.c"
 
 #define INITIAL 0
 #define STATE_CHAR 1
@@ -995,10 +998,10 @@ YY_DECL
 		}
 
 	{
-#line 157 "scanner.l"
+#line 160 "scanner.l"
 
 
-#line 1002 "scanner.c"
+#line 1005 "scanner.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1057,73 +1060,73 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 159 "scanner.l"
+#line 162 "scanner.l"
 {}
 	YY_BREAK
 case 2:
 /* rule 2 can match eol */
 YY_RULE_SETUP
-#line 160 "scanner.l"
+#line 163 "scanner.l"
 { line_count++; }
 	YY_BREAK
 case 3:
-#line 163 "scanner.l"
-case 4:
-#line 164 "scanner.l"
-case 5:
-#line 165 "scanner.l"
-case 6:
 #line 166 "scanner.l"
-case 7:
+case 4:
 #line 167 "scanner.l"
-case 8:
+case 5:
 #line 168 "scanner.l"
-case 9:
+case 6:
 #line 169 "scanner.l"
-case 10:
+case 7:
 #line 170 "scanner.l"
-case 11:
+case 8:
 #line 171 "scanner.l"
-case 12:
+case 9:
 #line 172 "scanner.l"
-case 13:
+case 10:
 #line 173 "scanner.l"
-case 14:
+case 11:
 #line 174 "scanner.l"
-case 15:
+case 12:
 #line 175 "scanner.l"
-case 16:
+case 13:
 #line 176 "scanner.l"
-case 17:
+case 14:
 #line 177 "scanner.l"
+case 15:
+#line 178 "scanner.l"
+case 16:
+#line 179 "scanner.l"
+case 17:
+#line 180 "scanner.l"
 case 18:
 YY_RULE_SETUP
-#line 177 "scanner.l"
+#line 180 "scanner.l"
 { printKeyword(); }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 180 "scanner.l"
+#line 183 "scanner.l"
 { printNum(INTEGER); }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 181 "scanner.l"
+#line 184 "scanner.l"
 { printNum(FLOAT); }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 182 "scanner.l"
+#line 185 "scanner.l"
 { show_error(TOO_DECIMAL, yytext); }					
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 183 "scanner.l"
+#line 186 "scanner.l"
 { show_error(ILL_FORMED, yytext); }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 186 "scanner.l"
+#line 189 "scanner.l"
 {
 						logout << "Line# " << line_count << ": Token <ID> Lexeme " << yytext << " found" << endl;
 						tokenout << "<ID, " << yytext << ">" << endl;
@@ -1133,213 +1136,194 @@ YY_RULE_SETUP
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 192 "scanner.l"
+#line 195 "scanner.l"
 { show_error(INVALID_SUFFIX, yytext); }
 	YY_BREAK
 case 25:
-#line 196 "scanner.l"
+#line 199 "scanner.l"
 case 26:
 YY_RULE_SETUP
-#line 196 "scanner.l"
+#line 199 "scanner.l"
 { printOpPunc("ADDOP"); }
 	YY_BREAK
 case 27:
-#line 198 "scanner.l"
+#line 201 "scanner.l"
 case 28:
-#line 199 "scanner.l"
+#line 202 "scanner.l"
 case 29:
 YY_RULE_SETUP
-#line 199 "scanner.l"
+#line 202 "scanner.l"
 { printOpPunc("MULOP"); }
 	YY_BREAK
 case 30:
-#line 201 "scanner.l"
+#line 204 "scanner.l"
 case 31:
 YY_RULE_SETUP
-#line 201 "scanner.l"
+#line 204 "scanner.l"
 { printOpPunc("INCOP"); }
 	YY_BREAK
 case 32:
-#line 203 "scanner.l"
-case 33:
-#line 204 "scanner.l"
-case 34:
-#line 205 "scanner.l"
-case 35:
 #line 206 "scanner.l"
-case 36:
+case 33:
 #line 207 "scanner.l"
+case 34:
+#line 208 "scanner.l"
+case 35:
+#line 209 "scanner.l"
+case 36:
+#line 210 "scanner.l"
 case 37:
 YY_RULE_SETUP
-#line 207 "scanner.l"
+#line 210 "scanner.l"
 { printOpPunc("RELOP"); }
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 208 "scanner.l"
+#line 211 "scanner.l"
 { printOpPunc("ASSIGNOP"); }
 	YY_BREAK
 case 39:
-#line 210 "scanner.l"
+#line 213 "scanner.l"
 case 40:
 YY_RULE_SETUP
-#line 210 "scanner.l"
+#line 213 "scanner.l"
 { printOpPunc("LOGICOP"); }
 	YY_BREAK
 case 41:
-#line 212 "scanner.l"
-case 42:
-#line 213 "scanner.l"
-case 43:
-#line 214 "scanner.l"
-case 44:
 #line 215 "scanner.l"
+case 42:
+#line 216 "scanner.l"
+case 43:
+#line 217 "scanner.l"
+case 44:
+#line 218 "scanner.l"
 case 45:
 YY_RULE_SETUP
-#line 215 "scanner.l"
+#line 218 "scanner.l"
 { printOpPunc("BITOP"); }
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 216 "scanner.l"
+#line 219 "scanner.l"
 { printOpPunc("NOT"); }
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 217 "scanner.l"
+#line 220 "scanner.l"
 { printOpPunc("LPAREN"); }
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 218 "scanner.l"
+#line 221 "scanner.l"
 { printOpPunc("RPAREN"); }
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 219 "scanner.l"
+#line 222 "scanner.l"
 { printOpPunc("LCURL"); sym.enter_scope(); }
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 220 "scanner.l"
+#line 223 "scanner.l"
 { printOpPunc("RCURL"); sym.exit_scope(); }
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 221 "scanner.l"
+#line 224 "scanner.l"
 { printOpPunc("LSQUARE"); }
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 222 "scanner.l"
+#line 225 "scanner.l"
 { printOpPunc("RSQUARE"); }
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 223 "scanner.l"
+#line 226 "scanner.l"
 { printOpPunc("COMMA"); }
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
-#line 224 "scanner.l"
+#line 227 "scanner.l"
 { printOpPunc("SEMICOLON"); }
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
-#line 227 "scanner.l"
-{
-						cur_char.clear();
-						char_len = 0;
-						BEGIN STATE_CHAR;
-					}
+#line 230 "scanner.l"
+{ BEGIN STATE_CHAR; reset(CHAR); }
 	YY_BREAK
 case 56:
 YY_RULE_SETUP
-#line 232 "scanner.l"
-{
-						cur_string.clear();
-						str_len = 0;
-						inside_line = 0;
-						BEGIN STATE_STRING;
-					}
+#line 231 "scanner.l"
+{ BEGIN STATE_STRING; reset(STRING); }
 	YY_BREAK
 case 57:
 YY_RULE_SETUP
-#line 238 "scanner.l"
-{
-						cur_comment.clear();
-						comment_len = 0;
-						inside_line = 0;
-						BEGIN STATE_S_COMMENT;
-					}
+#line 232 "scanner.l"
+{ /*BEGIN STATE_S_COMMENT; reset(COMMENT);*/ }
 	YY_BREAK
 case 58:
 YY_RULE_SETUP
-#line 244 "scanner.l"
-{
-						cur_comment.clear();
-						comment_len = 0;
-						inside_line = 0;
-						BEGIN STATE_D_COMMENT;
-					}
+#line 233 "scanner.l"
+{ BEGIN STATE_D_COMMENT; reset(COMMENT); }
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
-#line 252 "scanner.l"
+#line 236 "scanner.l"
 { cur_char += "\'"; cur_char_raw += "\\\'"; char_len++; }
 	YY_BREAK
 case 60:
 YY_RULE_SETUP
-#line 253 "scanner.l"
+#line 237 "scanner.l"
 { cur_char += "\""; cur_char_raw += "\\\""; char_len++; }
 	YY_BREAK
 case 61:
 YY_RULE_SETUP
-#line 254 "scanner.l"
+#line 238 "scanner.l"
 { cur_char += "\n"; cur_char_raw += "\\n"; char_len++; }
 	YY_BREAK
 case 62:
 YY_RULE_SETUP
-#line 255 "scanner.l"
+#line 239 "scanner.l"
 { cur_char += "\t"; cur_char_raw += "\\t"; char_len++; }
 	YY_BREAK
 case 63:
 YY_RULE_SETUP
-#line 256 "scanner.l"
+#line 240 "scanner.l"
 { cur_char += "\\"; cur_char_raw += "\\\\"; char_len++; }
 	YY_BREAK
 case 64:
 YY_RULE_SETUP
-#line 257 "scanner.l"
+#line 241 "scanner.l"
 { cur_char += "\a"; cur_char_raw += "\\a"; char_len++; }
 	YY_BREAK
 case 65:
 YY_RULE_SETUP
-#line 258 "scanner.l"
+#line 242 "scanner.l"
 { cur_char += "\f"; cur_char_raw += "\\f"; char_len++; }
 	YY_BREAK
 case 66:
 YY_RULE_SETUP
-#line 259 "scanner.l"
+#line 243 "scanner.l"
 { cur_char += "\r"; cur_char_raw += "\\r"; char_len++; }
 	YY_BREAK
 case 67:
 YY_RULE_SETUP
-#line 260 "scanner.l"
+#line 244 "scanner.l"
 { cur_char += "\b"; cur_char_raw += "\\b"; char_len++; }
 	YY_BREAK
 case 68:
 YY_RULE_SETUP
-#line 261 "scanner.l"
+#line 245 "scanner.l"
 { cur_char += "\v"; cur_char_raw += "\\v"; char_len++; }
 	YY_BREAK
 case 69:
 YY_RULE_SETUP
-#line 262 "scanner.l"
+#line 246 "scanner.l"
 { cur_char += "\0"; cur_char_raw += "\\0"; char_len++; }
 	YY_BREAK
 case YY_STATE_EOF(STATE_CHAR):
-#line 263 "scanner.l"
+#line 247 "scanner.l"
 {
 						string str = "\'" + cur_char_raw;
 						show_error(UNFINISHED_CHAR, str);
@@ -1349,7 +1333,7 @@ case YY_STATE_EOF(STATE_CHAR):
 	YY_BREAK
 case 70:
 YY_RULE_SETUP
-#line 269 "scanner.l"
+#line 253 "scanner.l"
 {	 	
 						if (char_len == 0) {
 							string str = "\'\'";
@@ -1362,90 +1346,91 @@ YY_RULE_SETUP
 						}
 						else printChar(cur_char);
 						BEGIN INITIAL;
-						reset(CHAR);
 					}
 	YY_BREAK
 case 71:
 /* rule 71 can match eol */
 YY_RULE_SETUP
-#line 283 "scanner.l"
+#line 266 "scanner.l"
 { 
 						string str = "\'" + cur_char_raw;
 						show_error(UNFINISHED_CHAR, str); 
 						line_count++;
 						BEGIN INITIAL;
-						reset(CHAR);
 					  }
 	YY_BREAK
 case 72:
 YY_RULE_SETUP
-#line 290 "scanner.l"
+#line 272 "scanner.l"
 { cur_char += yytext[0]; cur_char_raw += yytext[0]; char_len++; }
 	YY_BREAK
 case 73:
 YY_RULE_SETUP
-#line 293 "scanner.l"
+#line 275 "scanner.l"
 { cur_string += "\'"; cur_string_raw += "\\\'"; str_len++; }
 	YY_BREAK
 case 74:
 YY_RULE_SETUP
-#line 294 "scanner.l"
+#line 276 "scanner.l"
 { cur_string += "\""; cur_string_raw += "\\\""; str_len++; }
 	YY_BREAK
 case 75:
 YY_RULE_SETUP
-#line 295 "scanner.l"
+#line 277 "scanner.l"
 { cur_string += "\t"; cur_string_raw += "\\t"; str_len++; }
 	YY_BREAK
 case 76:
 YY_RULE_SETUP
-#line 296 "scanner.l"
+#line 278 "scanner.l"
 { cur_string += "\n"; cur_string_raw += "\\n"; str_len++; }
 	YY_BREAK
 case 77:
 YY_RULE_SETUP
-#line 297 "scanner.l"
+#line 279 "scanner.l"
 { cur_string += "\\"; cur_string_raw += "\\\\"; str_len++; }
 	YY_BREAK
 case 78:
 YY_RULE_SETUP
-#line 298 "scanner.l"
+#line 280 "scanner.l"
 { cur_string += "\a"; cur_string_raw += "\\a"; str_len++; }
 	YY_BREAK
 case 79:
 YY_RULE_SETUP
-#line 299 "scanner.l"
+#line 281 "scanner.l"
 { cur_string += "\f"; cur_string_raw += "\\f"; str_len++; }
 	YY_BREAK
 case 80:
 YY_RULE_SETUP
-#line 300 "scanner.l"
+#line 282 "scanner.l"
 { cur_string += "\r"; cur_string_raw += "\\r"; str_len++; }
 	YY_BREAK
 case 81:
 YY_RULE_SETUP
-#line 301 "scanner.l"
+#line 283 "scanner.l"
 { cur_string += "\b"; cur_string_raw += "\\b"; str_len++; }
 	YY_BREAK
 case 82:
 YY_RULE_SETUP
-#line 302 "scanner.l"
+#line 284 "scanner.l"
 { cur_string += "\v"; cur_string_raw += "\\v"; str_len++; }
 	YY_BREAK
 case 83:
 YY_RULE_SETUP
-#line 303 "scanner.l"
+#line 285 "scanner.l"
 { cur_string += "\0"; cur_string_raw += "\\0"; str_len++; }
 	YY_BREAK
 case 84:
 /* rule 84 can match eol */
 YY_RULE_SETUP
-#line 304 "scanner.l"
+#line 286 "scanner.l"
 { 
 						// an example comment like this: "abc\
 						def"
 						inside_line++; 
-						cur_string += "\n";  
+						// not adding to cur_string, as multiline string ultimately is not multiline
+						// if the string is like this: abc\
+						def
+						// the string is actually "abcdef"
 						cur_string_raw += "\\\n";
 						str_len++; 
 					}
@@ -1453,11 +1438,10 @@ YY_RULE_SETUP
 case 85:
 /* rule 85 can match eol */
 YY_RULE_SETUP
-#line 311 "scanner.l"
+#line 296 "scanner.l"
 { 
 							// similar to previous one
 							inside_line++; 
-							cur_string += "\r\n"; 
 							cur_string_raw += "\\\r\n";
 							str_len++; 
 						}
@@ -1465,55 +1449,57 @@ YY_RULE_SETUP
 case 86:
 /* rule 86 can match eol */
 YY_RULE_SETUP
-#line 318 "scanner.l"
+#line 302 "scanner.l"
 {
 							// error as multiline string must have '\' at the end of a line
 							inside_line++;
+							// if error, print the raw version
 							string str = "\"" + cur_string_raw;
 							show_error(UNFINISHED_STRING, str);
 							line_count += inside_line;
-							BEGIN INITIAL;
-							reset(STRING);
+							BEGIN INITIAL; 
 						}
 	YY_BREAK
 case YY_STATE_EOF(STATE_STRING):
-#line 327 "scanner.l"
+#line 311 "scanner.l"
 {
+							// if error, print the raw version
 							string str = "\"" + cur_string_raw;
 							show_error(UNFINISHED_STRING, str);
 							line_count += inside_line;
 							BEGIN INITIAL;
-							reset(STRING);
 						}
 	YY_BREAK
 case 87:
 YY_RULE_SETUP
-#line 334 "scanner.l"
+#line 318 "scanner.l"
 {
+						// print the raw version to log file
+						// and the original one to token file
 						string str = "\"" + cur_string_raw + "\"";
-						if (inside_line == 0) printString(SINGLE_LINE, str);
-						else printString(MULTILINE, str);
+						string str2 = cur_string;
+						if (inside_line == 0) printString(SINGLE_LINE, str, str2);
+						else printString(MULTILINE, str, str2);
 						line_count += inside_line;
 						BEGIN INITIAL;
-						reset(STRING);
 					}
 	YY_BREAK
 case 88:
 YY_RULE_SETUP
-#line 342 "scanner.l"
+#line 328 "scanner.l"
 { cur_string += yytext[0]; cur_string_raw += yytext[0]; str_len++; }
 	YY_BREAK
 case 89:
 YY_RULE_SETUP
-#line 344 "scanner.l"
+#line 330 "scanner.l"
 { show_error(UNRECOGNIZED, yytext); }
 	YY_BREAK
 case 90:
 YY_RULE_SETUP
-#line 346 "scanner.l"
+#line 332 "scanner.l"
 ECHO;
 	YY_BREAK
-#line 1517 "scanner.c"
+#line 1503 "scanner.c"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(STATE_S_COMMENT):
 case YY_STATE_EOF(STATE_D_COMMENT):
@@ -2520,7 +2506,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 346 "scanner.l"
+#line 332 "scanner.l"
 
 
 int main(int argc, char** argv) {

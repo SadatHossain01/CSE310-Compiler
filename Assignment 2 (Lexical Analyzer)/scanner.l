@@ -45,6 +45,7 @@ enum reset_type {CHAR, STRING, COMMENT};
 SymbolTable sym(BUCKET_SIZE);
 
 void reset(reset_type rt) {
+	inside_line = 0;
 	if (rt == CHAR) {
 		cur_char.clear();
 		cur_char_raw.clear();
@@ -95,12 +96,14 @@ void printChar(const string& str) {
 	logout << "Line# " << line_count << ": Token <CONST_CHAR> Lexeme " << str << " found" << endl;
 }
 
-void printString(string_type st, const string& str) {
+void printString(string_type st, const string& str1, const string& str2) {
 	if (st == SINGLE_LINE) {
-		logout << "Line# " << line_count << ": Token <SINGLE LINE STRING> Lexeme " << str << " found" << endl;
+		logout << "Line# " << line_count << ": Token <SINGLE LINE STRING> Lexeme " << str1 << " found" << endl;
+		tokenout << "<SINGLE LINE STRING, " << str2 << ">" << endl; 
 	}
 	else if (st == MULTILINE) {
-		logout << "Line# " << line_count << ": Token <MULTI LINE STRING> Lexeme " << str << " found" << endl;
+		logout << "Line# " << line_count << ": Token <MULTI LINE STRING> Lexeme " << str1 << " found" << endl;
+		tokenout << "<MULTI LINE STRING, " << str2 << ">" << endl;
 	}
 }
 
@@ -224,29 +227,10 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 ";"					{ printOpPunc("SEMICOLON"); }
 
 
-\'					{
-						cur_char.clear();
-						char_len = 0;
-						BEGIN STATE_CHAR;
-					}
-\"					{
-						cur_string.clear();
-						str_len = 0;
-						inside_line = 0;
-						BEGIN STATE_STRING;
-					}
-\/\/				{
-						cur_comment.clear();
-						comment_len = 0;
-						inside_line = 0;
-						BEGIN STATE_S_COMMENT;
-					}
-\/\*				{
-						cur_comment.clear();
-						comment_len = 0;
-						inside_line = 0;
-						BEGIN STATE_D_COMMENT;
-					}
+\'					{ BEGIN STATE_CHAR; reset(CHAR); }
+\"					{ BEGIN STATE_STRING; reset(STRING); }
+\/\/				{ /*BEGIN STATE_S_COMMENT; reset(COMMENT);*/ }
+\/\*				{ BEGIN STATE_D_COMMENT; reset(COMMENT); }
 
 
 <STATE_CHAR>\\\'	{ cur_char += "\'"; cur_char_raw += "\\\'"; char_len++; }
@@ -278,14 +262,12 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 						}
 						else printChar(cur_char);
 						BEGIN INITIAL;
-						reset(CHAR);
 					}
 <STATE_CHAR>{NEWLINE} { 
 						string str = "\'" + cur_char_raw;
 						show_error(UNFINISHED_CHAR, str); 
 						line_count++;
 						BEGIN INITIAL;
-						reset(CHAR);
 					  }
 <STATE_CHAR>.		{ cur_char += yytext[0]; cur_char_raw += yytext[0]; char_len++; }
 
@@ -305,40 +287,44 @@ ILL_FORMED ({INTEGER}|{FLOATING_POINT})[eE]*{FLOATING_POINT}*
 						// an example comment like this: "abc\
 						def"
 						inside_line++; 
-						cur_string += "\n";  
+						// not adding to cur_string, as multiline string ultimately is not multiline
+						// if the string is like this: abc\
+						def
+						// the string is actually "abcdef"
 						cur_string_raw += "\\\n";
 						str_len++; 
 					}
 <STATE_STRING>\\\r\n 	{ 
 							// similar to previous one
 							inside_line++; 
-							cur_string += "\r\n"; 
 							cur_string_raw += "\\\r\n";
 							str_len++; 
 						}
 <STATE_STRING>{NEWLINE} {
 							// error as multiline string must have '\' at the end of a line
 							inside_line++;
+							// if error, print the raw version
 							string str = "\"" + cur_string_raw;
 							show_error(UNFINISHED_STRING, str);
 							line_count += inside_line;
-							BEGIN INITIAL;
-							reset(STRING);
+							BEGIN INITIAL; 
 						}
 <STATE_STRING><<EOF>> 	{
+							// if error, print the raw version
 							string str = "\"" + cur_string_raw;
 							show_error(UNFINISHED_STRING, str);
 							line_count += inside_line;
 							BEGIN INITIAL;
-							reset(STRING);
 						}
 <STATE_STRING>\"	{
+						// print the raw version to log file
+						// and the original one to token file
 						string str = "\"" + cur_string_raw + "\"";
-						if (inside_line == 0) printString(SINGLE_LINE, str);
-						else printString(MULTILINE, str);
+						string str2 = cur_string;
+						if (inside_line == 0) printString(SINGLE_LINE, str, str2);
+						else printString(MULTILINE, str, str2);
 						line_count += inside_line;
 						BEGIN INITIAL;
-						reset(STRING);
 					}
 <STATE_STRING>.		{ cur_string += yytext[0]; cur_string_raw += yytext[0]; str_len++; }
 
