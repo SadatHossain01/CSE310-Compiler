@@ -33,19 +33,21 @@ class ScopeTable {
     int id;
     int num_buckets;
 
-    unsigned int SDBMHash(const string &str) {
-        unsigned int hash = 0;
+    unsigned long long SDBMHash(const string &str) {
+        unsigned long long hash = 0;
         unsigned int i = 0;
         unsigned int len = str.length();
 
         for (i = 0; i < len; i++) {
-            hash = ((str[i]) + (hash << 6) + (hash << 16) - hash) % num_buckets;
+            hash = ((str[i]) + (hash << 6) + (hash << 16) - hash);
         }
 
         return hash;
     }
 
-    unsigned int myhash(const string &s) { return SDBMHash(s) % num_buckets; }
+    unsigned long long myhash(const string &s) {
+        return SDBMHash(s) % num_buckets;
+    }
 
    public:
     ScopeTable(int num_buckets, int id) {
@@ -68,7 +70,7 @@ class ScopeTable {
     ScopeTable *get_parent() { return parent_scope; }
 
     SymbolInfo *search(const string &s) {
-        unsigned int hash_value = myhash(s);
+        unsigned long long hash_value = myhash(s);
         SymbolInfo *now = arr[hash_value];
         int pos = 0;
 
@@ -88,7 +90,7 @@ class ScopeTable {
     }
 
     bool insert(string name, string type, ostream &out = cout) {
-        unsigned int hash_value = myhash(name);
+        unsigned long long hash_value = myhash(name);
         int pos = 0;
         bool success = false;
         SymbolInfo *cur = arr[hash_value];
@@ -140,7 +142,7 @@ class ScopeTable {
     }
 
     bool remove(const string &s) {
-        unsigned int hash_value = myhash(s);
+        unsigned long long hash_value = myhash(s);
         SymbolInfo *now = arr[hash_value];
 
         if (now == nullptr) {
