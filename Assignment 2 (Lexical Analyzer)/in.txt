@@ -1,46 +1,16 @@
-/* too many decimal points */ 
-1.23E10.5
-// to me the following is a float
-7.
-
-/* ill formed number */
-3.14E1.001
-2.54.54E4.01
-
-/* invalid suffix on num const */
-5_
-4__________
-7ewrvgtrb
-_____12 // valid
-
-/* multichar const error */
-'efewrfg'
-'ewfw\'wefrg'
-'e\'
-
-/* unfinished char const error */
-'reg
+1.2.345
+1E10.7
+12abcd
+@
+'ab'
+'a
 '
-'erfeg997578
-'\
+'ab cd'
 '\'
-'\a
-
-/* empty char const error */
 ''
-
-/* unfinished string */
-"Hello 
-"This is second unfinished \
-string\
-
-
-"A valid\
-string"
-"Invalid\" 
-
-/* Unrecognized char */ 
-^ ~ 
-
-/* This comment is not terminated 
-
+"abcd
+"abcd\
+efgh
+ijk"
+/**abc
+def

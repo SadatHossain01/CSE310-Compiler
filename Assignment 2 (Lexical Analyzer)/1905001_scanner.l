@@ -94,6 +94,10 @@ void printIdentifier() {
 }
 
 void printNum(num_type nt, const string& str) {
+	// if (str[0] == '+' || str[0] == '-') {
+	// 	for (int i = 1; i < str.size(); i++) str[i - 1] = str[i];
+	// 	str.pop_back();
+	// }
 	if (nt == INTEGER) {
 		tokenout << "<CONST_INT, " << str << ">" << endl;
 		logout << "Line# " << line_count << ": Token <CONST_INT> Lexeme " << str << " found" << endl;
@@ -187,10 +191,10 @@ NUM [-+0-9Ee\.]*
 FRACTION (\.{INTEGER})
 EXPONENT ([Ee][-+]?{INTEGER})
 
-FLOATING_POINT ({INTEGER}\.?{INTEGER}?{EXPONENT})|({FRACTION}{EXPONENT})|({INTEGER}?{FRACTION})|({INTEGER}\.)
+FLOATING_POINT (({INTEGER}\.?{INTEGER}?{EXPONENT})|({FRACTION}{EXPONENT})|({INTEGER}?{FRACTION})|({INTEGER}\.))
 
 TOO_DECIMAL ([-+]?{DIGIT}*\.{DIGIT}*\.[-+0-9\.Ee]*)
-ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*)
+ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 
 %%
 
