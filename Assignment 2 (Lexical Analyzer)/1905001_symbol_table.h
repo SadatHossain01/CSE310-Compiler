@@ -119,12 +119,16 @@ class ScopeTable {
                 pos++;
             }
 
+            if (cur->get_name() == name) {
+                pos = -1;
+            }
+
             if (pos == -1) {
                 // changed the following two lines to print to log file
                 out << "\t";
                 // out << "\'" << name
                 //     << "\' already exists in the current ScopeTable\n";
-                out << name << " already exisits in the current ScopeTable\n";
+                out << name << " already exists in the current ScopeTable\n";
             }
 
             else {
