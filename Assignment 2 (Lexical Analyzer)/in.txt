@@ -1,5 +1,5 @@
 /* too many decimal points */ 
-1.2.3.4.5.6
+1.23E10.5
 // to me the following is a float
 7.
 
