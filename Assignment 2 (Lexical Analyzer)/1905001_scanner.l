@@ -365,9 +365,9 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*)
 						}
 
 
-<C_COMMENT>\n			{ 
+<C_COMMENT>{NLINE}		{ 
 							inside_line++; 
-							cur_comment += "\n"; 
+							cur_comment += yytext; 
 						}
 <C_COMMENT><<EOF>>		{
 							string str = "/*" + cur_comment;
