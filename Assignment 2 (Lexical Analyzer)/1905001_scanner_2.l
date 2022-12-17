@@ -1,5 +1,6 @@
 %option noyywrap
 
+%x STATE_CHAR
 %x STATE_STRING
 %x C_COMMENT
 %x CPP_COMMENT
@@ -29,7 +30,7 @@ int inside_line = 0;
 // characters like \n \b as they are (not their original behaviour), but if they are 
 // completed properly, then \n will be replaced by NEWLINE...
 
-string cur_char;
+string cur_char, cur_char_raw;
 string cur_string, cur_string_raw;
 string cur_comment;
 int char_len; // will hold the length of the original one, not raw one
@@ -61,6 +62,7 @@ void reset(reset_type rt) {
 	inside_line = 0;
 	if (rt == CHAR) {
 		cur_char.clear();
+		cur_char_raw.clear();
 		char_len = 0;
 	}
 	else if (rt == STRING) {
@@ -76,33 +78,6 @@ string capitalize(const string& s) {
 	string ret = s;
 	for (char& c : ret) c = toupper(c);
 	return ret;
-}
-
-string get_real_string(string ss) {
-    string ret = "";
-    const int sz = ss.size();
-    for (int i = 0; i < sz; i++) {
-        if (ss[i] != '\\') {
-            ret += ss[i];
-        }
-        else {
-            if (i == sz - 1) {
-                cout << "this should not happen!";
-                ret += ss[i];
-            }
-            else {
-                char cc = generate_special_character(ss[i + 1]);
-                if (cc == ss[i + 1]) {
-                    ret += ss.substr(i, 2);
-                }
-                else {
-                    ret += cc;
-                }
-                i++;
-            }
-        }
-    }
-    return ret;
 }
 
 void printKeyword() {
@@ -211,8 +186,6 @@ MISC [ntafbvr0\'\"\\]
 IDENTIFIER {ALPHABET}{ALPHANUMERIC}*
 NOT_ID {DIGIT}{ALPHANUMERIC}*{ALPHABET}{ALPHANUMERIC}*
 
-CHAR ((\\{MISC})|([^\\\'\n\r]))
-
 INTEGER {DIGIT}+
 NUM [-+0-9Ee\.]*
 FRACTION (\.{INTEGER})
@@ -288,35 +261,45 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 ";"						{ printOpPunc("SEMICOLON"); }
 
 
+\'						{ BEGIN STATE_CHAR; reset(CHAR); }
 \"						{ BEGIN STATE_STRING; reset(STRING); }
 \/\/					{ BEGIN CPP_COMMENT; reset(COMMENT); }
 \/\*					{ BEGIN C_COMMENT; reset(COMMENT); }
 
 
-\'{CHAR}*\'             {
-                            string str = yytext;
-                            str.erase(str.begin());
-                            str.pop_back(); // removed first and last '
-                            cur_char = get_real_string(str);
-                            char_len = cur_char.size();
-                            if (char_len == 0) {
-                                show_error(EMPTY_CHAR, "\'\'");
-                            }
-                            else if (char_len > 1) {
-                                str = "\'" + str + "\'";
-                                show_error(MULTICHAR, str);
-                            }
-                            else printChar(cur_char);
-                        }
-\'{CHAR}?               {
-                            string str = yytext;
-                            str.erase(str.begin()); // removed first '
-                            cur_char = get_real_string(str);
-                            char_len = cur_char.size();
-                            str = "\'" + str;
-                            show_error(UNFINISHED_CHAR, str);
-                            if (yytext[yyleng - 1] == '\n') line_count++;
-                        }
+<STATE_CHAR>\\{MISC}	{
+							cur_char += generate_special_character(yytext[yyleng - 1]);
+							cur_char_raw += yytext;
+							char_len++;
+						}
+<STATE_CHAR><<EOF>>		{
+							string str = "\'" + cur_char_raw;
+							show_error(UNFINISHED_CHAR, str);
+							BEGIN INITIAL;
+						}
+<STATE_CHAR>{NLINE} 	{ 
+							string str = "\'" + cur_char_raw;
+							show_error(UNFINISHED_CHAR, str); 
+							line_count++;
+							BEGIN INITIAL;
+						}
+<STATE_CHAR>\'			{	 	
+							if (char_len == 0) {
+								string str = "\'\'";
+								show_error(EMPTY_CHAR, str);
+							}
+							else if (char_len > 1) {
+								string str = "\'" + cur_char_raw + "\'";
+								show_error(MULTICHAR, str);
+							}
+							else printChar(cur_char);
+							BEGIN INITIAL;
+						}
+<STATE_CHAR>.			{ 
+							cur_char += yytext[0]; 
+							cur_char_raw += yytext[0]; 
+							char_len++; 
+						}
 
 
 <STATE_STRING>\\{MISC}	{ 
