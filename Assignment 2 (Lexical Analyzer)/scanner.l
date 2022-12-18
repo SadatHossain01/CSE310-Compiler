@@ -9,7 +9,7 @@
 #include<cstdio>
 #include<cstdlib>
 #include<vector>
-#include "1905001_symbol_table.h"
+#include "symbol_table.h"
 
 using namespace std;
 

@@ -1,3 +1,3 @@
-flex -o 1905001_scanner.c 1905001_scanner.l
-g++ 1905001_scanner.c -lfl -o scanner.out
-./scanner.out in.txt
+flex -o scanner.c scanner.l
+g++ scanner.c -lfl -o a.out
+./a.out in.txt
