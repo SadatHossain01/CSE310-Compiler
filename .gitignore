@@ -1,5 +1,6 @@
 .vscode/
 *.out
+*.o
 *.exe
 *.yy.c
 Assignment 1 (Symbol Table)/*.txt
