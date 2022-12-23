@@ -6,9 +6,9 @@
 
 %{
 	
-#include<cstdio>
-#include<cstdlib>
-#include<vector>
+#include <cstdio>
+#include <cstdlib>
+#include <vector>
 #include "symbol_table.h"
 #include "y.tab.h"
 

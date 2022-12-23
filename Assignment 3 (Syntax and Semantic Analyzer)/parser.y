@@ -1,30 +1,31 @@
 %{
-#include<iostream>
-#include<cstdlib>
-#include<cstring>
-#include<cmath>
-#include "symbol.h"
-#define YYSTYPE SymbolInfo*
+#include <iostream>
+#include <cstdlib>
+#include <cstring>
+#include <cmath>
+#include <vector>
+#include "symbol_table.h"
 
 using namespace std;
 
-int yyparse(void);
-int yylex(void);
-extern FILE *yyin;
+#define BUCKET_SIZE 10
+
+int line_count = 1;
+int error_count = 0;
 
 SymbolTable *table;
+extern FILE* fp;
 
-
-void yyerror(char *s)
-{
-	//write your code
-}
+void yyerror(char *s) {}
+int yyparse(void);
+int yylex(void);
 
 
 %}
 
 %union {
 	SymbolInfo* si;
+	vector<SymbolInfo*> vsi; 
 }
 
 %token IF ELSE FOR WHILE
@@ -151,32 +152,31 @@ arguments : arguments COMMA logic_expression
 	      | logic_expression
 	      ;
  
-
 %%
-int main(int argc,char *argv[])
-{
 
-	if((fp=fopen(argv[1],"r"))==NULL)
-	{
-		printf("Cannot Open Input File.\n");
+int main(int argc,char *argv[]) {	
+	if (argc < 2) {
+		cout << "Please Provide Input File\n";
+		exit(1);
+	}
+	else if((fp = fopen(argv[1], "r")) == NULL) {
+		cout << "Cannot Open Input File\n";
 		exit(1);
 	}
 
-	fp2= fopen(argv[2],"w");
-	fclose(fp2);
-	fp3= fopen(argv[3],"w");
-	fclose(fp3);
-	
-	fp2= fopen(argv[2],"a");
-	fp3= fopen(argv[3],"a");
-	
+	treeout.open("parsetree.txt");
+	errorout.open("error.txt");
+	logout.open("log.txt");
 
-	yyin=fp;
+	table = new SymbolTable(BUCKET_SIZE);
+
+	yyin = fp;
 	yyparse();
-	
 
-	fclose(fp2);
-	fclose(fp3);
+	fclose(yyin);
+	treeout.close();
+	errorout.close();
+	logout.close();
 	
 	return 0;
 }
