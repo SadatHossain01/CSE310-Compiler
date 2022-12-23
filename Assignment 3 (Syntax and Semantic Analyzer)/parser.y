@@ -23,6 +23,10 @@ void yyerror(char *s)
 
 %}
 
+%union {
+	SymbolInfo* si;
+}
+
 %token IF ELSE FOR WHILE
 
 %left 

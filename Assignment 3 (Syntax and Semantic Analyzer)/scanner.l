@@ -10,16 +10,17 @@
 #include<cstdlib>
 #include<vector>
 #include "symbol_table.h"
+#include "y.tab.h"
 
 using namespace std;
 
-#define BUCKET_SIZE 10
+extern SymbolTable* symbol_table;
+SymbolInfo* symbol_info;
 
-int line_count = 1;
-int error_count = 0;
+extern int line_count;
+extern int error_count;
 
-ofstream logout;
-ofstream tokenout;
+extern ofstream logout;
 
 // if a string stretches multiple lines, we need to show the starting line no in case of token printing, 
 // hence we need to keep the line no. unchanged while the string is running
@@ -41,8 +42,6 @@ enum error_type {
 enum num_type {INTEGER, FLOAT};
 enum line_type {SINGLE_LINE, MULTILINE};
 enum reset_type {CHAR, STRING, COMMENT};
-
-SymbolTable sym(BUCKET_SIZE);
 
 char generate_special_character(char c) {
 	// MISC [ntafbvr0\'\"\\]
@@ -87,7 +86,7 @@ string get_real_string(string ss) {
         }
         else {
             if (i == sz - 1) {
-                cout << "this should not happen!";
+                cerr << "this should not happen!";
                 ret += ss[i];
             }
             else {
@@ -107,13 +106,13 @@ string get_real_string(string ss) {
 
 void printKeyword() {
 	string cap = capitalize(yytext);
-	tokenout << "<" << cap << ", " << yytext << ">" << endl;
+	// // tokenout << "<" << cap << ", " << yytext << ">" << endl;
 	logout << "Line# " << line_count << ": Token <" << cap << "> Lexeme " << yytext << " found" << endl;
 }
 
 void printIdentifier() {
 	logout << "Line# " << line_count << ": Token <ID> Lexeme " << yytext << " found" << endl;
-	tokenout << "<ID, " << yytext << ">" << endl;
+	// tokenout << "<ID, " << yytext << ">" << endl;
 	bool success = sym.insert(yytext, "ID", logout);
 	if (success) sym.print('A', logout);
 }
@@ -124,33 +123,33 @@ void printNum(num_type nt, const string& str) {
 	// 	str.pop_back();
 	// }
 	if (nt == INTEGER) {
-		tokenout << "<CONST_INT, " << str << ">" << endl;
+		// tokenout << "<CONST_INT, " << str << ">" << endl;
 		logout << "Line# " << line_count << ": Token <CONST_INT> Lexeme " << str << " found" << endl;
 	}
 	else if (nt == FLOAT) {
-		tokenout << "<CONST_FLOAT, " << str << ">" << endl;
+		// tokenout << "<CONST_FLOAT, " << str << ">" << endl;
 		logout << "Line# " << line_count << ": Token <CONST_FLOAT> Lexeme " << str << " found" << endl;
 	}
 }
 
 void printOpPunc(const string& token) {
-	tokenout << "<" << token << ", " << yytext << ">" << endl;
+	// tokenout << "<" << token << ", " << yytext << ">" << endl;
 	logout << "Line# " << line_count << ": Token <" << token << "> Lexeme " << yytext << " found" << endl;	
 }
 
 void printChar(const string& str) {
-	tokenout << "<CONST_CHAR, " << str << ">" << endl;
+	// tokenout << "<CONST_CHAR, " << str << ">" << endl;
 	logout << "Line# " << line_count << ": Token <CONST_CHAR> Lexeme " << str << " found" << endl;
 }
 
 void printString(line_type lt, const string& str1, const string& str2) {
 	if (lt == SINGLE_LINE) {
 		logout << "Line# " << line_count << ": Token <SINGLE LINE STRING> Lexeme " << str1 << " found" << endl;
-		tokenout << "<SINGLE LINE STRING, " << str2 << ">" << endl; 
+		// tokenout << "<SINGLE LINE STRING, " << str2 << ">" << endl; 
 	}
 	else if (lt == MULTILINE) {
 		logout << "Line# " << line_count << ": Token <MULTI LINE STRING> Lexeme " << str1 << " found" << endl;
-		tokenout << "<MULTI LINE STRING, " << str2 << ">" << endl;
+		// tokenout << "<MULTI LINE STRING, " << str2 << ">" << endl;
 	}
 }
 
@@ -166,7 +165,7 @@ void printComment(line_type lt, const string& str) {
 void show_error(error_type e, const string& str) {
 	error_count++;
 
-	logout << "Error at line# " << line_count << ": ";
+	logout << "Lexical error at line# " << line_count << ": ";
 	
 	if (e == MULTICHAR) {
 		logout << "MULTICHAR_CONST_CHAR " << str << endl;
@@ -226,71 +225,228 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 %%
 
 {WHITESPACE} 			{}
-{NLINE} 				{ line_count++; }
+{NLINE} 				{ 
+							line_count++; 
+						}
 
-"if"					|
-"else"					|
-"for"					|
-"while"					|
-"do"					|
-"break"					|
-"int"					|
-"char"					|
-"float"					|
-"double"				|
-"void"					|
-"return"				|
-"switch"				|
-"case"					|
-"default"				|
-"continue"				{ printKeyword(); }
+"if"					{
+							printKeyword();
+							return IF;
+						}
+"else"					{
+							printKeyword();
+							return ELSE;
+						}
+"for"					{
+							printKeyword();
+							return FOR;
+						}
+"while"					{
+							printKeyword();
+							return WHILE;
+						}
+"do"					{
+							printKeyword();
+							return DO;
+						}
+"break"					{
+							printKeyword();
+							return BREAK;
+						}
+"int"					{
+							printKeyword();
+							return INT;
+						}
+"char"					{
+							printKeyword();
+							return CHAR;
+						}
+"float"					{
+							printKeyword();
+							return FLOAT;
+						}
+"double"				{
+							printKeyword();
+							return DOUBLE;
+						}
+"void"					{
+							printKeyword();
+							return VOID;
+						}
+"return"				{
+							printKeyword();
+							return RETURN;
+						}
+"switch"				{
+							printKeyword();
+							return SWITCH;
+						}
+"case"					{
+							printKeyword();
+							return CASE;
+						}
+"default"				{
+							printKeyword();
+							return DEFAULT;
+						}
+"continue"				{
+							printKeyword();
+							return CONTINUE;
+						}
+"printf"				|
+"println"				{	
+							printKeyword();
+							symbol_info = new SymbolInfo(yytext, "PRINTLN");
+							yylval.si = symbol_info;
+							return PRINTLN;
+						}
 		
 
-{INTEGER} 				{ printNum(INTEGER, yytext); }
-{FLOATING_POINT}		{ printNum(FLOAT, yytext); }
-{TOO_DECIMAL}			{ show_error(TOO_DECIMAL, yytext); }
-{ILL_FORMED}			{ show_error(ILL_FORMED, yytext); }
+{INTEGER} 				{ 
+							printNum(INTEGER, yytext); 
+							symbol_info = new SymbolInfo(yytext, "CONST_INT");
+							yylval.si = symbol_info;
+							return CONST_INT;
+						}
+{FLOATING_POINT}		{ 
+							printNum(FLOAT, yytext); 
+							symbol_info = new SymbolInfo(yytext, "CONST_FLOAT");
+							yylval.si = symbol_info;
+							return CONST_FLOAT;
+ 						}
+{TOO_DECIMAL}			{ 
+							show_error(TOO_DECIMAL, yytext); 
+						}
+{ILL_FORMED}			{ 
+							show_error(ILL_FORMED, yytext); 
+						}
 
 
-{IDENTIFIER} 			{ printIdentifier(); }
-{NOT_ID} 				{ show_error(INVALID_SUFFIX, yytext); }
+{IDENTIFIER} 			{ 
+							printIdentifier(); 
+							symbol_info = new SymbolInfo(yytext, "ID");
+							yylval.si = symbol_info;
+							return ID;
+						}
+{NOT_ID} 				{ 
+							show_error(INVALID_SUFFIX, yytext); 
+						}
 
 
 "+"						|
-"-"						{ printOpPunc("ADDOP"); }
+"-"						{ 	printOpPunc("ADDOP");
+							symbol_info = new SymbolInfo(yytext, "ADDOP");
+							yylval.si = symbol_info;
+							return ADDOP;
+						}
 "*"						|
 "/"						|
-"%"						{ printOpPunc("MULOP"); }
-"++"					|
-"--"					{ printOpPunc("INCOP"); }
+"%"						{ 	printOpPunc("MULOP");
+							symbol_info = new SymbolInfo(yytext, "MULOP");
+							yylval.si = symbol_info;
+							return MULOP;
+						}
+"++"					{ 	printOpPunc("INCOP");
+							symbol_info = new SymbolInfo(yytext, "INCOP");
+							yylval.si = symbol_info;
+							return INCOP;
+						}
+"--"					{ 	printOpPunc("DECOP");
+							symbol_info = new SymbolInfo(yytext, "DECOP");
+							yylval.si = symbol_info;
+							return DECOP;
+						}
 "<"						|
 "<="					|
 ">"						|
 ">="					|
 "=="					|
-"!="					{ printOpPunc("RELOP"); }
-"="						{ printOpPunc("ASSIGNOP"); }
+"!="					{ 	printOpPunc("RELOP");
+							symbol_info = new SymbolInfo(yytext, "RELOP");
+							yylval.si = symbol_info;
+							return RELOP;
+						}
+"="						{ 	printOpPunc("ASSIGNOP");
+							symbol_info = new SymbolInfo(yytext, "ASSIGNOP");
+							yylval.si = symbol_info;
+							return ASSIGNOP;
+						}
 "&&"					|
-"||"					{ printOpPunc("LOGICOP"); }
+"||"					{ 	printOpPunc("LOGICOP");
+							symbol_info = new SymbolInfo(yytext, "LOGICOP");
+							yylval.si = symbol_info;
+							return LOGICOP;
+						}
 "&"						|
 "|"						|
 "^"						|
 "<<"					|
-">>"					{ printOpPunc("BITOP"); }
-"!"						{ printOpPunc("NOT"); }
-"("						{ printOpPunc("LPAREN"); }
-")"						{ printOpPunc("RPAREN"); }
-"{"						{ printOpPunc("LCURL"); sym.enter_scope(); }
-"}"						{ printOpPunc("RCURL"); sym.exit_scope(); }
-"["						{ printOpPunc("LSQUARE"); }
-"]"						{ printOpPunc("RSQUARE"); }
-","						{ printOpPunc("COMMA"); }
-";"						{ printOpPunc("SEMICOLON"); }
+">>"					{ 	printOpPunc("BITOP");
+							symbol_info = new SymbolInfo(yytext, "BITOP");
+							yylval.si = symbol_info;
+							return BITOP;
+						}
+"!"						{ 	printOpPunc("NOT");
+							symbol_info = new SymbolInfo(yytext, "NOT");
+							yylval.si = symbol_info;
+							return NOT;
+						}
+"("						{ 	printOpPunc("LPAREN");
+							symbol_info = new SymbolInfo(yytext, "LPAREN");
+							yylval.si = symbol_info;
+							return LPAREN;
+						}
+")"						{ 	printOpPunc("RPAREN");
+							symbol_info = new SymbolInfo(yytext, "RPAREN");
+							yylval.si = symbol_info;
+							return RPAREN;
+						}
+"{"						{ 	printOpPunc("LCURL");
+							symbol_info = new SymbolInfo(yytext, "LCURL");
+							yylval.si = symbol_info;
+							symbol_table.enter_scope();
+							return LCURL;
+						}
+"}"						{ 	printOpPunc("RCURL");
+							symbol_info = new SymbolInfo(yytext, "RCURL");
+							yylval.si = symbol_info;
+							symbol_table.exit_scope();
+							return RCURL;
+						}
+"["						{ 	printOpPunc("LTHIRD");
+							symbol_info = new SymbolInfo(yytext, "LTHIRD");
+							yylval.si = symbol_info;
+							return LTHIRD;
+						}
+"]"						{ 	printOpPunc("RTHIRD");
+							symbol_info = new SymbolInfo(yytext, "RTHIRD");
+							yylval.si = symbol_info;
+							return RTHIRD;
+						}
+","						{ 	printOpPunc("COMMA");
+							symbol_info = new SymbolInfo(yytext, "COMMA");
+							yylval.si = symbol_info;
+							return COMMA;
+						}
+";"						{ 	printOpPunc("SEMICOLON");
+							symbol_info = new SymbolInfo(yytext, "SEMICOLON");
+							yylval.si = symbol_info;
+							return SEMICOLON;
+						}
 
 
-\"						{ BEGIN STATE_STRING; reset(STRING); }
-\/\/					{ BEGIN CPP_COMMENT; reset(COMMENT); }
-\/\*					{ BEGIN C_COMMENT; reset(COMMENT); }
+\"						{ 
+							BEGIN STATE_STRING; 
+							reset(STRING); 
+						}
+\/\/					{ 
+							BEGIN CPP_COMMENT; 
+							reset(COMMENT); 
+						}
+\/\*					{ 
+							BEGIN C_COMMENT; 
+							reset(COMMENT); 
+						}
 
 
 \'{CHAR}*\'             {
@@ -411,31 +567,3 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 . 						{ show_error(UNRECOGNIZED, yytext); }
 
 %%
-
-int main(int argc, char** argv) {
-	if(argc != 2){
-		printf("Please provide input file name and try again\n");
-		return 0;
-	}
-	
-	FILE *fin=fopen(argv[1], "r");
-	if(fin == NULL){
-		printf("Cannot open specified file\n");
-		return 0;
-	}
-	
-	logout.open("log.txt");
-	tokenout.open("error.txt");
-
-	yyin = fin;
-	yylex();
-	fclose(yyin);
-
-	sym.print('A', logout);
-	logout << "Total lines: " << line_count << endl;
-	logout << "Total errors: " << error_count << endl;
-
-	tokenout.close();
-	logout.close();
-	return 0;
-}
