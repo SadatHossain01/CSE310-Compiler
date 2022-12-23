@@ -86,15 +86,15 @@ statements : statement
 Line# 9: Token <RCURL> Lexeme } found
 compound_statement : LCURL statements RCURL  
 	ScopeTable# 2
-	1--> <c,INT> 
-	2--> <d,INT> 
+	1--> <c, INT> 
+	2--> <d, INT> 
 	ScopeTable# 1
-	1--> <y,INT> 
-	2--> <z,INT> 
-	5--> <foo3,FUNCTION,INT> 
-	6--> <var,FUNCTION,INT> 
-	10--> <a,FLOAT> 
-	11--> <x,INT> 
+	1--> <y, INT> 
+	2--> <z, INT> 
+	5--> <foo3, FUNCTION, INT> 
+	6--> <var, FUNCTION, INT> 
+	10--> <a, FLOAT> <func, FUNCTION, INT> 
+	11--> <x, INT> 
 func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement 
 unit : func_definition  
 program : program unit 
@@ -135,15 +135,16 @@ statements : statement
 Line# 13: Token <RCURL> Lexeme } found
 compound_statement : LCURL statements RCURL  
 	ScopeTable# 3
-	10--> <a,INT> 
-	11--> <b,FLOAT> 
+	10--> <a, INT> 
+	11--> <b, FLOAT> 
 	ScopeTable# 1
-	1--> <y,INT> 
-	2--> <z,INT> 
-	5--> <foo3,FUNCTION,INT> 
-	6--> <var,FUNCTION,INT> 
-	10--> <a,FLOAT> <func,FUNCTION,INT> 
-	11--> <x,INT> 
+	1--> <y, INT> 
+	2--> <z, INT> 
+	5--> <foo3, FUNCTION, INT> 
+	6--> <var, FUNCTION, INT> 
+	9--> <correct_foo, FUNCTION, INT> 
+	10--> <a, FLOAT> <func, FUNCTION, INT> 
+	11--> <x, INT> 
 func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement 
 unit : func_definition  
 program : program unit 
@@ -175,15 +176,15 @@ statements : statement
 Line# 18: Token <RCURL> Lexeme } found
 compound_statement : LCURL statements RCURL  
 	ScopeTable# 4
-	10--> <a,INT> 
+	10--> <a, INT> 
 	ScopeTable# 1
-	1--> <y,INT> 
-	2--> <z,INT> 
-	5--> <foo3,FUNCTION,INT> 
-	6--> <var,FUNCTION,INT> 
-	9--> <correct_foo,FUNCTION,INT> 
-	10--> <a,FLOAT> <func,FUNCTION,INT> 
-	11--> <x,INT> 
+	1--> <y, INT> 
+	2--> <z, INT> 
+	5--> <foo3, FUNCTION, INT> 
+	6--> <var, FUNCTION, INT> <foo, FUNCTION, VOID> 
+	9--> <correct_foo, FUNCTION, INT> 
+	10--> <a, FLOAT> <func, FUNCTION, INT> 
+	11--> <x, INT> 
 func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement 
 unit : func_definition  
 program : program unit 
@@ -229,15 +230,16 @@ statements : statement
 Line# 22: Token <RCURL> Lexeme } found
 compound_statement : LCURL statements RCURL  
 	ScopeTable# 5
-	10--> <a,INT> 
+	10--> <a, INT> 
 	ScopeTable# 1
-	1--> <y,INT> 
-	2--> <z,INT> 
-	5--> <foo3,FUNCTION,INT> 
-	6--> <var,FUNCTION,INT> <foo,FUNCTION,VOID> 
-	9--> <correct_foo,FUNCTION,INT> 
-	10--> <a,FLOAT> <func,FUNCTION,INT> 
-	11--> <x,INT> 
+	1--> <y, INT> 
+	2--> <z, INT> 
+	4--> <foo2, FUNCTION, INT> 
+	5--> <foo3, FUNCTION, INT> 
+	6--> <var, FUNCTION, INT> <foo, FUNCTION, VOID> 
+	9--> <correct_foo, FUNCTION, INT> 
+	10--> <a, FLOAT> <func, FUNCTION, INT> 
+	11--> <x, INT> 
 func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement 
 unit : func_definition  
 program : program unit 
@@ -256,6 +258,7 @@ Line# 24: Token <ID> Lexeme b found
 parameter_list  : parameter_list COMMA type_specifier ID
 Line# 24: Token <RPAREN> Lexeme ) found
 Line# 24: Token <LCURL> Lexeme { found
+FUNCTION VOID
 Line# 25: Token <ID> Lexeme y found
 Line# 25: Token <ASSIGNOP> Lexeme = found
 variable : ID 	 
@@ -274,19 +277,18 @@ statements : statement
 Line# 26: Token <RCURL> Lexeme } found
 compound_statement : LCURL statements RCURL  
 	ScopeTable# 6
-	10--> <a,INT> 
-	11--> <b,INT> 
+	10--> <a, INT> 
+	11--> <b, INT> 
 	ScopeTable# 1
-	1--> <y,INT> 
-	2--> <z,INT> 
-	4--> <foo2,FUNCTION,INT> 
-	5--> <foo3,FUNCTION,INT> 
-	6--> <var,FUNCTION,INT> <foo,FUNCTION,VOID> 
-	9--> <correct_foo,FUNCTION,INT> 
-	10--> <a,FLOAT> <func,FUNCTION,INT> 
-	11--> <x,INT> 
+	1--> <y, INT> 
+	2--> <z, INT> 
+	4--> <foo2, FUNCTION, INT> 
+	5--> <foo3, FUNCTION, INT> 
+	6--> <var, FUNCTION, INT> <foo, FUNCTION, VOID> 
+	9--> <correct_foo, FUNCTION, INT> 
+	10--> <a, FLOAT> <func, FUNCTION, INT> 
+	11--> <x, INT> 
 func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement 
-FUNCTION VOID
 unit : func_definition  
 program : program unit 
 Line# 28: Token <INT> Lexeme int found
@@ -315,16 +317,16 @@ statements : statement
 Line# 30: Token <RCURL> Lexeme } found
 compound_statement : LCURL statements RCURL  
 	ScopeTable# 7
-	2--> <d,INT> 
+	2--> <d, INT> 
 	ScopeTable# 1
-	1--> <y,INT> 
-	2--> <z,INT> 
-	4--> <foo2,FUNCTION,INT> 
-	5--> <foo3,FUNCTION,INT> 
-	6--> <var,FUNCTION,INT> <foo,FUNCTION,VOID> 
-	9--> <correct_foo,FUNCTION,INT> 
-	10--> <a,FLOAT> <func,FUNCTION,INT> 
-	11--> <x,INT> 
+	1--> <y, INT> 
+	2--> <z, INT> 
+	4--> <foo2, FUNCTION, INT> 
+	5--> <foo3, FUNCTION, INT> 
+	6--> <var, FUNCTION, INT> <foo, FUNCTION, VOID> 
+	9--> <correct_foo, FUNCTION, INT> 
+	10--> <a, FLOAT> <func, FUNCTION, INT> 
+	11--> <x, INT> 
 func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement 
 unit : func_definition  
 program : program unit 
@@ -354,16 +356,16 @@ statements : statement
 Line# 34: Token <RCURL> Lexeme } found
 compound_statement : LCURL statements RCURL  
 	ScopeTable# 8
-	10--> <a,INT> 
+	10--> <a, INT> 
 	ScopeTable# 1
-	1--> <y,INT> 
-	2--> <z,INT> 
-	4--> <foo2,FUNCTION,INT> 
-	5--> <foo3,FUNCTION,INT> 
-	6--> <var,FUNCTION,INT> <foo,FUNCTION,VOID> 
-	9--> <correct_foo,FUNCTION,INT> 
-	10--> <a,FLOAT> <func,FUNCTION,INT> 
-	11--> <x,INT> 
+	1--> <y, INT> 
+	2--> <z, INT> 
+	4--> <foo2, FUNCTION, INT> 
+	5--> <foo3, FUNCTION, INT> 
+	6--> <var, FUNCTION, INT> <foo, FUNCTION, VOID> 
+	9--> <correct_foo, FUNCTION, INT> 
+	10--> <a, FLOAT> <func, FUNCTION, INT> 
+	11--> <x, INT> 
 func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement 
 unit : func_definition  
 program : program unit 
@@ -399,16 +401,16 @@ statements : statement
 Line# 38: Token <RCURL> Lexeme } found
 compound_statement : LCURL statements RCURL  
 	ScopeTable# 9
-	10--> <a,INT> 
+	10--> <a, INT> 
 	ScopeTable# 1
-	1--> <y,INT> 
-	2--> <z,INT> 
-	4--> <foo2,FUNCTION,INT> 
-	5--> <foo3,FUNCTION,INT> 
-	6--> <var,FUNCTION,INT> <foo,FUNCTION,VOID> 
-	9--> <correct_foo,FUNCTION,INT> 
-	10--> <a,FLOAT> <func,FUNCTION,INT> 
-	11--> <x,INT> 
+	1--> <y, INT> 
+	2--> <z, INT> 
+	4--> <foo2, FUNCTION, INT> 
+	5--> <foo3, FUNCTION, INT> 
+	6--> <var, FUNCTION, INT> <foo, FUNCTION, VOID> <foo4, FUNCTION, VOID> 
+	9--> <correct_foo, FUNCTION, INT> 
+	10--> <a, FLOAT> <func, FUNCTION, INT> 
+	11--> <x, INT> 
 func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement 
 unit : func_definition  
 program : program unit 
@@ -961,20 +963,20 @@ statements : statements statement
 Line# 72: Token <RCURL> Lexeme } found
 compound_statement : LCURL statements RCURL  
 	ScopeTable# 10
-	1--> <c,ARRAY> 
-	4--> <ee,INT> 
-	8--> <dd,INT> 
-	10--> <a,INT> 
-	11--> <b,INT> 
+	1--> <c, ARRAY, INT> 
+	4--> <ee, INT> 
+	8--> <dd, INT> 
+	10--> <a, INT> 
+	11--> <b, INT> 
 	ScopeTable# 1
-	1--> <y,INT> 
-	2--> <z,INT> 
-	4--> <foo2,FUNCTION,INT> 
-	5--> <foo3,FUNCTION,INT> 
-	6--> <var,FUNCTION,INT> <foo,FUNCTION,VOID> <foo4,FUNCTION,VOID> 
-	9--> <correct_foo,FUNCTION,INT> 
-	10--> <a,FLOAT> <func,FUNCTION,INT> 
-	11--> <x,INT> 
+	1--> <y, INT> 
+	2--> <z, INT> <main, FUNCTION, INT> 
+	4--> <foo2, FUNCTION, INT> 
+	5--> <foo3, FUNCTION, INT> 
+	6--> <var, FUNCTION, INT> <foo, FUNCTION, VOID> <foo4, FUNCTION, VOID> 
+	9--> <correct_foo, FUNCTION, INT> 
+	10--> <a, FLOAT> <func, FUNCTION, INT> 
+	11--> <x, INT> 
 func_definition : type_specifier ID LPAREN RPAREN compound_statement
 unit : func_definition  
 program : program unit 

@@ -424,8 +424,8 @@ int main(int argc, char** argv) {
 		return 0;
 	}
 	
-	logout.open("1905001_log.txt");
-	tokenout.open("1905001_token.txt");
+	logout.open("log.txt");
+	tokenout.open("error.txt");
 
 	yyin = fin;
 	yylex();
