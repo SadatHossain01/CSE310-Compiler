@@ -14,11 +14,12 @@
 
 using namespace std;
 
-extern SymbolTable* symbol_table;
-SymbolInfo* symbol_info;
+SymbolInfo* si;
 
+extern SymbolTable* sym;
 extern int line_count;
 extern int error_count;
+extern YYSTYPE yylval;
 
 extern ofstream logout;
 
@@ -39,9 +40,9 @@ enum error_type {
 		MULTICHAR, EMPTY_CHAR, UNFINISHED_CHAR, UNRECOGNIZED, TOO_DECIMAL, 
 		ILL_FORMED, INVALID_SUFFIX, UNFINISHED_STRING, UNFINISHED_COMMENT
 	};
-enum num_type {INTEGER, FLOAT};
+enum num_type {INTNUM, FLOATNUM};
 enum line_type {SINGLE_LINE, MULTILINE};
-enum reset_type {CHAR, STRING, COMMENT};
+enum reset_type {CHAR_RESET, STRING_RESET, COMMENT_RESET};
 
 char generate_special_character(char c) {
 	// MISC [ntafbvr0\'\"\\]
@@ -58,15 +59,15 @@ char generate_special_character(char c) {
 
 void reset(reset_type rt) {
 	inside_line = 0;
-	if (rt == CHAR) {
+	if (rt == CHAR_RESET) {
 		cur_char.clear();
 		char_len = 0;
 	}
-	else if (rt == STRING) {
+	else if (rt == STRING_RESET) {
 		cur_string.clear();
 		cur_string_raw.clear();
 	}
-	else if (rt == COMMENT) {
+	else if (rt == COMMENT_RESET) {
 		cur_comment.clear();
 	}
 }
@@ -113,8 +114,8 @@ void printKeyword() {
 void printIdentifier() {
 	logout << "Line# " << line_count << ": Token <ID> Lexeme " << yytext << " found" << endl;
 	// tokenout << "<ID, " << yytext << ">" << endl;
-	bool success = sym.insert(yytext, "ID", logout);
-	if (success) sym.print('A', logout);
+	bool success = sym->insert(yytext, "ID", logout);
+	if (success) sym->print('A', logout);
 }
 
 void printNum(num_type nt, const string& str) {
@@ -122,11 +123,11 @@ void printNum(num_type nt, const string& str) {
 	// 	for (int i = 1; i < str.size(); i++) str[i - 1] = str[i];
 	// 	str.pop_back();
 	// }
-	if (nt == INTEGER) {
+	if (nt == INTNUM) {
 		// tokenout << "<CONST_INT, " << str << ">" << endl;
 		logout << "Line# " << line_count << ": Token <CONST_INT> Lexeme " << str << " found" << endl;
 	}
-	else if (nt == FLOAT) {
+	else if (nt == FLOATNUM) {
 		// tokenout << "<CONST_FLOAT, " << str << ">" << endl;
 		logout << "Line# " << line_count << ": Token <CONST_FLOAT> Lexeme " << str << " found" << endl;
 	}
@@ -293,25 +294,26 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 							printKeyword();
 							return CONTINUE;
 						}
-"printf"				|
-"println"				{	
+"printf"				{
 							printKeyword();
-							symbol_info = new SymbolInfo(yytext, "PRINTLN");
-							yylval.si = symbol_info;
+							return PRINTF;
+						}
+"println"				{
+							printKeyword();
 							return PRINTLN;
 						}
 		
 
 {INTEGER} 				{ 
-							printNum(INTEGER, yytext); 
-							symbol_info = new SymbolInfo(yytext, "CONST_INT");
-							yylval.si = symbol_info;
+							printNum(INTNUM, yytext); 
+							si = new SymbolInfo(yytext, "CONST_INT");
+							yylval.symbol_info = si;
 							return CONST_INT;
 						}
 {FLOATING_POINT}		{ 
-							printNum(FLOAT, yytext); 
-							symbol_info = new SymbolInfo(yytext, "CONST_FLOAT");
-							yylval.si = symbol_info;
+							printNum(FLOATNUM, yytext); 
+							si = new SymbolInfo(yytext, "CONST_FLOAT");
+							yylval.symbol_info = si;
 							return CONST_FLOAT;
  						}
 {TOO_DECIMAL}			{ 
@@ -324,8 +326,8 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 
 {IDENTIFIER} 			{ 
 							printIdentifier(); 
-							symbol_info = new SymbolInfo(yytext, "ID");
-							yylval.si = symbol_info;
+							si = new SymbolInfo(yytext, "ID");
+							yylval.symbol_info = si;
 							return ID;
 						}
 {NOT_ID} 				{ 
@@ -335,25 +337,25 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 
 "+"						|
 "-"						{ 	printOpPunc("ADDOP");
-							symbol_info = new SymbolInfo(yytext, "ADDOP");
-							yylval.si = symbol_info;
+							si = new SymbolInfo(yytext, "ADDOP");
+							yylval.symbol_info = si;
 							return ADDOP;
 						}
 "*"						|
 "/"						|
 "%"						{ 	printOpPunc("MULOP");
-							symbol_info = new SymbolInfo(yytext, "MULOP");
-							yylval.si = symbol_info;
+							si = new SymbolInfo(yytext, "MULOP");
+							yylval.symbol_info = si;
 							return MULOP;
 						}
 "++"					{ 	printOpPunc("INCOP");
-							symbol_info = new SymbolInfo(yytext, "INCOP");
-							yylval.si = symbol_info;
+							si = new SymbolInfo(yytext, "INCOP");
+							yylval.symbol_info = si;
 							return INCOP;
 						}
 "--"					{ 	printOpPunc("DECOP");
-							symbol_info = new SymbolInfo(yytext, "DECOP");
-							yylval.si = symbol_info;
+							si = new SymbolInfo(yytext, "DECOP");
+							yylval.symbol_info = si;
 							return DECOP;
 						}
 "<"						|
@@ -362,19 +364,19 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 ">="					|
 "=="					|
 "!="					{ 	printOpPunc("RELOP");
-							symbol_info = new SymbolInfo(yytext, "RELOP");
-							yylval.si = symbol_info;
+							si = new SymbolInfo(yytext, "RELOP");
+							yylval.symbol_info = si;
 							return RELOP;
 						}
 "="						{ 	printOpPunc("ASSIGNOP");
-							symbol_info = new SymbolInfo(yytext, "ASSIGNOP");
-							yylval.si = symbol_info;
+							si = new SymbolInfo(yytext, "ASSIGNOP");
+							yylval.symbol_info = si;
 							return ASSIGNOP;
 						}
 "&&"					|
 "||"					{ 	printOpPunc("LOGICOP");
-							symbol_info = new SymbolInfo(yytext, "LOGICOP");
-							yylval.si = symbol_info;
+							si = new SymbolInfo(yytext, "LOGICOP");
+							yylval.symbol_info = si;
 							return LOGICOP;
 						}
 "&"						|
@@ -382,70 +384,70 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 "^"						|
 "<<"					|
 ">>"					{ 	printOpPunc("BITOP");
-							symbol_info = new SymbolInfo(yytext, "BITOP");
-							yylval.si = symbol_info;
+							si = new SymbolInfo(yytext, "BITOP");
+							yylval.symbol_info = si;
 							return BITOP;
 						}
 "!"						{ 	printOpPunc("NOT");
-							symbol_info = new SymbolInfo(yytext, "NOT");
-							yylval.si = symbol_info;
+							si = new SymbolInfo(yytext, "NOT");
+							yylval.symbol_info = si;
 							return NOT;
 						}
 "("						{ 	printOpPunc("LPAREN");
-							symbol_info = new SymbolInfo(yytext, "LPAREN");
-							yylval.si = symbol_info;
+							si = new SymbolInfo(yytext, "LPAREN");
+							yylval.symbol_info = si;
 							return LPAREN;
 						}
 ")"						{ 	printOpPunc("RPAREN");
-							symbol_info = new SymbolInfo(yytext, "RPAREN");
-							yylval.si = symbol_info;
+							si = new SymbolInfo(yytext, "RPAREN");
+							yylval.symbol_info = si;
 							return RPAREN;
 						}
 "{"						{ 	printOpPunc("LCURL");
-							symbol_info = new SymbolInfo(yytext, "LCURL");
-							yylval.si = symbol_info;
-							symbol_table.enter_scope();
+							si = new SymbolInfo(yytext, "LCURL");
+							yylval.symbol_info = si;
+							sym->enter_scope();
 							return LCURL;
 						}
 "}"						{ 	printOpPunc("RCURL");
-							symbol_info = new SymbolInfo(yytext, "RCURL");
-							yylval.si = symbol_info;
-							symbol_table.exit_scope();
+							si = new SymbolInfo(yytext, "RCURL");
+							yylval.symbol_info = si;
+							sym->exit_scope();
 							return RCURL;
 						}
 "["						{ 	printOpPunc("LTHIRD");
-							symbol_info = new SymbolInfo(yytext, "LTHIRD");
-							yylval.si = symbol_info;
+							si = new SymbolInfo(yytext, "LTHIRD");
+							yylval.symbol_info = si;
 							return LTHIRD;
 						}
 "]"						{ 	printOpPunc("RTHIRD");
-							symbol_info = new SymbolInfo(yytext, "RTHIRD");
-							yylval.si = symbol_info;
+							si = new SymbolInfo(yytext, "RTHIRD");
+							yylval.symbol_info = si;
 							return RTHIRD;
 						}
 ","						{ 	printOpPunc("COMMA");
-							symbol_info = new SymbolInfo(yytext, "COMMA");
-							yylval.si = symbol_info;
+							si = new SymbolInfo(yytext, "COMMA");
+							yylval.symbol_info = si;
 							return COMMA;
 						}
 ";"						{ 	printOpPunc("SEMICOLON");
-							symbol_info = new SymbolInfo(yytext, "SEMICOLON");
-							yylval.si = symbol_info;
+							si = new SymbolInfo(yytext, "SEMICOLON");
+							yylval.symbol_info = si;
 							return SEMICOLON;
 						}
 
 
 \"						{ 
 							BEGIN STATE_STRING; 
-							reset(STRING); 
+							reset(STRING_RESET); 
 						}
 \/\/					{ 
 							BEGIN CPP_COMMENT; 
-							reset(COMMENT); 
+							reset(COMMENT_RESET); 
 						}
 \/\*					{ 
 							BEGIN C_COMMENT; 
-							reset(COMMENT); 
+							reset(COMMENT_RESET); 
 						}
 
 

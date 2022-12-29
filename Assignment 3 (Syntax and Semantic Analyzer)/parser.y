@@ -13,8 +13,10 @@ using namespace std;
 int line_count = 1;
 int error_count = 0;
 
-SymbolTable *table;
-extern FILE* fp;
+SymbolTable *sym;
+extern FILE* yyin;
+
+ofstream treeout, errorout, logout;
 
 void yyerror(char *s) {}
 int yyparse(void);
@@ -24,17 +26,12 @@ int yylex(void);
 %}
 
 %union {
-	SymbolInfo* si;
-	vector<SymbolInfo*> vsi; 
+	SymbolInfo* symbol_info;
 }
 
-%token IF ELSE FOR WHILE
-
-%left 
-%right
-
-%nonassoc 
-
+%token IF ELSE FOR WHILE DO BREAK INT CHAR FLOAT DOUBLE VOID RETURN SWITCH CASE DEFAULT CONTINUE PRINTF PRINTLN
+%token <symbol_info> CONST_INT CONST_FLOAT ID ADDOP MULOP INCOP DECOP RELOP ASSIGNOP LOGICOP BITOP NOT LPAREN RPAREN LCURL RCURL LTHIRD RTHIRD COMMA SEMICOLON
+%type <symbol_info> start, program
 
 %%
 
@@ -159,7 +156,8 @@ int main(int argc,char *argv[]) {
 		cout << "Please Provide Input File\n";
 		exit(1);
 	}
-	else if((fp = fopen(argv[1], "r")) == NULL) {
+	FILE *fp;
+	if((fp = fopen(argv[1], "r")) == NULL) {
 		cout << "Cannot Open Input File\n";
 		exit(1);
 	}
@@ -168,7 +166,7 @@ int main(int argc,char *argv[]) {
 	errorout.open("error.txt");
 	logout.open("log.txt");
 
-	table = new SymbolTable(BUCKET_SIZE);
+	sym = new SymbolTable(BUCKET_SIZE);
 
 	yyin = fp;
 	yyparse();
