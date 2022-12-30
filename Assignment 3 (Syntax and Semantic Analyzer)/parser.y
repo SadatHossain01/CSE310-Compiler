@@ -12,16 +12,14 @@ using namespace std;
 
 int line_count = 1;
 int error_count = 0;
-
 SymbolTable *sym;
 extern FILE* yyin;
 
 ofstream treeout, errorout, logout;
 
-void yyerror(char *s) {}
+void yyerror(const string& s) {}
 int yyparse(void);
 int yylex(void);
-
 
 %}
 
@@ -29,9 +27,8 @@ int yylex(void);
 	SymbolInfo* symbol_info;
 }
 
-%token IF ELSE FOR WHILE DO BREAK INT CHAR FLOAT DOUBLE VOID RETURN SWITCH CASE DEFAULT CONTINUE PRINTF PRINTLN
-%token <symbol_info> CONST_INT CONST_FLOAT ID ADDOP MULOP INCOP DECOP RELOP ASSIGNOP LOGICOP BITOP NOT LPAREN RPAREN LCURL RCURL LTHIRD RTHIRD COMMA SEMICOLON
-%type <symbol_info> start, program
+%token <symbol_info> IF ELSE FOR WHILE DO BREAK INT CHAR FLOAT DOUBLE VOID RETURN SWITCH CASE DEFAULT CONTINUE PRINTF PRINTLN CONST_INT CONST_FLOAT ID ADDOP MULOP INCOP DECOP RELOP ASSIGNOP LOGICOP BITOP NOT LPAREN RPAREN LCURL RCURL LTHIRD RTHIRD COMMA SEMICOLON
+%type <symbol_info> start program unit var_declaration func_declaration func_definition type_specifier parameter_list compound_statement statements declaration_list statement expression_statement logic_expression rel_expression simple_expression term unary_expression factor variable argument_list arguments
 
 %%
 
