@@ -3,25 +3,47 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <vector>
 
 using namespace std;
 
 class SymbolInfo {
    private:
-    string name, type;
+    string name;
+    string type;
+    string data_type;
+    bool func_declaration;
+    bool func_definition;
+    vector<SymbolInfo *> param_list;
+    vector<SymbolInfo *> declaration_list;
     SymbolInfo *next;
 
    public:
-    SymbolInfo(string name = "", string type = "") {
-        this->name = name;
-        this->type = type;
+    SymbolInfo(const string &name = "", const string &type = "")
+        : name(name), type(type) {
         next = nullptr;
     }
-    string get_name() { return name; }
-    string get_type() { return type; }
-    SymbolInfo *get_next() { return next; }
+    string get_name() const { return name; }
+    string get_type() const { return type; }
+    string get_data_type() const { return data_type; }
+    bool is_func_declaration() const { return func_declaration; }
+    bool is_func_definition() const { return func_definition; }
+    vector<SymbolInfo *> get_param_list() const { return param_list; }
+    vector<SymbolInfo *> get_declaration_list() const {
+        return declaration_list;
+    }
+    SymbolInfo *get_next() const { return next; }
     void set_name(const string &name) { this->name = name; }
     void set_type(const string &type) { this->type = type; }
+    void set_data_type(const string &data_type) { this->data_type = data_type; }
+    void set_func_declaration(bool val) { this->func_declaration = val; }
+    void set_func_definition(bool val) { this->func_definition = val; }
+    void set_param_list(const vector<SymbolInfo *> &param_list) {
+        this->param_list = param_list;
+    }
+    void set_declaration_list(const vector<SymbolInfo *> &declaration_list) {
+        this->declaration_list = declaration_list;
+    }
     void set_next(SymbolInfo *next) { this->next = next; }
     void print(ostream &out = cout) {
         out << "<" << name << "," << type << "> ";

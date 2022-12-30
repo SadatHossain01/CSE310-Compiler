@@ -14,12 +14,9 @@
 
 using namespace std;
 
-SymbolInfo* si;
-
 extern SymbolTable* sym;
 extern int line_count;
 extern int error_count;
-extern YYSTYPE yylval;
 
 extern ofstream logout;
 
@@ -232,88 +229,104 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 
 "if"					{
 							printKeyword();
+							yylval.symbol_info = new SymbolInfo(yytext, "KEYWORD");
 							return IF;
 						}
 "else"					{
 							printKeyword();
+							yylval.symbol_info = new SymbolInfo(yytext, "KEYWORD");
 							return ELSE;
 						}
 "for"					{
 							printKeyword();
+							yylval.symbol_info = new SymbolInfo(yytext, "KEYWORD");
 							return FOR;
 						}
 "while"					{
 							printKeyword();
+							yylval.symbol_info = new SymbolInfo(yytext, "KEYWORD");
 							return WHILE;
 						}
 "do"					{
 							printKeyword();
+							yylval.symbol_info = new SymbolInfo(yytext, "KEYWORD");
 							return DO;
 						}
 "break"					{
 							printKeyword();
+							yylval.symbol_info = new SymbolInfo(yytext, "KEYWORD");
 							return BREAK;
 						}
 "int"					{
 							printKeyword();
+							yylval.symbol_info = new SymbolInfo(yytext, "KEYWORD");
 							return INT;
 						}
 "char"					{
 							printKeyword();
+							yylval.symbol_info = new SymbolInfo(yytext, "KEYWORD");
 							return CHAR;
 						}
 "float"					{
 							printKeyword();
+							yylval.symbol_info = new SymbolInfo(yytext, "KEYWORD");
 							return FLOAT;
 						}
 "double"				{
 							printKeyword();
+							yylval.symbol_info = new SymbolInfo(yytext, "KEYWORD");
 							return DOUBLE;
 						}
 "void"					{
 							printKeyword();
+							yylval.symbol_info = new SymbolInfo(yytext, "KEYWORD");
 							return VOID;
 						}
 "return"				{
 							printKeyword();
+							yylval.symbol_info = new SymbolInfo(yytext, "KEYWORD");
 							return RETURN;
 						}
 "switch"				{
 							printKeyword();
+							yylval.symbol_info = new SymbolInfo(yytext, "KEYWORD");
 							return SWITCH;
 						}
 "case"					{
 							printKeyword();
+							yylval.symbol_info = new SymbolInfo(yytext, "KEYWORD");
 							return CASE;
 						}
 "default"				{
 							printKeyword();
+							yylval.symbol_info = new SymbolInfo(yytext, "KEYWORD");
 							return DEFAULT;
 						}
 "continue"				{
 							printKeyword();
+							yylval.symbol_info = new SymbolInfo(yytext, "KEYWORD");
 							return CONTINUE;
 						}
 "printf"				{
 							printKeyword();
+							yylval.symbol_info = new SymbolInfo(yytext, "KEYWORD");
 							return PRINTF;
 						}
 "println"				{
 							printKeyword();
+							yylval.symbol_info = new SymbolInfo(yytext, "KEYWORD");
 							return PRINTLN;
 						}
 		
 
 {INTEGER} 				{ 
 							printNum(INTNUM, yytext); 
-							si = new SymbolInfo(yytext, "CONST_INT");
-							yylval.symbol_info = si;
+							yylval.symbol_info = new SymbolInfo(yytext, "CONST_INT");
 							return CONST_INT;
 						}
 {FLOATING_POINT}		{ 
 							printNum(FLOATNUM, yytext); 
-							si = new SymbolInfo(yytext, "CONST_FLOAT");
-							yylval.symbol_info = si;
+							yylval.symbol_info = new SymbolInfo(yytext, "CONST_FLOAT");
 							return CONST_FLOAT;
  						}
 {TOO_DECIMAL}			{ 
@@ -326,8 +339,7 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 
 {IDENTIFIER} 			{ 
 							printIdentifier(); 
-							si = new SymbolInfo(yytext, "ID");
-							yylval.symbol_info = si;
+							yylval.symbol_info = new SymbolInfo(yytext, "ID");
 							return ID;
 						}
 {NOT_ID} 				{ 
@@ -337,25 +349,21 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 
 "+"						|
 "-"						{ 	printOpPunc("ADDOP");
-							si = new SymbolInfo(yytext, "ADDOP");
-							yylval.symbol_info = si;
+							yylval.symbol_info = new SymbolInfo(yytext, "ADDOP");
 							return ADDOP;
 						}
 "*"						|
 "/"						|
 "%"						{ 	printOpPunc("MULOP");
-							si = new SymbolInfo(yytext, "MULOP");
-							yylval.symbol_info = si;
+							yylval.symbol_info = new SymbolInfo(yytext, "MULOP");
 							return MULOP;
 						}
 "++"					{ 	printOpPunc("INCOP");
-							si = new SymbolInfo(yytext, "INCOP");
-							yylval.symbol_info = si;
+							yylval.symbol_info = new SymbolInfo(yytext, "INCOP");
 							return INCOP;
 						}
 "--"					{ 	printOpPunc("DECOP");
-							si = new SymbolInfo(yytext, "DECOP");
-							yylval.symbol_info = si;
+							yylval.symbol_info = new SymbolInfo(yytext, "DECOP");
 							return DECOP;
 						}
 "<"						|
@@ -364,19 +372,16 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 ">="					|
 "=="					|
 "!="					{ 	printOpPunc("RELOP");
-							si = new SymbolInfo(yytext, "RELOP");
-							yylval.symbol_info = si;
+							yylval.symbol_info = new SymbolInfo(yytext, "RELOP");
 							return RELOP;
 						}
 "="						{ 	printOpPunc("ASSIGNOP");
-							si = new SymbolInfo(yytext, "ASSIGNOP");
-							yylval.symbol_info = si;
+							yylval.symbol_info = new SymbolInfo(yytext, "ASSIGNOP");
 							return ASSIGNOP;
 						}
 "&&"					|
 "||"					{ 	printOpPunc("LOGICOP");
-							si = new SymbolInfo(yytext, "LOGICOP");
-							yylval.symbol_info = si;
+							yylval.symbol_info = new SymbolInfo(yytext, "LOGICOP");
 							return LOGICOP;
 						}
 "&"						|
@@ -384,55 +389,45 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 "^"						|
 "<<"					|
 ">>"					{ 	printOpPunc("BITOP");
-							si = new SymbolInfo(yytext, "BITOP");
-							yylval.symbol_info = si;
+							yylval.symbol_info = new SymbolInfo(yytext, "BITOP");
 							return BITOP;
 						}
 "!"						{ 	printOpPunc("NOT");
-							si = new SymbolInfo(yytext, "NOT");
-							yylval.symbol_info = si;
+							yylval.symbol_info = new SymbolInfo(yytext, "NOT");
 							return NOT;
 						}
 "("						{ 	printOpPunc("LPAREN");
-							si = new SymbolInfo(yytext, "LPAREN");
-							yylval.symbol_info = si;
+							yylval.symbol_info = new SymbolInfo(yytext, "LPAREN");
 							return LPAREN;
 						}
 ")"						{ 	printOpPunc("RPAREN");
-							si = new SymbolInfo(yytext, "RPAREN");
-							yylval.symbol_info = si;
+							yylval.symbol_info = new SymbolInfo(yytext, "RPAREN");
 							return RPAREN;
 						}
 "{"						{ 	printOpPunc("LCURL");
-							si = new SymbolInfo(yytext, "LCURL");
-							yylval.symbol_info = si;
+							yylval.symbol_info = new SymbolInfo(yytext, "LCURL");
 							sym->enter_scope();
 							return LCURL;
 						}
 "}"						{ 	printOpPunc("RCURL");
-							si = new SymbolInfo(yytext, "RCURL");
-							yylval.symbol_info = si;
+							yylval.symbol_info = new SymbolInfo(yytext, "RCURL");
 							sym->exit_scope();
 							return RCURL;
 						}
 "["						{ 	printOpPunc("LTHIRD");
-							si = new SymbolInfo(yytext, "LTHIRD");
-							yylval.symbol_info = si;
+							yylval.symbol_info = new SymbolInfo(yytext, "LTHIRD");
 							return LTHIRD;
 						}
 "]"						{ 	printOpPunc("RTHIRD");
-							si = new SymbolInfo(yytext, "RTHIRD");
-							yylval.symbol_info = si;
+							yylval.symbol_info = new SymbolInfo(yytext, "RTHIRD");
 							return RTHIRD;
 						}
 ","						{ 	printOpPunc("COMMA");
-							si = new SymbolInfo(yytext, "COMMA");
-							yylval.symbol_info = si;
+							yylval.symbol_info = new SymbolInfo(yytext, "COMMA");
 							return COMMA;
 						}
 ";"						{ 	printOpPunc("SEMICOLON");
-							si = new SymbolInfo(yytext, "SEMICOLON");
-							yylval.symbol_info = si;
+							yylval.symbol_info = new SymbolInfo(yytext, "SEMICOLON");
 							return SEMICOLON;
 						}
 
