@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
+#include <string>
 #include <cmath>
 #include <vector>
 #include "symbol_table.h"
@@ -21,6 +22,10 @@ void yyerror(const string& s) {}
 int yyparse(void);
 int yylex(void);
 
+void print_grammar_rule(const string& parent, const string& children) {
+	logout << parent << " : " << children << endl;
+}
+
 %}
 
 %union {
@@ -34,7 +39,9 @@ int yylex(void);
 
 start : program
 	{
-		//write your code in this block in all the similar blocks below
+		print_grammar_rule("start", "program");
+		$$ = new SymbolInfo("start", "non-terminal");
+		cout << "Total Lines: " << line_count << endl;
 	}
 	;
 
@@ -71,6 +78,10 @@ var_declaration : type_specifier declaration_list SEMICOLON
  		 ;
  		 
 type_specifier	: INT
+				{
+					print_grammar_rule("type_specifier", "INT");
+					$$ = new SymbolInfo("INT", "keyword");
+				}
  		| FLOAT
  		| VOID
  		;
