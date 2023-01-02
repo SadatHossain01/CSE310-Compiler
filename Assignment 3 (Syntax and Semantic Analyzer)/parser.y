@@ -148,6 +148,7 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 		print_grammar_rule("func_declaration", "type_specifier ID LPAREN parameter_list RPAREN SEMICOLON");
 		$$ = new SymbolInfo("func_declaration");
 		$2->set_func_declaration(true);
+		$2->set_type("FUNCTION");
 		$2->set_data_type($1->get_data_type());
 
 		bool success = sym->insert($2);
