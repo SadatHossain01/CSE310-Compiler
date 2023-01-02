@@ -56,12 +56,15 @@ class SymbolInfo {
     void set_param_list(const vector<SymbolInfo *> &param_list) {
         this->param_list = param_list;
     }
+    void add_param(SymbolInfo *param) { this->param_list.push_back(param); }
     void set_declaration_list(const vector<SymbolInfo *> &declaration_list) {
         this->declaration_list = declaration_list;
     }
     void set_next(SymbolInfo *next) { this->next = next; }
     void print(ostream &out = cout) {
-        out << "<" << name << "," << type << "> ";
+        out << "<" << name << ", " << type;
+        if (type == "FUNCTION") out << ", " << data_type;
+        out << "> ";
     }
 };
 

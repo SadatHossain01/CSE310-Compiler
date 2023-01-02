@@ -55,6 +55,14 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
             case CONFLICTING_TYPE:
                 out << "Conflicting types for \'" << str << "\'" << endl;
                 break;
+            case VOID_TYPE:
+                out << "Variable or field \'" << str << "\' declared void"
+                    << endl;
+                break;
+            case PARAM_NAMELESS:
+                out << "Nameless parameter \'" << str
+                    << "\' not allowed in function definition" << endl;
+                break;
             default:
                 break;
         }

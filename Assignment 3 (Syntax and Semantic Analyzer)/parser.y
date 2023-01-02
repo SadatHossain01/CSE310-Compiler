@@ -11,7 +11,7 @@
 
 using namespace std;
 
-#define BUCKET_SIZE 10
+#define BUCKET_SIZE 11
 
 int line_count = 1;
 int error_count = 0;
@@ -34,6 +34,15 @@ void insert_function(SymbolInfo* function, const string& type_specifier, const v
 	function->set_data_type(type_specifier);
 	function->set_func_definition(true);
 	function->set_param_list(param_list);
+
+	if (function->is_func_definition()) {
+		// no parameter can be nameless in a function definition
+		for (int i = 0; i < param_list.size(); i++) {
+			if (param_list[i]->get_name() == "") {
+				show_error(SEMANTIC, PARAM_NAMELESS, function->get_name(), errorout);
+			}
+		}
+	}
 
 	bool success = sym->insert(function);
 	if (success) return; // no function definition available, so insert it as it is
@@ -81,6 +90,11 @@ void insert_function(SymbolInfo* function, const string& type_specifier, const v
 	}
 }
 
+void check_type_specifier(SymbolInfo* symbol) {
+	if (symbol->get_data_type() == "VOID") {
+		show_error(SEMANTIC, VOID_TYPE, symbol->get_name(), errorout);
+	}
+}
 %}
 
 %union {
@@ -166,19 +180,48 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 		}
 	}
 	;
-		 
-func_definition : type_specifier ID LPAREN parameter_list RPAREN {} compound_statement {
-
+	 
+func_definition : type_specifier ID LPAREN parameter_list RPAREN { insert_function($2, $1->get_data_type(), $4->get_param_list()); } compound_statement {
+		print_grammar_rule("func_definition", "type_specifier ID LPAREN parameter_list RPAREN compound_statement");
+		$$ = new SymbolInfo("func_definition");
 	}
-	| type_specifier ID LPAREN RPAREN compound_statement
+	| type_specifier ID LPAREN RPAREN { insert_function($2, $1->get_data_type(), $4->get_param_list()); } compound_statement {
+		print_grammar_rule("func_definition", "type_specifier ID LPAREN RPAREN compound_statement");
+		$$ = new SymbolInfo("func_definition");
+	}
 	;				
 
-
-parameter_list  : parameter_list COMMA type_specifier ID
-		| parameter_list COMMA type_specifier
- 		| type_specifier ID
-		| type_specifier
- 		;
+parameter_list : parameter_list COMMA type_specifier ID {
+		print_grammar_rule("parameter_list", "parameter_list COMMA type_specifier ID");
+		$$ = new SymbolInfo("parameter_list");
+		SymbolInfo* new_param = new SymbolInfo($4->get_name(), "ID", $3->get_data_type());
+		$$->set_param_list($1->get_param_list());
+		$$->add_param(new_param);
+		check_type_specifier($3);
+	}
+	| parameter_list COMMA type_specifier {
+		print_grammar_rule("parameter_list", "parameter_list COMMA type_specifier");
+		$$ = new SymbolInfo("parameter_list");
+		SymbolInfo* new_param = new SymbolInfo("", "ID", $3->get_data_type()); // later check if this nameless parameter is used in function definition. if yes, then show error
+		$$->set_param_list($1->get_param_list());
+		$$->add_param(new_param);
+		check_type_specifier($3);
+	}
+	| type_specifier ID {
+		print_grammar_rule("parameter_list", "type_specifier ID");
+		$$ = new SymbolInfo("parameter_list");
+		SymbolInfo* new_param = new SymbolInfo($2->get_name(), "ID", $1->get_data_type());
+		$$->add_param(new_param);
+		check_type_specifier($1);
+	}
+	| type_specifier {
+		print_grammar_rule("parameter_list", "type_specifier");
+		$$ = new SymbolInfo("parameter_list");
+		SymbolInfo* new_param = new SymbolInfo("", "ID", $1->get_data_type()); // later check if this nameless parameter is used in function definition. if yes, then show error
+		$$->add_param(new_param);
+		check_type_specifier($1);
+	}
+	;
 
  		
 compound_statement : LCURL statements RCURL

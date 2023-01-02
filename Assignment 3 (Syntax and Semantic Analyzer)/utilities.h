@@ -26,6 +26,8 @@ enum error_type {
                               // declared as another thing (or data type)
     CONFLICTING_TYPE,  // return type mismatch or number of parameters mismatch
                        // or any individual type mismatch
+    VOID_TYPE,
+    PARAM_NAMELESS,
 };
 enum error_class { LEXICAL, SYNTAX, SEMANTIC };
 enum num_type { INTNUM, FLOATNUM };
