@@ -31,12 +31,28 @@ enum error_type {
     PARAM_NAMELESS,
     UNDECLARED_VARIABLE,
     UNDECLARED_FUNCTION,
+    ARRAY_AS_VAR,
+    FUNC_AS_VAR,
+    ERROR_AS_ARRAY,
+    INDEX_NOT_INT,
+    INDEX_OUT_OF_BOUNDS,
+    VOID_USAGE,
+    MOD_OPERAND,
+    TYPE_ERROR,  // if a computation is faulty, it should have a "ERROR" type,
+                 // and wherever it follows, should consider that
+    NOT_A_FUNCTION,
+    UNDEFINED_FUNCTION,
+    TOO_MANY_ARGUMENTS,
+    TOO_FEW_ARGUMENTS,
     S_PARAM_FUNC_DEFINITION,
     S_DECL_VAR_DECLARATION,
     S_UNIT,
-    S_EXP_STATEMENT
+    S_EXP_STATEMENT,
+    FLOAT_TO_INT,
+    MOD_BY_ZERO,
+    DIV_BY_ZERO,
 };
-enum error_class { LEXICAL, SYNTAX, SEMANTIC };
+enum error_class { LEXICAL, SYNTAX, SEMANTIC, WARNING };
 enum num_type { INTNUM, FLOATNUM };
 enum line_type { SINGLE_LINE, MULTILINE };
 enum reset_type { CHAR_RESET, STRING_RESET, COMMENT_RESET };

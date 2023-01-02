@@ -16,6 +16,11 @@ class SymbolInfo {
     bool func_definition = false;
     bool terminal = false;
     bool array = false;
+    union num {
+        long long l;
+        double d;
+    };
+    unsigned char num_type = 0;  // 0 for not a num, 1 for int, 2 for float
     int arr_size;
     vector<SymbolInfo *> param_list;
     vector<SymbolInfo *> declaration_list;

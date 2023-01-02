@@ -34,6 +34,9 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
             case UNFINISHED_COMMENT:
                 out << "UNFINISHED_COMMENT " << str << endl;
                 break;
+            case VOID_USAGE:
+                out << "Void cannot be used in expression" << endl;
+                break;
             default:
                 break;
         }
@@ -72,6 +75,40 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
             case UNDECLARED_FUNCTION:
                 out << "Undeclared function \'" << str << "\'" << endl;
                 break;
+            case ARRAY_AS_VAR:
+                out << "Type mismatch for \'" << str << "\', is an array"
+                    << endl;
+                break;
+            case FUNC_AS_VAR:
+                out << "Type mismatch for \'" << str << "\', is a function"
+                    << endl;
+                break;
+            case ERROR_AS_ARRAY:
+                out << "\'" << str << "\' is not an array" << endl;
+                break;
+            case INDEX_NOT_INT:
+                out << "Array subscript is not an integer" << endl;
+                break;
+            case INDEX_OUT_OF_BOUNDS:
+                out << "Array subscript is out of bounds" << endl;
+                break;
+            case MOD_OPERAND:
+                out << "Operands of modulus must be integers" << endl;
+                break;
+            case TYPE_ERROR:
+                out << "Error infering type" << endl;
+                break;
+            case TOO_MANY_ARGUMENTS:
+                out << "Too many arguments to function \'" << str << "\'"
+                    << endl;
+                break;
+            case TOO_FEW_ARGUMENTS:
+                out << "Too few arguments to function \'" << str << "\'"
+                    << endl;
+                break;
+            case NOT_A_FUNCTION:
+                out << "\'" << str << "\' is not a function" << endl;
+                break;
             default:
                 break;
         }
@@ -91,6 +128,24 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
                 break;
             case S_EXP_STATEMENT:
                 out << "expression statement" << endl;
+                break;
+            default:
+                break;
+        }
+    } else if (ec == WARNING) {
+        out << "Line# " << line_count << ": ";
+        out << "Warning: ";
+
+        switch (e) {
+            case FLOAT_TO_INT:
+                out << "possible loss of data in assignment of FLOAT to INT"
+                    << endl;
+                break;
+            case MOD_BY_ZERO:
+                out << "modulus by zero" << endl;
+                break;
+            case DIV_BY_ZERO:
+                out << "division by zero" << endl;
                 break;
             default:
                 break;

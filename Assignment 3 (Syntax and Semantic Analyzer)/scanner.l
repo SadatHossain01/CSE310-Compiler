@@ -266,11 +266,6 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 							yylval.symbol_info = new SymbolInfo(yytext, "KEYWORD");
 							return CONTINUE;
 						}
-"printf"				{
-							printKeyword();
-							yylval.symbol_info = new SymbolInfo(yytext, "KEYWORD");
-							return PRINTF;
-						}
 "println"				{
 							printKeyword();
 							yylval.symbol_info = new SymbolInfo(yytext, "KEYWORD");
