@@ -16,6 +16,7 @@ class SymbolInfo {
     bool func_definition = false;
     bool terminal = false;
     bool array = false;
+    int arr_size;
     vector<SymbolInfo *> param_list;
     vector<SymbolInfo *> declaration_list;
     SymbolInfo *next = nullptr;
@@ -33,6 +34,7 @@ class SymbolInfo {
     bool is_func_declaration() const { return func_declaration; }
     bool is_terminal() const { return terminal; }
     bool is_array() const { return array; }
+    int get_array_size() const { return arr_size; }
     vector<SymbolInfo *> get_param_list() const { return param_list; }
     vector<SymbolInfo *> get_declaration_list() const {
         return declaration_list;
@@ -53,18 +55,21 @@ class SymbolInfo {
     }
     void set_terminal(bool val) { this->terminal = val; }
     void set_array(bool val) { this->array = val; }
+    void set_array_size(int val) { this->arr_size = val; }
     void set_param_list(const vector<SymbolInfo *> &param_list) {
         this->param_list = param_list;
     }
     void add_param(SymbolInfo *param) { this->param_list.push_back(param); }
+    void add_declaration(SymbolInfo *declaration) {
+        this->declaration_list.push_back(declaration);
+    }
     void set_declaration_list(const vector<SymbolInfo *> &declaration_list) {
         this->declaration_list = declaration_list;
     }
     void set_next(SymbolInfo *next) { this->next = next; }
     void print(ostream &out = cout) {
-        out << "<" << name << ", " << type;
-        if (type == "FUNCTION") out << ", " << data_type;
-        out << "> ";
+        out << "<" << name << ", " << (type == "FUNCTION" ? "FUNCTION, " : "")
+            << data_type << "> ";
     }
 };
 
@@ -119,10 +124,10 @@ class ScopeTable {
         while (now != nullptr) {
             pos++;
             if (now->get_name() == s) {
-                cout << "\t";
-                cout << "\'" << s << "\' found in ScopeTable# " << id
-                     << " at position " << hash_value + 1 << ", " << pos
-                     << "\n";
+                // cout << "\t";
+                // cout << "\'" << s << "\' found in ScopeTable# " << id
+                //      << " at position " << hash_value + 1 << ", " << pos
+                //      << "\n";
                 return now;
             }
             now = now->get_next();
@@ -166,11 +171,11 @@ class ScopeTable {
 
             if (pos == -1) {
                 // changed the following two lines to print to log file
-                out << "\t";
+                // out << "\t";
                 // out << "\'" << name
                 //     << "\' already exists in the current ScopeTable\n";
-                out << si->get_name()
-                    << " already exists in the current ScopeTable\n";
+                // out << si->get_name()
+                //     << " already exists in the current ScopeTable\n";
             }
 
             else {
@@ -191,8 +196,8 @@ class ScopeTable {
         SymbolInfo *now = arr[hash_value];
 
         if (now == nullptr) {
-            cout << "\t";
-            cout << "Not found in the current ScopeTable\n";
+            // cout << "\t";
+            // cout << "Not found in the current ScopeTable\n";
             return false;  // no element in this bucket
         }
 
@@ -223,12 +228,12 @@ class ScopeTable {
         }
 
         if (del) {
-            cout << "\t";
-            cout << "Deleted \'" << s << "\' from ScopeTable# " << id
-                 << " at position " << hash_value + 1 << ", " << pos << "\n";
+            // cout << "\t";
+            // cout << "Deleted \'" << s << "\' from ScopeTable# " << id
+            //      << " at position " << hash_value + 1 << ", " << pos << "\n";
         } else {
-            cout << "\t";
-            cout << "Not found in the current ScopeTable\n";
+            // cout << "\t";
+            // cout << "Not found in the current ScopeTable\n";
         }
         return del;
     }
@@ -316,8 +321,9 @@ class SymbolTable {
                 return res;  // search message printed in scope table's search
             else cur = cur->get_parent();
             if (cur == nullptr) {
-                cout << "\t";
-                cout << "\'" << s << "\' not found in any of the ScopeTables\n";
+                // cout << "\t";
+                // cout << "\'" << s << "\' not found in any of the
+                // ScopeTables\n";
                 return nullptr;
             }
         }

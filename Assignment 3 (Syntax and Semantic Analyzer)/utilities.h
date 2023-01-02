@@ -22,6 +22,7 @@ enum error_type {
     UNFINISHED_COMMENT,
     PARAM_REDEFINITION,
     FUNC_REDEFINITION,
+    VARIABLE_REDEFINITION,
     DIFFERENT_REDECLARATION,  // originally declared one thing, but now being
                               // declared as another thing (or data type)
     CONFLICTING_TYPE,  // return type mismatch or number of parameters mismatch

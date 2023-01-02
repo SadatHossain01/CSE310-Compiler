@@ -48,6 +48,9 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
             case FUNC_REDEFINITION:
                 out << "Redefinition of function \'" << str << "\'" << endl;
                 break;
+            case VARIABLE_REDEFINITION:
+                out << "Redefinition of variable \'" << str << "\'" << endl;
+                break;
             case DIFFERENT_REDECLARATION:
                 out << "\'" << str
                     << "\' redeclared as different kind of symbol" << endl;
