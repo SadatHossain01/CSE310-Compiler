@@ -6,6 +6,7 @@
 #include <cmath>
 #include <vector>
 #include <cassert>
+#include "utilities.h"
 #include "symbol_table.h"
 
 using namespace std;
@@ -42,25 +43,38 @@ void insert_function(SymbolInfo* function, const string& type_specifier, const v
 
 	if (!prev_func->is_func_declaration()) {
 		// so it has been already defined either as a function or as an identifier
-		errorout << "Line# " << line_count << ": Redefinition of parameter \'" << function->get_name() << "\'" << endl;
-		error_count++;
+		if (prev_func->is_func_definition()) {
+			// redefining this function, an error
+			show_error(SEMANTIC, FUNC_REDEFINITION, function->get_name(), errorout);
+		}
+		else {
+			// previously not a function, now as a function
+			show_error(SEMANTIC, DIFFERENT_REDECLARATION, function->get_name(), errorout);
+		}
 	}
 	else {
 		// previous one was a prototype
 		if (prev_func->get_data_type() != type_specifier) {
-			errorout << "Line# " << line_count << ": Conflicting types for \'" << function->get_name() << "\'" << endl;
-			error_count++;
+			show_error(SEMANTIC, CONFLICTING_TYPE, function->get_name(), errorout);
 		}
 		else if (prev_func->get_param_list().size() != param_list.size()) {
-			errorout << "Line# " << line_count << ": Conflicting types for \'" << function->get_name() << "\'" << endl;
-			error_count++;
+			// both same error as specification
+			show_error(SEMANTIC, CONFLICTING_TYPE, function->get_name(), errorout);
 		}
 		else {
 			vector<SymbolInfo*> prev_list = prev_func->get_param_list();
 			vector<SymbolInfo*> now_list = function->get_param_list();
 			for (int i = 0; i < prev_list.size(); i++) {
 				if (prev_list[i]->get_data_type() != now_list[i]->get_data_type()) {
-					;
+					show_error(SEMANTIC, CONFLICTING_TYPE, function->get_name(), errorout);
+				}
+			}
+			for (int i = 0; i < now_list.size(); i++) {
+				for (int j = i + 1; j < now_list.size(); j++) {
+					// checking if any two parameters have same name
+					if (now_list[i]->get_name() == now_list[j]->get_name()) {
+						show_error(SEMANTIC, PARAM_REDEFINITION, function->get_name(), errorout);
+					}
 				}
 			}
 		}
@@ -113,12 +127,21 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 		$$ = new SymbolInfo("func_declaration");
 		$2->set_func_declaration(true);
 		$2->set_param_list($4->get_param_list());
+		$2->set_type("FUNCTION");
 		$2->set_data_type($1->get_data_type());
 
 		bool success = sym->insert($2);
 		if (!success) {
-			errorout << "Line# " << line_count << ": Redefinition of parameter \'" << $2->get_name() << "\'" << endl;
-			error_count++;
+			SymbolInfo* prev_func = sym->search($2->get_name());
+			assert(prev_func != nullptr); // some prev instance must be there, otherwise success would be true
+			if (prev_func->is_func_declaration()) {
+				// so it was a function
+				show_error(SEMANTIC, FUNC_REDEFINITION, $2->get_name(), errorout);
+			}
+			else {
+				// previously not a function, now as a function
+				show_error(SEMANTIC, DIFFERENT_REDECLARATION, $2->get_name(), errorout);
+			}
 		}
 	}
 	| type_specifier ID LPAREN RPAREN SEMICOLON {
@@ -129,8 +152,16 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 
 		bool success = sym->insert($2);
 		if (!success) {
-			errorout << "Line# " << line_count << ": Redefinition of parameter \'" << $2->get_name() << "\'" << endl;
-			error_count++;
+			SymbolInfo* prev_func = sym->search($2->get_name());
+			assert(prev_func != nullptr); // some prev instance must be there, otherwise success would be true
+			if (prev_func->is_func_declaration()) {
+				// so it was a function
+				show_error(SEMANTIC, FUNC_REDEFINITION, $2->get_name(), errorout);
+			}
+			else {
+				// previously not a function, now as a function
+				show_error(SEMANTIC, DIFFERENT_REDECLARATION, $2->get_name(), errorout);
+			}
 		}
 	}
 	;
@@ -158,8 +189,6 @@ var_declaration : type_specifier declaration_list SEMICOLON
  		 
 type_specifier	: INT
 				{
-					print_grammar_rule("type_specifier", "INT");
-					$$ = new SymbolInfo("INT", "keyword");
 				}
  		| FLOAT
  		| VOID

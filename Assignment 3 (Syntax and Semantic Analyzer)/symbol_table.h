@@ -11,8 +11,8 @@ class SymbolInfo {
    private:
     string name;
     string type;
-    string data_type;
-    bool func_declaration = false;
+    string data_type;               // should always be in uppercase
+    bool func_declaration = false;  // prototype
     bool func_definition = false;
     bool terminal = false;
     bool array = false;
@@ -22,8 +22,10 @@ class SymbolInfo {
 
    public:
     SymbolInfo(const string &name = "", const string &type = "",
-               const string &data_type = "")
-        : name(name), type(type), data_type(data_type) {}
+               const string &_data_type = "")
+        : name(name), type(type) {
+        set_data_type(_data_type);
+    }
     string get_name() const { return name; }
     string get_type() const { return type; }
     string get_data_type() const { return data_type; }
@@ -38,9 +40,17 @@ class SymbolInfo {
     SymbolInfo *get_next() const { return next; }
     void set_name(const string &name) { this->name = name; }
     void set_type(const string &type) { this->type = type; }
-    void set_data_type(const string &data_type) { this->data_type = data_type; }
+    void set_data_type(const string &data_type) {
+        this->data_type = data_type;
+        for (char &c : this->data_type) {
+            if ('a' <= c && c <= 'z') c = toupper(c);
+        }
+    }
     void set_func_declaration(bool val) { this->func_declaration = val; }
-    void set_func_definition(bool val) { this->func_definition = val; }
+    void set_func_definition(bool val) {
+        this->func_definition = val;
+        if (val) this->func_declaration = true;
+    }
     void set_terminal(bool val) { this->terminal = val; }
     void set_array(bool val) { this->array = val; }
     void set_param_list(const vector<SymbolInfo *> &param_list) {
