@@ -11,6 +11,7 @@
 #include <vector>
 #include "symbol_table.h"
 #include "y.tab.h"
+#include "utilities.h"
 
 using namespace std;
 
@@ -32,14 +33,6 @@ string cur_char;
 string cur_string, cur_string_raw;
 string cur_comment;
 int char_len; // will hold the length of the original one, not raw one
-
-enum error_type {
-		MULTICHAR, EMPTY_CHAR, UNFINISHED_CHAR, UNRECOGNIZED, TOO_DECIMAL, 
-		ILL_FORMED, INVALID_SUFFIX, UNFINISHED_STRING, UNFINISHED_COMMENT
-	};
-enum num_type {INTNUM, FLOATNUM};
-enum line_type {SINGLE_LINE, MULTILINE};
-enum reset_type {CHAR_RESET, STRING_RESET, COMMENT_RESET};
 
 char generate_special_character(char c) {
 	// MISC [ntafbvr0\'\"\\]
@@ -157,40 +150,6 @@ void printComment(line_type lt, const string& str) {
 	}
 	else if (lt == MULTILINE) {
 		logout << "Line# " << line_count << ": Token <MULTI LINE COMMENT> Lexeme " << str << " found" << endl;
-	}
-}
-
-void show_error(error_type e, const string& str) {
-	error_count++;
-
-	logout << "Lexical error at line# " << line_count << ": ";
-	
-	if (e == MULTICHAR) {
-		logout << "MULTICHAR_CONST_CHAR " << str << endl;
-	}
-	else if (e == EMPTY_CHAR) {
-		logout << "EMPTY_CONST_CHAR " << str << endl;
-	}
-	else if (e == UNFINISHED_CHAR) {
-		logout << "UNFINISHED_CONST_CHAR " << str << endl;
-	}
-	else if (e == UNRECOGNIZED) {
-		logout << "UNRECOGNIZED_CHAR " << str << endl;
-	}
-	else if (e == TOO_DECIMAL) {
-		logout << "TOO_MANY_DECIMAL_POINTS " << str << endl;
-	}
-	else if (e == ILL_FORMED) {
-		logout << "ILLFORMED_NUMBER " << str << endl;
-	}
-	else if (e == INVALID_SUFFIX) {
-		logout << "INVALID_ID_SUFFIX_NUM_PREFIX " << str << endl;
-	}
-	else if (e == UNFINISHED_STRING) {
-		logout << "UNFINISHED_STRING " << str << endl;
-	}
-	else if (e == UNFINISHED_COMMENT) {
-		logout << "UNFINISHED_COMMENT " << str << endl;
 	}
 }
 
@@ -330,10 +289,10 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 							return CONST_FLOAT;
  						}
 {TOO_DECIMAL}			{ 
-							show_error(TOO_DECIMAL, yytext); 
+							show_error(LEXICAL, TOO_DECIMAL, yytext, logout); 
 						}
 {ILL_FORMED}			{ 
-							show_error(ILL_FORMED, yytext); 
+							show_error(LEXICAL, ILL_FORMED, yytext, logout); 
 						}
 
 
@@ -343,7 +302,7 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 							return ID;
 						}
 {NOT_ID} 				{ 
-							show_error(INVALID_SUFFIX, yytext); 
+							show_error(LEXICAL, INVALID_SUFFIX, yytext, logout); 
 						}
 
 
@@ -454,11 +413,11 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
                             cur_char = get_real_string(str);
                             char_len = cur_char.size();
                             if (char_len == 0) {
-                                show_error(EMPTY_CHAR, "\'\'");
+                                show_error(LEXICAL, EMPTY_CHAR, "\'\'", logout);
                             }
                             else if (char_len > 1) {
                                 str = "\'" + str + "\'";
-                                show_error(MULTICHAR, str);
+                                show_error(LEXICAL, MULTICHAR, str, logout);
                             }
                             else printChar(cur_char);
                         }
@@ -468,7 +427,7 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
                             cur_char = get_real_string(str);
                             char_len = cur_char.size();
                             str = "\'" + str;
-                            show_error(UNFINISHED_CHAR, str);
+                            show_error(LEXICAL, UNFINISHED_CHAR, str, logout);
                             if (yytext[yyleng - 1] == '\n') line_count++;
                         }
 
@@ -481,7 +440,7 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 							// if error, print the raw version
 							string str = "\"" + cur_string_raw;
 							line_count += inside_line;
-							show_error(UNFINISHED_STRING, str);
+							show_error(LEXICAL, UNFINISHED_STRING, str, logout);
 							BEGIN INITIAL;
 						}
 <STATE_STRING>\\{NLINE}	{ 
@@ -499,7 +458,7 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 							// if error, print the raw version
 							string str = "\"" + cur_string_raw;
 							line_count += inside_line;
-							show_error(UNFINISHED_STRING, str);
+							show_error(LEXICAL, UNFINISHED_STRING, str, logout);
 							line_count++;
 							BEGIN INITIAL; 
 						}
@@ -547,7 +506,7 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 <C_COMMENT><<EOF>>		{
 							string str = "/*" + cur_comment;
 							line_count += inside_line;
-							show_error(UNFINISHED_COMMENT, str);
+							show_error(LEXICAL, UNFINISHED_COMMENT, str, logout);
 							BEGIN INITIAL;
 						}
 <C_COMMENT>\*\/			{
@@ -562,6 +521,6 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 
 
 <<EOF>>					{ return 0; }
-. 						{ show_error(UNRECOGNIZED, yytext); }
+. 						{ show_error(LEXICAL, UNRECOGNIZED, yytext, logout); }
 
 %%
