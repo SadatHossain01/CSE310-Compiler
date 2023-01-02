@@ -46,6 +46,20 @@ void insert_function(SymbolInfo* function, const string& type_specifier, const v
 		}
 	}
 
+	// if it is a function definition, the check is done in lcurls -> LCURL, check there
+	// but if prototype, check not done there
+	if (function->is_func_declaration()) {
+		for (int i = 0; i < param_list.size(); i++) {
+			for (int j = i + 1; j < param_list.size(); j++) {
+				// checking if any two parameters have same name except both being ""
+				if (param_list[i]->get_name() == "") continue;
+				if (param_list[i]->get_name() == param_list[j]->get_name()) {
+					show_error(SEMANTIC, PARAM_REDEFINITION, function->get_name(), errorout);
+				}
+			}
+		}
+	}
+
 	bool success = sym->insert(function);
 	if (success) return; // no function definition available, so insert it as it is
 
@@ -80,15 +94,6 @@ void insert_function(SymbolInfo* function, const string& type_specifier, const v
 					show_error(SEMANTIC, CONFLICTING_TYPE, function->get_name(), errorout);
 				}
 			}
-			// this is now done in lcurls -> LCURL, check there
-			// for (int i = 0; i < now_list.size(); i++) {
-			// 	for (int j = i + 1; j < now_list.size(); j++) {
-			// 		// checking if any two parameters have same name
-			// 		if (now_list[i]->get_name() == now_list[j]->get_name()) {
-			// 			show_error(SEMANTIC, PARAM_REDEFINITION, function->get_name(), errorout);
-			// 		}
-			// 	}
-			// }
 		}
 	}
 }
@@ -139,6 +144,12 @@ unit : var_declaration {
 		print_grammar_rule("unit", "func_definition");
 		$$ = new SymbolInfo("unit");
 	}
+	| error {
+		yyclearin; // clears the lookahead
+		yyerrok; // now you can start normal parsing
+		show_error(SYNTAX, S_UNIT, "", errorout);
+		$$ = new SymbolInfo("unit");
+	}
     ;
      
 func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
@@ -147,6 +158,28 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 		$$ = new SymbolInfo("func_declaration");
 		$2->set_func_declaration(true);
 		$2->set_param_list($4->get_param_list());
+		$2->set_type("FUNCTION");
+		$2->set_data_type($1->get_data_type());
+
+		bool success = sym->insert($2);
+		if (!success) {
+			SymbolInfo* prev_func = sym->search($2->get_name());
+			assert(prev_func != nullptr); // some prev instance must be there, otherwise success would be true
+			if (prev_func->is_func_declaration()) {
+				// so it was a function
+				show_error(SEMANTIC, FUNC_REDEFINITION, $2->get_name(), errorout);
+			}
+			else {
+				// previously not a function, now as a function
+				show_error(SEMANTIC, DIFFERENT_REDECLARATION, $2->get_name(), errorout);
+			}
+		}
+	}
+	| type_specifier ID LPAREN error RPAREN SEMICOLON {
+		print_grammar_rule("func_declaration", "type_specifier ID LPAREN parameter_list RPAREN SEMICOLON");
+		current_function_parameters.clear();
+		$$ = new SymbolInfo("func_declaration");
+		$2->set_func_declaration(true);
 		$2->set_type("FUNCTION");
 		$2->set_data_type($1->get_data_type());
 
@@ -191,6 +224,11 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 func_definition : type_specifier ID LPAREN parameter_list RPAREN { insert_function($2, $1->get_data_type(), $4->get_param_list()); } compound_statement {
 		print_grammar_rule("func_definition", "type_specifier ID LPAREN parameter_list RPAREN compound_statement");
 		$$ = new SymbolInfo("func_definition");
+	}
+	| type_specifier ID LPAREN error RPAREN { insert_function($2, $1->get_data_type(), {}); } compound_statement {
+		print_grammar_rule("func_definition", "type_specifier ID LPAREN parameter_list RPAREN compound_statement");
+		$$ = new SymbolInfo("func_definition");
+		show_error(SYNTAX, S_PARAM_FUNC_DEFINITION, "", errorout);
 	}
 	| type_specifier ID LPAREN RPAREN { insert_function($2, $1->get_data_type(), $4->get_param_list()); } compound_statement {
 		print_grammar_rule("func_definition", "type_specifier ID LPAREN RPAREN compound_statement");
@@ -240,6 +278,12 @@ compound_statement : lcurls statements RCURL {
 		sym->print('A', logout);
 		sym->exit_scope();
 	}
+	| lcurls error RCURL {
+		print_grammar_rule("compound_statement", "LCURL RCURL");
+		$$ = new SymbolInfo("compound_statement");
+		sym->print('A', logout);
+		sym->exit_scope();
+	}
 	| lcurls RCURL {
 		print_grammar_rule("compound_statement", "LCURL RCURL");
 		$$ = new SymbolInfo("compound_statement");
@@ -263,6 +307,11 @@ var_declaration : type_specifier declaration_list SEMICOLON {
 				}
 			}
 		}
+	}
+	| type_specifier error SEMICOLON {
+		print_grammar_rule("var_declaration", "type_specifier declaration_list SEMICOLON");
+		$$ = new SymbolInfo("var_declaration");
+		show_error(SYNTAX, S_DECL_VAR_DECLARATION, "", errorout);
 	}
 	;
  		 
@@ -310,24 +359,72 @@ declaration_list : declaration_list COMMA ID {
 	}
 	;
  		  
-statements : statement
-	   | statements statement
-	   ;
+statements : statement {
+		print_grammar_rule("statements", "statement");
+		$$ = new SymbolInfo("statements");
+	}
+	| statements statement {
+		print_grammar_rule("statements", "statements statement");
+		$$ = new SymbolInfo("statements");
+	}
+	;
 	   
-statement : var_declaration
-	  | expression_statement
-	  | compound_statement
-	  | FOR LPAREN expression_statement expression_statement expression RPAREN statement
-	  | IF LPAREN expression RPAREN statement
-	  | IF LPAREN expression RPAREN statement ELSE statement
-	  | WHILE LPAREN expression RPAREN statement
-	  | PRINTLN LPAREN ID RPAREN SEMICOLON
-	  | RETURN expression SEMICOLON
-	  ;
+statement : var_declaration {
+		print_grammar_rule("statement", "var_declaration");
+		$$ = new SymbolInfo("statement");
+	}
+	| expression_statement {
+		print_grammar_rule("statement", "expression_statement");
+		$$ = new SymbolInfo("statement");
+	}
+	| compound_statement {
+		print_grammar_rule("statement", "compound_statement");
+		$$ = new SymbolInfo("statement");
+	}
+	| FOR LPAREN expression_statement expression_statement expression RPAREN statement {
+		print_grammar_rule("statement", "FOR LPAREN expression_statement expression_statement expression RPAREN statement");
+		$$ = new SymbolInfo("statement");
+	}
+	| IF LPAREN expression RPAREN statement {
+		print_grammar_rule("statement", "IF LPAREN expression RPAREN statement");
+		$$ = new SymbolInfo("statement");
+	}
+	| IF LPAREN expression RPAREN statement ELSE statement {
+		print_grammar_rule("statement", "IF LPAREN expression RPAREN statement ELSE statement");
+		$$ = new SymbolInfo("statement");
+	}
+	| WHILE LPAREN expression RPAREN statement {
+		print_grammar_rule("statement", "WHILE LPAREN expression RPAREN statement");
+		$$ = new SymbolInfo("statement");
+	}
+	| PRINTLN LPAREN ID RPAREN SEMICOLON {
+		print_grammar_rule("statement", "PRINTLN LPAREN ID RPAREN SEMICOLON");
+		$$ = new SymbolInfo("statement");
+		if (sym->search($3->get_name()) == nullptr) {
+			show_error(SEMANTIC, UNDECLARED_VARIABLE, $3->get_name(), errorout);
+		}
+	}
+	| RETURN expression SEMICOLON {
+		print_grammar_rule("statement", "RETURN expression SEMICOLON");
+		$$ = new SymbolInfo("statement");
+	}
+	;
 	  
-expression_statement 	: SEMICOLON			
-			| expression SEMICOLON 
-			;
+expression_statement : SEMICOLON {
+		print_grammar_rule("expression_statement", "SEMICOLON");
+		$$ = new SymbolInfo("expression_statement");
+	}
+	| expression SEMICOLON {
+		print_grammar_rule("expression_statement", "expression SEMICOLON");
+		$$ = new SymbolInfo("expression_statement");
+	}
+	| error SEMICOLON {
+		yyclearin;
+		yyerrok;
+		show_error(SYNTAX, S_EXP_STATEMENT, "", errorout);
+		$$ = new SymbolInfo("expression_statement");
+	}
+	;
 	  
 variable : ID 		
 	 | ID LTHIRD expression RTHIRD 

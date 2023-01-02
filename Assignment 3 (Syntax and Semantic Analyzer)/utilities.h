@@ -29,6 +29,12 @@ enum error_type {
                        // or any individual type mismatch
     VOID_TYPE,
     PARAM_NAMELESS,
+    UNDECLARED_VARIABLE,
+    UNDECLARED_FUNCTION,
+    S_PARAM_FUNC_DEFINITION,
+    S_DECL_VAR_DECLARATION,
+    S_UNIT,
+    S_EXP_STATEMENT
 };
 enum error_class { LEXICAL, SYNTAX, SEMANTIC };
 enum num_type { INTNUM, FLOATNUM };

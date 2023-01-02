@@ -66,10 +66,34 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
                 out << "Nameless parameter \'" << str
                     << "\' not allowed in function definition" << endl;
                 break;
+            case UNDECLARED_VARIABLE:
+                out << "Undeclared variable \'" << str << "\'" << endl;
+                break;
+            case UNDECLARED_FUNCTION:
+                out << "Undeclared function \'" << str << "\'" << endl;
+                break;
             default:
                 break;
         }
     } else if (ec == SYNTAX) {
         out << "Line# " << line_count << ": ";
+        out << "Syntax error at ";
+
+        switch (e) {
+            case S_PARAM_FUNC_DEFINITION:
+                out << "parameter list of function definition" << endl;
+                break;
+            case S_DECL_VAR_DECLARATION:
+                out << "declaration list of variable declaration" << endl;
+                break;
+            case S_UNIT:
+                out << "unit" << endl;
+                break;
+            case S_EXP_STATEMENT:
+                out << "expression statement" << endl;
+                break;
+            default:
+                break;
+        }
     }
 }
