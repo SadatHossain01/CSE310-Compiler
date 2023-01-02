@@ -104,7 +104,7 @@ void printKeyword() {
 void printIdentifier() {
 	logout << "Line# " << line_count << ": Token <ID> Lexeme " << yytext << " found" << endl;
 	// tokenout << "<ID, " << yytext << ">" << endl;
-	bool success = sym->insert(yytext, "ID", logout);
+	// bool success = sym->insert(yytext, "ID", logout);
 	// if (success) sym->print('A', logout);
 }
 
@@ -365,12 +365,12 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 						}
 "{"						{ 	printOpPunc("LCURL");
 							yylval.symbol_info = new SymbolInfo(yytext, "LCURL");
-							sym->enter_scope();
+							// sym->enter_scope();
 							return LCURL;
 						}
 "}"						{ 	printOpPunc("RCURL");
 							yylval.symbol_info = new SymbolInfo(yytext, "RCURL");
-							sym->exit_scope();
+							// sym->exit_scope();
 							sym->print('A', logout);
 							return RCURL;
 						}

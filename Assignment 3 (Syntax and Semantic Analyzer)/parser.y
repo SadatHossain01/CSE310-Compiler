@@ -25,7 +25,7 @@ int yyparse(void);
 int yylex(void);
 
 void print_grammar_rule(const string& parent, const string& children) {
-	logout << parent << " : " << children << endl;
+	logout << parent << "\t:\t" << children << endl;
 }
 
 void insert_function(SymbolInfo* function, const string& type_specifier, const vector<SymbolInfo*> param_list) {
@@ -102,7 +102,7 @@ void check_type_specifier(SymbolInfo* symbol) {
 }
 
 %token <symbol_info> IF ELSE FOR WHILE DO BREAK INT CHAR FLOAT DOUBLE VOID RETURN SWITCH CASE DEFAULT CONTINUE PRINTF PRINTLN CONST_INT CONST_FLOAT ID ADDOP MULOP INCOP DECOP RELOP ASSIGNOP LOGICOP BITOP NOT LPAREN RPAREN LCURL RCURL LTHIRD RTHIRD COMMA SEMICOLON
-%type <symbol_info> start program unit var_declaration func_declaration func_definition type_specifier parameter_list compound_statement statements declaration_list statement expression_statement logic_expression rel_expression simple_expression term unary_expression factor variable argument_list arguments
+%type <symbol_info> start program unit var_declaration func_declaration func_definition type_specifier parameter_list compound_statement statements declaration_list statement expression_statement logic_expression rel_expression simple_expression term unary_expression factor variable argument_list arguments lcurls
 
 %%
 
@@ -224,8 +224,8 @@ parameter_list : parameter_list COMMA type_specifier ID {
 	;
 
  		
-compound_statement : LCURL statements RCURL
- 		    | LCURL RCURL
+compound_statement : lcurl_ statements RCURL
+ 		    | lcurl_ RCURL
  		    ;
  		    
 var_declaration : type_specifier declaration_list SEMICOLON
@@ -308,6 +308,11 @@ argument_list : arguments
 arguments : arguments COMMA logic_expression
 	      | logic_expression
 	      ;
+
+lcurl_ : LCURL {
+		sym->enter_scope();
+	}
+	;
  
 %%
 
