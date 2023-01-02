@@ -12,22 +12,25 @@ class SymbolInfo {
     string name;
     string type;
     string data_type;
-    bool func_declaration;
-    bool func_definition;
+    bool func_declaration = false;
+    bool func_definition = false;
+    bool terminal = false;
+    bool array = false;
     vector<SymbolInfo *> param_list;
     vector<SymbolInfo *> declaration_list;
-    SymbolInfo *next;
+    SymbolInfo *next = nullptr;
 
    public:
-    SymbolInfo(const string &name = "", const string &type = "")
-        : name(name), type(type) {
-        next = nullptr;
-    }
+    SymbolInfo(const string &name = "", const string &type = "",
+               const string &data_type = "")
+        : name(name), type(type), data_type(data_type) {}
     string get_name() const { return name; }
     string get_type() const { return type; }
     string get_data_type() const { return data_type; }
-    bool is_func_declaration() const { return func_declaration; }
     bool is_func_definition() const { return func_definition; }
+    bool is_func_declaration() const { return func_declaration; }
+    bool is_terminal() const { return terminal; }
+    bool is_array() const { return array; }
     vector<SymbolInfo *> get_param_list() const { return param_list; }
     vector<SymbolInfo *> get_declaration_list() const {
         return declaration_list;
@@ -38,6 +41,8 @@ class SymbolInfo {
     void set_data_type(const string &data_type) { this->data_type = data_type; }
     void set_func_declaration(bool val) { this->func_declaration = val; }
     void set_func_definition(bool val) { this->func_definition = val; }
+    void set_terminal(bool val) { this->terminal = val; }
+    void set_array(bool val) { this->array = val; }
     void set_param_list(const vector<SymbolInfo *> &param_list) {
         this->param_list = param_list;
     }
@@ -113,14 +118,13 @@ class ScopeTable {
         return nullptr;
     }
 
-    bool insert(string name, string type, ostream &out = cout) {
-        unsigned long long hash_value = myhash(name);
+    bool insert(SymbolInfo *si, ostream &out = cout) {
+        unsigned long long hash_value = myhash(si->get_name());
         int pos = 0;
         bool success = false;
         SymbolInfo *cur = arr[hash_value];
 
         if (cur == nullptr) {
-            SymbolInfo *si = new SymbolInfo(name, type);
             arr[hash_value] = si;
             success = true;
             pos = 1;
@@ -130,12 +134,12 @@ class ScopeTable {
         } else {
             pos = 1;
 
-            if (cur->get_name() == name) {
+            if (cur->get_name() == si->get_name()) {
                 pos = -1;
             }
 
             while (pos != -1 && cur->get_next() != nullptr) {
-                if (cur->get_name() == name) {
+                if (cur->get_name() == si->get_name()) {
                     pos = -1;
                     break;
                 }
@@ -143,7 +147,7 @@ class ScopeTable {
                 pos++;
             }
 
-            if (cur->get_name() == name) {
+            if (cur->get_name() == si->get_name()) {
                 pos = -1;
             }
 
@@ -152,12 +156,12 @@ class ScopeTable {
                 out << "\t";
                 // out << "\'" << name
                 //     << "\' already exists in the current ScopeTable\n";
-                out << name << " already exisits in the current ScopeTable\n";
+                out << si->get_name()
+                    << " already exists in the current ScopeTable\n";
             }
 
             else {
                 pos++;
-                SymbolInfo *si = new SymbolInfo(name, type);
                 cur->set_next(si);
                 success = true;
                 // cout << "\t";
@@ -282,7 +286,11 @@ class SymbolTable {
     }
 
     bool insert(string name, string type, ostream &out = cout) {
-        return current_scope->insert(name, type, out);
+        return current_scope->insert(new SymbolInfo(name, type), out);
+    }
+
+    bool insert(SymbolInfo *si, ostream &out = cout) {
+        return current_scope->insert(si, out);
     }
 
     bool remove(const string &s) { return current_scope->remove(s); }

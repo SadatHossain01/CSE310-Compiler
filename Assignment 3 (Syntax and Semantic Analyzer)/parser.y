@@ -5,6 +5,7 @@
 #include <string>
 #include <cmath>
 #include <vector>
+#include <cassert>
 #include "symbol_table.h"
 
 using namespace std;
@@ -22,8 +23,50 @@ void yyerror(const string& s) {}
 int yyparse(void);
 int yylex(void);
 
+// extern void show_error(error_type e, const string& str);
+
 void print_grammar_rule(const string& parent, const string& children) {
 	logout << parent << " : " << children << endl;
+}
+
+void insert_function(SymbolInfo* function, const string& type_specifier, const vector<SymbolInfo*> param_list) {
+	// took the symbol info class, not string for function name
+	// so that it can be used for inserting to symbol table as well
+	function->set_data_type(type_specifier);
+	function->set_func_definition(true);
+	function->set_param_list(param_list);
+
+	bool success = sym->insert(function);
+	if (success) return; // no function definition available, so insert it as it is
+
+	SymbolInfo* prev_func = sym->search(function->get_name());
+	assert(prev_func != nullptr); // some prev instance must be there, otherwise success would be true
+
+	if (!prev_func->is_func_declaration()) {
+		// so it has been already defined either as a function or as an identifier
+		errorout << "Line# " << line_count << ": Redefinition of parameter \'" << function->get_name() << "\'" << endl;
+		error_count++;
+	}
+	else {
+		// previous one was a prototype
+		if (prev_func->get_data_type() != type_specifier) {
+			errorout << "Line# " << line_count << ": Conflicting types for \'" << function->get_name() << "\'" << endl;
+			error_count++;
+		}
+		else if (prev_func->get_param_list().size() != param_list.size()) {
+			errorout << "Line# " << line_count << ": Conflicting types for \'" << function->get_name() << "\'" << endl;
+			error_count++;
+		}
+		else {
+			vector<SymbolInfo*> prev_list = prev_func->get_param_list();
+			vector<SymbolInfo*> now_list = function->get_param_list();
+			for (int i = 0; i < prev_list.size(); i++) {
+				if (prev_list[i]->get_data_type() != now_list[i]->get_data_type()) {
+					;
+				}
+			}
+		}
+	}
 }
 
 %}
@@ -37,30 +80,68 @@ void print_grammar_rule(const string& parent, const string& children) {
 
 %%
 
-start : program
-	{
+start : program {
 		print_grammar_rule("start", "program");
-		$$ = new SymbolInfo("start", "non-terminal");
-		cout << "Total Lines: " << line_count << endl;
+		$$ = new SymbolInfo("start");
 	}
 	;
 
-program : program unit 
-	| unit
+program : program unit {
+		print_grammar_rule("program", "program unit");
+		$$ = new SymbolInfo("program");	
+	}
+	| unit {
+		print_grammar_rule("program", "unit");
+		$$ = new SymbolInfo("program");
+	}
 	;
 	
-unit : var_declaration
-     | func_declaration
-     | func_definition
-     ;
+unit : var_declaration {
+		print_grammar_rule("unit", "var_declaration");
+		$$ = new SymbolInfo("unit");
+	}
+    | func_declaration {
+		print_grammar_rule("unit", "func_declaration");
+		$$ = new SymbolInfo("unit");
+	}
+    | func_definition {
+		print_grammar_rule("unit", "func_definition");
+		$$ = new SymbolInfo("unit");
+	}
+    ;
      
-func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON
-		| type_specifier ID LPAREN RPAREN SEMICOLON
-		;
+func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
+		print_grammar_rule("func_declaration", "type_specifier ID LPAREN parameter_list RPAREN SEMICOLON");
+		$$ = new SymbolInfo("func_declaration");
+		$2->set_func_declaration(true);
+		$2->set_param_list($4->get_param_list());
+		$2->set_data_type($1->get_data_type());
+
+		bool success = sym->insert($2);
+		if (!success) {
+			errorout << "Line# " << line_count << ": Redefinition of parameter \'" << $2->get_name() << "\'" << endl;
+			error_count++;
+		}
+	}
+	| type_specifier ID LPAREN RPAREN SEMICOLON {
+		print_grammar_rule("func_declaration", "type_specifier ID LPAREN parameter_list RPAREN SEMICOLON");
+		$$ = new SymbolInfo("func_declaration");
+		$2->set_func_declaration(true);
+		$2->set_data_type($1->get_data_type());
+
+		bool success = sym->insert($2);
+		if (!success) {
+			errorout << "Line# " << line_count << ": Redefinition of parameter \'" << $2->get_name() << "\'" << endl;
+			error_count++;
+		}
+	}
+	;
 		 
-func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement
-		| type_specifier ID LPAREN RPAREN compound_statement
- 		;				
+func_definition : type_specifier ID LPAREN parameter_list RPAREN {} compound_statement {
+
+	}
+	| type_specifier ID LPAREN RPAREN compound_statement
+	;				
 
 
 parameter_list  : parameter_list COMMA type_specifier ID

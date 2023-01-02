@@ -112,7 +112,7 @@ void printIdentifier() {
 	logout << "Line# " << line_count << ": Token <ID> Lexeme " << yytext << " found" << endl;
 	// tokenout << "<ID, " << yytext << ">" << endl;
 	bool success = sym->insert(yytext, "ID", logout);
-	if (success) sym->print('A', logout);
+	// if (success) sym->print('A', logout);
 }
 
 void printNum(num_type nt, const string& str) {
@@ -321,12 +321,12 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 
 {INTEGER} 				{ 
 							printNum(INTNUM, yytext); 
-							yylval.symbol_info = new SymbolInfo(yytext, "CONST_INT");
+							yylval.symbol_info = new SymbolInfo(yytext, "CONST_INT", "int");
 							return CONST_INT;
 						}
 {FLOATING_POINT}		{ 
 							printNum(FLOATNUM, yytext); 
-							yylval.symbol_info = new SymbolInfo(yytext, "CONST_FLOAT");
+							yylval.symbol_info = new SymbolInfo(yytext, "CONST_FLOAT", "float");
 							return CONST_FLOAT;
  						}
 {TOO_DECIMAL}			{ 
@@ -339,7 +339,7 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 
 {IDENTIFIER} 			{ 
 							printIdentifier(); 
-							yylval.symbol_info = new SymbolInfo(yytext, "ID");
+							yylval.symbol_info = new SymbolInfo(yytext, "ID"); // if it is a variable declaration, set its data type field in parser.y and use that
 							return ID;
 						}
 {NOT_ID} 				{ 
@@ -412,6 +412,7 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 "}"						{ 	printOpPunc("RCURL");
 							yylval.symbol_info = new SymbolInfo(yytext, "RCURL");
 							sym->exit_scope();
+							sym->print('A', logout);
 							return RCURL;
 						}
 "["						{ 	printOpPunc("LTHIRD");
