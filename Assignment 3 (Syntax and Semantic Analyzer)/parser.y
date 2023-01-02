@@ -23,8 +23,6 @@ void yyerror(const string& s) {}
 int yyparse(void);
 int yylex(void);
 
-// extern void show_error(error_type e, const string& str);
-
 void print_grammar_rule(const string& parent, const string& children) {
 	logout << parent << " : " << children << endl;
 }
