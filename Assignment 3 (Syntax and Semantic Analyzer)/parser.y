@@ -112,8 +112,8 @@ inline bool both_available(SymbolInfo* s1, SymbolInfo* s2 = nullptr) {
 
 inline int is_number(const string& number) {
 	// first check if float
-	cerr << "number: " << number << endl;
-	cerr << "line: " << line_count << endl;
+	// cerr << "number: " << number << endl;
+	// cerr << "line: " << line_count << endl;
 	if (number == "") return -1;
 	for (int i = 0; i < number.size(); i++) {
 		if ((number[i] < '0' || number[i] > '9') && number[i] != '.') return -1;
@@ -137,11 +137,22 @@ inline string cast_type(const string& t1, const string& t2) {
 
 inline void assign_constant(SymbolInfo* s1, SymbolInfo* s2) {
 	if (s2->get_num_state() == 1) {
-			s1->set_int_value(s2->get_int_value());
-		}
-		else if (s2->get_num_state() == 2) {
-			s1->set_float_value(s2->get_float_value());
-		}
+		s1->set_int_value(s2->get_int_value());
+	}
+	else if (s2->get_num_state() == 2) {
+		s1->set_float_value(s2->get_float_value());
+	}
+	// cerr << "line " << line_count << ": " << s1->get_type() << " " << s2->get_type() << endl;
+	// int st1 = s1->get_num_state();
+	// int st2 = s2->get_num_state();
+	// if (st1) {
+	// 	if (st1 == 1) cerr << "s1: " << s1->get_int_value() << endl;
+	// 	else cerr << "s1: " << s1->get_float_value() << endl;
+	// }
+	// if (st2) {
+	// 	if (st2 == 1) cerr << "s2: " << s2->get_int_value() << endl;
+	// 	else cerr << "s2: " << s2->get_float_value() << endl;
+	// }
 }
 %}
 
@@ -486,6 +497,7 @@ variable : ID {
 		else {
 			$$->set_data_type(res->get_data_type());
 			$$->set_array(false);
+			assign_constant($$, res);
 		}
 	}	
 	| ID LTHIRD expression RTHIRD {
@@ -532,7 +544,11 @@ expression : logic_expression {
 		print_grammar_rule("expression", "variable ASSIGNOP logic_expression");
 		$$ = new SymbolInfo("", "expression");
 		bool ok = both_available($3);
-		if ($1->get_data_type() == "VOID" || $3->get_data_type() == "VOID") {
+		SymbolInfo* res = sym->search($1->get_name()); // we want to store the value, so retrieving it from symbol table
+		if (res == nullptr) {
+			show_error(SEMANTIC, UNDECLARED_VARIABLE, $1->get_name(), errorout);
+		}
+		else if ($1->get_data_type() == "VOID" || $3->get_data_type() == "VOID") {
 			show_error(SEMANTIC, VOID_USAGE, "", errorout);
 		}
 		else if ($1->get_data_type() == "ERROR" || $3->get_data_type() == "ERROR") {
@@ -548,6 +564,8 @@ expression : logic_expression {
 			if (ok) $1->set_float_value($3->get_float_value());
 		}
 		$$->set_data_type($1->get_data_type());
+		assign_constant($1, $3);
+		assign_constant(res, $1);
 		assign_constant($$, $1);
 		// $1 should not be void by any means, but still
 	}	
@@ -774,12 +792,12 @@ factor : variable {
 	| CONST_INT {
 		print_grammar_rule("factor", "CONST_INT");
 		$$ = new SymbolInfo($1->get_name(), "factor", "INT");
-		$$->set_int_value($1->get_int_value());
+		assign_constant($$, $1);
 	}
 	| CONST_FLOAT {
 		print_grammar_rule("factor", "CONST_INT");
 		$$ = new SymbolInfo($1->get_name(), "factor", "FLOAT");
-		$$->set_float_value($1->get_float_value());
+		assign_constant($$, $1);
 	}
 	| variable INCOP {
 		print_grammar_rule("factor", "variable INCOP");
@@ -791,12 +809,11 @@ factor : variable {
 			show_error(SEMANTIC, TYPE_ERROR, $1->get_name(), errorout);
 		}
 		else {
+			assign_constant($$, $1);
 			if ($1->get_num_state() == 1) {
-				$$->set_int_value($1->get_int_value());
 				$1->set_int_value($1->get_int_value() - 1);
 			}
 			else if ($1->get_num_state() == 2) {
-				$$->set_float_value($1->get_float_value());
 				$1->set_float_value($1->get_float_value() - 1);
 			}
 		}
@@ -811,12 +828,11 @@ factor : variable {
 			show_error(SEMANTIC, TYPE_ERROR, $1->get_name(), errorout);
 		}
 		else {
+			assign_constant($$, $1);
 			if ($1->get_num_state() == 1) {
-				$$->set_int_value($1->get_int_value());
 				$1->set_int_value($1->get_int_value() - 1);
 			}
 			else if ($1->get_num_state() == 2) {
-				$$->set_float_value($1->get_float_value());
 				$1->set_float_value($1->get_float_value() - 1);
 			}
 		}

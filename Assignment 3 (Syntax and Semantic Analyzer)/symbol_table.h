@@ -21,7 +21,7 @@ class SymbolInfo {
         long long l;
         double d;
     } num;
-    unsigned char num_type =
+    unsigned short num_type =
         0;  // 0 for not a num, 1 for int, 2 for float, will only use this for
             // constant numbers, not for variables
     int arr_size;
