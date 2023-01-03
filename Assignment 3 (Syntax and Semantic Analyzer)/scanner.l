@@ -16,10 +16,10 @@
 using namespace std;
 
 extern SymbolTable* sym;
-extern int line_count;
-extern int error_count;
+int line_count = 1;
+int error_count = 0;
 
-extern ofstream logout;
+extern ofstream logout, errorout;
 
 // if a string stretches multiple lines, we need to show the starting line no in case of token printing, 
 // hence we need to keep the line no. unchanged while the string is running
@@ -286,10 +286,10 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 							return CONST_FLOAT;
  						}
 {TOO_DECIMAL}			{ 
-							show_error(LEXICAL, TOO_DECIMAL, yytext, logout); 
+							show_error(LEXICAL, TOO_DECIMAL, yytext, errorout); 
 						}
 {ILL_FORMED}			{ 
-							show_error(LEXICAL, ILL_FORMED, yytext, logout); 
+							show_error(LEXICAL, ILL_FORMED, yytext, errorout); 
 						}
 
 
@@ -299,7 +299,7 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 							return ID;
 						}
 {NOT_ID} 				{ 
-							show_error(LEXICAL, INVALID_SUFFIX, yytext, logout); 
+							show_error(LEXICAL, INVALID_SUFFIX, yytext, errorout); 
 						}
 
 
@@ -410,11 +410,11 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
                             cur_char = get_real_string(str);
                             char_len = cur_char.size();
                             if (char_len == 0) {
-                                show_error(LEXICAL, EMPTY_CHAR, "\'\'", logout);
+                                show_error(LEXICAL, EMPTY_CHAR, "\'\'", errorout);
                             }
                             else if (char_len > 1) {
                                 str = "\'" + str + "\'";
-                                show_error(LEXICAL, MULTICHAR, str, logout);
+                                show_error(LEXICAL, MULTICHAR, str, errorout);
                             }
                             else printChar(cur_char);
                         }
@@ -424,7 +424,7 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
                             cur_char = get_real_string(str);
                             char_len = cur_char.size();
                             str = "\'" + str;
-                            show_error(LEXICAL, UNFINISHED_CHAR, str, logout);
+                            show_error(LEXICAL, UNFINISHED_CHAR, str, errorout);
                             if (yytext[yyleng - 1] == '\n') line_count++;
                         }
 
@@ -437,7 +437,7 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 							// if error, print the raw version
 							string str = "\"" + cur_string_raw;
 							line_count += inside_line;
-							show_error(LEXICAL, UNFINISHED_STRING, str, logout);
+							show_error(LEXICAL, UNFINISHED_STRING, str, errorout);
 							BEGIN INITIAL;
 						}
 <STATE_STRING>\\{NLINE}	{ 
@@ -455,7 +455,7 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 							// if error, print the raw version
 							string str = "\"" + cur_string_raw;
 							line_count += inside_line;
-							show_error(LEXICAL, UNFINISHED_STRING, str, logout);
+							show_error(LEXICAL, UNFINISHED_STRING, str, errorout);
 							line_count++;
 							BEGIN INITIAL; 
 						}
@@ -503,7 +503,7 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 <C_COMMENT><<EOF>>		{
 							string str = "/*" + cur_comment;
 							line_count += inside_line;
-							show_error(LEXICAL, UNFINISHED_COMMENT, str, logout);
+							show_error(LEXICAL, UNFINISHED_COMMENT, str, errorout);
 							BEGIN INITIAL;
 						}
 <C_COMMENT>\*\/			{
@@ -518,6 +518,6 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 
 
 <<EOF>>					{ return 0; }
-. 						{ show_error(LEXICAL, UNRECOGNIZED, yytext, logout); }
+. 						{ show_error(LEXICAL, UNRECOGNIZED, yytext, errorout); }
 
 %%

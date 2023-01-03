@@ -4,9 +4,6 @@
 #include <string>
 using namespace std;
 
-#ifndef UTILITIES_H
-#define UTILITIES_H
-
 extern int error_count;
 extern int line_count;
 
@@ -60,11 +57,7 @@ enum num_type { INTNUM, FLOATNUM };
 enum line_type { SINGLE_LINE, MULTILINE };
 enum reset_type { CHAR_RESET, STRING_RESET, COMMENT_RESET };
 
-inline void show_error(error_class ec, error_type e, const string& str,
-                       ostream& out) {}
-inline long long apply_int_operation(long long int a, const string& op,
-                                     long long int b) {}
-inline double apply_float_operation(double a, const string& op, double b) {}
-inline int apply_float_operation_2(int a, const string& op, int b) {}
-
-#endif
+void show_error(error_class, error_type, const string&, ostream&);
+long long int apply_int_operation(long long int, const string&, long long int);
+double apply_float_operation(double, const string&, double);
+long long int apply_float_operation_2(double, const string&, double);

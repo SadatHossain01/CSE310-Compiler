@@ -168,8 +168,8 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
     }
 }
 
-long long apply_int_operation(long long int a, const string& op,
-                              long long int b) {
+long long int apply_int_operation(long long int a, const string& op,
+                                  long long int b) {
     if (op == "++") return a + 1;
     else if (op == "--") return a - 1;
     else if (op == "+") return a + b;
@@ -191,6 +191,7 @@ long long apply_int_operation(long long int a, const string& op,
     else if (op == ">=") return a >= b;
     else if (op == "==") return a == b;
     else if (op == "!=") return a != b;
+    else return 0;
 }
 
 double apply_float_operation(double a, const string& op, double b) {
@@ -200,13 +201,15 @@ double apply_float_operation(double a, const string& op, double b) {
     else if (op == "-") return a - b;
     else if (op == "*") return a * b;
     else if (op == "/") return a / b;
+    else return 0.0;
 }
 
-int apply_float_operation_2(double a, const string& op, double b) {
+long long int apply_float_operation_2(double a, const string& op, double b) {
     if (op == "<") return a < b;
     else if (op == ">") return a > b;
     else if (op == "<=") return a <= b;
     else if (op == ">=") return a >= b;
     else if (op == "==") return a == b;
     else if (op == "!=") return a != b;
+    else return 0;
 }

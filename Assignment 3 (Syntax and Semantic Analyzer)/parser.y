@@ -13,8 +13,8 @@ using namespace std;
 
 #define BUCKET_SIZE 11
 
-int line_count = 1;
-int error_count = 0;
+extern int line_count;
+extern int error_count;
 SymbolTable *sym;
 extern FILE* yyin;
 vector<SymbolInfo*> current_function_parameters;
@@ -869,6 +869,9 @@ int main(int argc,char *argv[]) {
 	yyparse();
 
 	fclose(yyin);
+
+	logout << "Total Lines: " << line_count << endl;
+	logout << "Total Errors: " << error_count << endl;
 	treeout.close();
 	errorout.close();
 	logout.close();
