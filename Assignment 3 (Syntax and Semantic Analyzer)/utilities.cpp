@@ -89,6 +89,9 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
             case INDEX_NOT_INT:
                 out << "Array subscript is not an integer" << endl;
                 break;
+            case INDEX_NEGATIVE:
+                out << "Array subscript cannot be negative" << endl;
+                break;
             case INDEX_OUT_OF_BOUNDS:
                 out << "Array subscript is out of bounds" << endl;
                 break;
@@ -96,7 +99,11 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
                 out << "Operands of modulus must be integers" << endl;
                 break;
             case TYPE_ERROR:
-                out << "Error infering type" << endl;
+                out << "Error infering type";
+                if (str != "") {
+                    out << " of \'" << str << "\'";
+                }
+                out << endl;
                 break;
             case TOO_MANY_ARGUMENTS:
                 out << "Too many arguments to function \'" << str << "\'"
@@ -147,8 +154,59 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
             case DIV_BY_ZERO:
                 out << "division by zero" << endl;
                 break;
+            case BITWISE_FLOAT:
+                out << "Operands of bitwise operation should be integers"
+                    << endl;
+                break;
+            case LOGICAL_FLOAT:
+                out << "Operands of logical operation should be integers"
+                    << endl;
+                break;
             default:
                 break;
         }
     }
+}
+
+long long apply_int_operation(long long int a, const string& op,
+                              long long int b) {
+    if (op == "++") return a + 1;
+    else if (op == "--") return a - 1;
+    else if (op == "+") return a + b;
+    else if (op == "-") return a - b;
+    else if (op == "*") return a * b;
+    else if (op == "/") return a / b;
+    else if (op == "%") return a % b;
+    else if (op == "&&") return a && b;
+    else if (op == "||") return a || b;
+    else if (op == "&") return a & b;
+    else if (op == "|") return a | b;
+    else if (op == "^") return a ^ b;
+    else if (op == "<<") return a << b;
+    else if (op == ">>") return a >> b;
+    else if (op == "!") return !a;
+    else if (op == "<") return a < b;
+    else if (op == ">") return a > b;
+    else if (op == "<=") return a <= b;
+    else if (op == ">=") return a >= b;
+    else if (op == "==") return a == b;
+    else if (op == "!=") return a != b;
+}
+
+double apply_float_operation(double a, const string& op, double b) {
+    if (op == "++") return a + 1;
+    else if (op == "--") return a - 1;
+    else if (op == "+") return a + b;
+    else if (op == "-") return a - b;
+    else if (op == "*") return a * b;
+    else if (op == "/") return a / b;
+}
+
+int apply_float_operation_2(double a, const string& op, double b) {
+    if (op == "<") return a < b;
+    else if (op == ">") return a > b;
+    else if (op == "<=") return a <= b;
+    else if (op == ">=") return a >= b;
+    else if (op == "==") return a == b;
+    else if (op == "!=") return a != b;
 }

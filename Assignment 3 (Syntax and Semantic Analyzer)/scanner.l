@@ -276,11 +276,13 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 {INTEGER} 				{ 
 							printNum(INTNUM, yytext); 
 							yylval.symbol_info = new SymbolInfo(yytext, "CONST_INT", "int");
+							yylval.symbol_info->set_int_value(stoll(yytext));
 							return CONST_INT;
 						}
 {FLOATING_POINT}		{ 
 							printNum(FLOATNUM, yytext); 
 							yylval.symbol_info = new SymbolInfo(yytext, "CONST_FLOAT", "float");
+							yylval.symbol_info->set_float_value(stod(yytext));
 							return CONST_FLOAT;
  						}
 {TOO_DECIMAL}			{ 
