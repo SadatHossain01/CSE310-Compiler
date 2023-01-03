@@ -17,7 +17,6 @@ class SymbolInfo {
     bool func_definition = false;
     bool terminal = false;
     bool array = false;
-    int arr_size;
     vector<SymbolInfo *> param_list;
     vector<SymbolInfo *> declaration_list;
     SymbolInfo *next = nullptr;
@@ -35,7 +34,6 @@ class SymbolInfo {
     bool is_func_declaration() const { return func_declaration; }
     bool is_terminal() const { return terminal; }
     bool is_array() const { return array; }
-    int get_array_size() const { return arr_size; }
     vector<SymbolInfo *> get_param_list() const { return param_list; }
     vector<SymbolInfo *> get_declaration_list() const {
         return declaration_list;
@@ -55,8 +53,7 @@ class SymbolInfo {
         if (val) this->func_declaration = true;
     }
     void set_terminal(bool val) { this->terminal = val; }
-    void set_array(bool val) { this->array = val; }
-    void set_array_size(int val) { this->arr_size = val; }
+    void set_array(bool val) { this->array = val; this->type = "ARRAY"; }
     void set_param_list(const vector<SymbolInfo *> &param_list) {
         this->param_list = param_list;
     }
@@ -69,8 +66,10 @@ class SymbolInfo {
     }
     void set_next(SymbolInfo *next) { this->next = next; }
     void print(ostream &out = cout) {
-        out << "<" << name << ", " << (type == "FUNCTION" ? "FUNCTION, " : "")
-            << data_type << "> ";
+        out << "<" << name << ", ";
+        if (type == "FUNCTION") out << "FUNCTION, ";
+        else if (type == "ARRAY") out << "ARRAY, ";
+        out << data_type << "> ";
     }
 };
 
@@ -314,10 +313,13 @@ class SymbolTable {
 
     bool remove(const string &s) { return current_scope->remove(s); }
 
-    SymbolInfo *search(const string &s) {
+    SymbolInfo *search(const string &s, char type) {
+        // type = 'C' for current scope, 'A' for all scopes
         ScopeTable *cur = current_scope;
+        SymbolInfo *res = cur->search(s);
+        if (type == 'C' || type == 'c' || res != nullptr) return res;
         while (true) {
-            SymbolInfo *res = cur->search(s);
+            res = cur->search(s);
             if (res != nullptr)
                 return res;  // search message printed in scope table's search
             else cur = cur->get_parent();

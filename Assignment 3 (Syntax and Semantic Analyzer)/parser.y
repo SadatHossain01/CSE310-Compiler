@@ -48,13 +48,13 @@ void insert_function(SymbolInfo* function, const string& type_specifier, const v
 
 	// if it is a function definition, the check is done in lcurls -> LCURL, check there
 	// but if prototype, check not done there
-	if (function->is_func_declaration()) {
+	if (function->is_func_declaration() && !function->is_func_definition()) {
 		for (int i = 0; i < param_list.size(); i++) {
 			for (int j = i + 1; j < param_list.size(); j++) {
 				// checking if any two parameters have same name except both being ""
 				if (param_list[i]->get_name() == "") continue;
 				if (param_list[i]->get_name() == param_list[j]->get_name()) {
-					show_error(SEMANTIC, PARAM_REDEFINITION, function->get_name(), errorout);
+					show_error(SEMANTIC, PARAM_REDEFINITION, param_list[i]->get_name(), errorout);
 				}
 			}
 		}
@@ -63,7 +63,7 @@ void insert_function(SymbolInfo* function, const string& type_specifier, const v
 	bool success = sym->insert(function);
 	if (success) return; // no function definition available, so insert it as it is
 
-	SymbolInfo* prev_func = sym->search(function->get_name());
+	SymbolInfo* prev_func = sym->search(function->get_name(), 'A');
 	assert(prev_func != nullptr); // some prev instance must be there, otherwise success would be true
 
 	if (!prev_func->is_func_declaration()) {
@@ -98,9 +98,9 @@ void insert_function(SymbolInfo* function, const string& type_specifier, const v
 	}
 }
 
-inline bool check_type_specifier(SymbolInfo* symbol) {
-	if (symbol->get_data_type() == "VOID") {
-		show_error(SEMANTIC, VOID_TYPE, symbol->get_name(), errorout);
+inline bool check_type_specifier(SymbolInfo* ty, const string& name) {
+	if (ty->get_data_type() == "VOID") {
+		show_error(SEMANTIC, VOID_TYPE, name, errorout);
 		return false;
 	}
 	return true;
@@ -189,7 +189,7 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 
 		bool success = sym->insert($2);
 		if (!success) {
-			SymbolInfo* prev_func = sym->search($2->get_name());
+			SymbolInfo* prev_func = sym->search($2->get_name(), 'A');
 			assert(prev_func != nullptr); // some prev instance must be there, otherwise success would be true
 			if (prev_func->is_func_declaration()) {
 				// so it was a function
@@ -202,7 +202,7 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 		}
 	}
 	| type_specifier ID LPAREN error RPAREN SEMICOLON {
-		print_grammar_rule("func_declaration", "type_specifier ID LPAREN parameter_list RPAREN SEMICOLON");
+		print_grammar_rule("func_declaration", "type_specifier ID LPAREN RPAREN SEMICOLON");
 		current_function_parameters.clear();
 		$$ = new SymbolInfo("", "func_declaration");
 		$2->set_func_declaration(true);
@@ -211,7 +211,7 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 
 		bool success = sym->insert($2);
 		if (!success) {
-			SymbolInfo* prev_func = sym->search($2->get_name());
+			SymbolInfo* prev_func = sym->search($2->get_name(), 'A');
 			assert(prev_func != nullptr); // some prev instance must be there, otherwise success would be true
 			if (prev_func->is_func_declaration()) {
 				// so it was a function
@@ -224,7 +224,7 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 		}
 	}
 	| type_specifier ID LPAREN RPAREN SEMICOLON {
-		print_grammar_rule("func_declaration", "type_specifier ID LPAREN parameter_list RPAREN SEMICOLON");
+		print_grammar_rule("func_declaration", "type_specifier ID LPAREN RPAREN SEMICOLON");
 		current_function_parameters.clear();
 		$$ = new SymbolInfo("", "func_declaration");
 		$2->set_func_declaration(true);
@@ -233,7 +233,7 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 
 		bool success = sym->insert($2);
 		if (!success) {
-			SymbolInfo* prev_func = sym->search($2->get_name());
+			SymbolInfo* prev_func = sym->search($2->get_name(), 'A');
 			assert(prev_func != nullptr); // some prev instance must be there, otherwise success would be true
 			if (prev_func->is_func_declaration()) {
 				// so it was a function
@@ -268,7 +268,7 @@ parameter_list : parameter_list COMMA type_specifier ID {
 		SymbolInfo* new_param = new SymbolInfo($4->get_name(), "ID", $3->get_data_type());
 		$$->set_param_list($1->get_param_list());
 		$$->add_param(new_param);
-		check_type_specifier($3);
+		check_type_specifier($3, $4->get_name());
 		current_function_parameters = $$->get_param_list();
 	}
 	| parameter_list COMMA type_specifier {
@@ -277,7 +277,7 @@ parameter_list : parameter_list COMMA type_specifier ID {
 		SymbolInfo* new_param = new SymbolInfo("", "ID", $3->get_data_type()); // later check if this nameless parameter is used in function definition. if yes, then show error
 		$$->set_param_list($1->get_param_list());
 		$$->add_param(new_param);
-		check_type_specifier($3);
+		check_type_specifier($3, "");
 		current_function_parameters = $$->get_param_list();
 	}
 	| type_specifier ID {
@@ -285,7 +285,7 @@ parameter_list : parameter_list COMMA type_specifier ID {
 		$$ = new SymbolInfo("", "parameter_list");
 		SymbolInfo* new_param = new SymbolInfo($2->get_name(), "ID", $1->get_data_type());
 		$$->add_param(new_param);
-		check_type_specifier($1);
+		check_type_specifier($1, $2->get_name());
 		current_function_parameters = $$->get_param_list();
 	}
 	| type_specifier {
@@ -293,7 +293,7 @@ parameter_list : parameter_list COMMA type_specifier ID {
 		$$ = new SymbolInfo("", "parameter_list");
 		SymbolInfo* new_param = new SymbolInfo("", "ID", $1->get_data_type()); // later check if this nameless parameter is used in function definition. if yes, then show error
 		$$->add_param(new_param);
-		check_type_specifier($1);
+		check_type_specifier($1, "");
 		current_function_parameters = $$->get_param_list();
 	}
 	;
@@ -321,14 +321,26 @@ compound_statement : lcurls statements RCURL {
 var_declaration : type_specifier declaration_list SEMICOLON {
 		print_grammar_rule("var_declaration", "type_specifier declaration_list SEMICOLON");
 		$$ = new SymbolInfo("", "var_declaration");
-		bool ok = check_type_specifier($1);
+		string str = "";
+		auto cur_list = $2->get_declaration_list();
+		for (int i = 0; i < cur_list.size(); i++) {
+			str += cur_list[i]->get_name();
+			if (i != cur_list.size() - 1) str += ", ";
+		}
+		bool ok = check_type_specifier($1, str);
 		if (ok) {
-			auto cur_list = $2->get_declaration_list();
 			for (int i = 0; i < cur_list.size(); i++) {
 				// now we will set the data_type of all these symbols to $1
 				cur_list[i]->set_data_type($1->get_data_type());
-				if (!sym->insert(cur_list[i])) {
-					// insertion failed
+				cerr << cur_list[i]->get_data_type() << " " << cur_list[i]->get_name() << endl;
+				SymbolInfo* res = sym->search(cur_list[i]->get_name(), 'C');
+				if (res == nullptr) {
+					sym->insert(cur_list[i]);
+				}
+				else if (res->get_data_type() != cur_list[i]->get_data_type()) {
+					show_error(SEMANTIC, CONFLICTING_TYPE, cur_list[i]->get_name(), errorout);
+				}
+				else {
 					show_error(SEMANTIC, VARIABLE_REDEFINITION, cur_list[i]->get_name(), errorout);
 				}
 			}
@@ -365,10 +377,10 @@ declaration_list : declaration_list COMMA ID {
 	| declaration_list COMMA ID LSQUARE CONST_INT RSQUARE {
 		print_grammar_rule("declaration_list", "declaration_list COMMA ID LSQUARE CONST_INT RSQUARE");
 		$$ = new SymbolInfo("", "declaration_list");
+		SymbolInfo* new_symbol = new SymbolInfo($3->get_name(), "ID");
+		new_symbol->set_array(true);
 		$$->set_declaration_list($1->get_declaration_list());
-		$3->set_array(true);
-		$3->set_array_size(stoi($5->get_name()));
-		$$->add_declaration($3);
+		$$->add_declaration(new_symbol);
 	}
 	| ID {
 		print_grammar_rule("declaration_list", "ID");
@@ -379,9 +391,9 @@ declaration_list : declaration_list COMMA ID {
 	| ID LSQUARE CONST_INT RSQUARE {
 		print_grammar_rule("declaration_list", "ID LSQUARE CONST_INT RSQUARE");
 		$$ = new SymbolInfo("", "declaration_list");
-		$1->set_array(true);
-		$1->set_array_size(stoi($3->get_name()));
-		$$->add_declaration($1);
+		SymbolInfo* new_symbol = new SymbolInfo($1->get_name(), "ID");
+		new_symbol->set_array(true);
+		$$->add_declaration(new_symbol);
 	}
 	;
  		  
@@ -426,7 +438,7 @@ statement : var_declaration {
 	| PRINTLN LPAREN ID RPAREN SEMICOLON {
 		print_grammar_rule("statement", "PRINTLN LPAREN ID RPAREN SEMICOLON");
 		$$ = new SymbolInfo("", "statement");
-		if (sym->search($3->get_name()) == nullptr) {
+		if (sym->search($3->get_name(), 'A') == nullptr) {
 			show_error(SEMANTIC, UNDECLARED_VARIABLE, $3->get_name(), errorout);
 		}
 	}
@@ -457,7 +469,7 @@ variable : ID {
 		print_grammar_rule("variable", "ID");
 		$$ = new SymbolInfo($1->get_name(), "VARIABLE", $1->get_data_type());
 		
-		SymbolInfo* res = sym->search($1->get_name());
+		SymbolInfo* res = sym->search($1->get_name(), 'A');
 		if (res == nullptr) {
 			show_error(SEMANTIC, UNDECLARED_VARIABLE, $1->get_name(), errorout);
 		}
@@ -480,7 +492,7 @@ variable : ID {
 		print_grammar_rule("variable", "ID LSQUARE expression RSQUARE");
 		$$ = new SymbolInfo($1->get_name(), "VARIABLE", $1->get_data_type());
 		
-		SymbolInfo* res = sym->search($1->get_name());
+		SymbolInfo* res = sym->search($1->get_name(), 'A');
 		if (res == nullptr) {
 			show_error(SEMANTIC, UNDECLARED_VARIABLE, $1->get_name(), errorout);
 		}
@@ -508,11 +520,7 @@ expression : logic_expression {
 	| variable ASSIGNOP logic_expression {
 		print_grammar_rule("expression", "variable ASSIGNOP logic_expression");
 		$$ = new SymbolInfo("", "expression");
-		SymbolInfo* res = sym->search($1->get_name()); // we want to store the value, so retrieving it from symbol table
-		if (res == nullptr) {
-			show_error(SEMANTIC, UNDECLARED_VARIABLE, $1->get_name(), errorout);
-		}
-		else if ($1->get_data_type() == "VOID" || $3->get_data_type() == "VOID") {
+		if ($1->get_data_type() == "VOID" || $3->get_data_type() == "VOID") {
 			show_error(SEMANTIC, VOID_USAGE, "", errorout);
 		}
 		else if ($1->get_data_type() == "ERROR" || $3->get_data_type() == "ERROR") {
@@ -671,7 +679,7 @@ factor : variable {
 	| ID LPAREN argument_list RPAREN {
 		print_grammar_rule("factor", "ID LPAREN argument_list RPAREN");
 		$$ = new SymbolInfo("", "factor");
-		SymbolInfo* res = sym->search($1->get_name());
+		SymbolInfo* res = sym->search($1->get_name(), 'A');
 		if (res == nullptr) {
 			show_error(SEMANTIC, UNDECLARED_FUNCTION, $1->get_name(), errorout);
 		}
@@ -698,14 +706,14 @@ factor : variable {
 		$$ = new SymbolInfo($1->get_name(), "factor", "INT");
 	}
 	| CONST_FLOAT {
-		print_grammar_rule("factor", "CONST_INT");
+		print_grammar_rule("factor", "CONST_FLOAT");
 		$$ = new SymbolInfo($1->get_name(), "factor", "FLOAT");
 	}
 	| variable INCOP {
 		print_grammar_rule("factor", "variable INCOP");
 		$$ = new SymbolInfo("", "factor");
 		if ($1->get_data_type() == "VOID") {
-			show_error(SEMANTIC, VOID_USAGE, "", errorout);
+			show_error(SEMANTIC, VOID_USAGE, $1->get_name(), errorout);
 		}
 		else if ($1->get_data_type() == "ERROR") {
 			show_error(SEMANTIC, TYPE_ERROR, $1->get_name(), errorout);
@@ -721,7 +729,7 @@ factor : variable {
 			show_error(SEMANTIC, VOID_USAGE, "", errorout);
 		}
 		else if ($1->get_data_type() == "ERROR") {
-			show_error(SEMANTIC, TYPE_ERROR, $1->get_name(), errorout);
+			show_error(SEMANTIC, TYPE_ERROR, "", errorout);
 		}
 		else {
 			$$->set_data_type($1->get_data_type());
@@ -729,13 +737,38 @@ factor : variable {
 	}
 	;
 	
-argument_list : arguments
-			  |
-			  ;
+argument_list : arguments {
+		print_grammar_rule("argument_list", "arguments");
+		$$ = new SymbolInfo("", "argument_list");
+		$$->set_param_list($1->get_param_list());
+	}
+	| arguments error {
+		print_grammar_rule("argument_list", "arguments");
+		yyclearin; // clear the lookahead token
+		yyerrok; // start normal parsing again
+		show_error(SYNTAX, S_ARG_LIST, "", errorout);
+		$$ = new SymbolInfo("", "argument_list");
+		$$->set_param_list($1->get_param_list());
+	}
+	| {
+		// empty argument list, as one of the example of the sample suggests
+		print_grammar_rule("argument_list", "");
+		$$ = new SymbolInfo("", "argument_list");
+	}
+	;
 	
-arguments : arguments COMMA logic_expression
-	      | logic_expression
-	      ;
+arguments : arguments COMMA logic_expression {
+		print_grammar_rule("arguments", "arguments COMMA logic_expression");
+		$$ = new SymbolInfo("", "arguments");
+		$$->set_param_list($1->get_param_list());
+		$$->add_param($3);
+	}
+	| logic_expression {
+		print_grammar_rule("arguments", "logic_expression");
+		$$ = new SymbolInfo("", "arguments");
+		$$->add_param($1);
+	}
+	;
 
 lcurls : LCURL {
 		$$ = $1;

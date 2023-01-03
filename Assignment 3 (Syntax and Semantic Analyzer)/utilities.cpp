@@ -62,8 +62,9 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
                 out << "Conflicting types for \'" << str << "\'" << endl;
                 break;
             case VOID_TYPE:
-                out << "Variable or field \'" << str << "\' declared void"
-                    << endl;
+                out << "Variable or field ";
+                if (str != "") out << "\'" << str << "\' ";
+                out <<  "declared void" << endl;
                 break;
             case PARAM_NAMELESS:
                 out << "Nameless parameter \'" << str
@@ -129,6 +130,9 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
                 break;
             case S_EXP_STATEMENT:
                 out << "expression statement" << endl;
+                break;
+            case S_ARG_LIST:
+                out << "argument list" << endl;
                 break;
             default:
                 break;

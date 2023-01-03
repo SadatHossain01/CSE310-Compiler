@@ -46,6 +46,7 @@ enum error_type {
     S_DECL_VAR_DECLARATION,
     S_UNIT,
     S_EXP_STATEMENT,
+    S_ARG_LIST,
     FLOAT_TO_INT,
     MOD_BY_ZERO,
     DIV_BY_ZERO,
