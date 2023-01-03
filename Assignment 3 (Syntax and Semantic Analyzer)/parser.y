@@ -29,6 +29,10 @@ inline void print_grammar_rule(const string& parent, const string& children) {
 	logout << parent << " : " << children << " " << endl;
 }
 
+inline void show_syntax_error() {
+	logout << "Error at line no " << line_count << " : syntax error" << endl;
+}
+
 void insert_function(SymbolInfo* function, const string& type_specifier, const vector<SymbolInfo*> param_list) {
 	// took the symbol info class, not string for function name
 	// so that it can be used for inserting to symbol table as well
@@ -43,6 +47,7 @@ void insert_function(SymbolInfo* function, const string& type_specifier, const v
 		for (int i = 0; i < param_list.size(); i++) {
 			if (param_list[i]->get_name() == "") {
 				show_error(SEMANTIC, PARAM_NAMELESS, function->get_name(), errorout);
+				return; // returning as any such function is not acceptable
 			}
 		}
 	}
@@ -56,6 +61,7 @@ void insert_function(SymbolInfo* function, const string& type_specifier, const v
 				if (param_list[i]->get_name() == "") continue;
 				if (param_list[i]->get_name() == param_list[j]->get_name()) {
 					show_error(SEMANTIC, PARAM_REDEFINITION, param_list[i]->get_name(), errorout);
+					return; // returning as any such function is not acceptable
 				}
 			}
 		}
@@ -179,6 +185,7 @@ unit : var_declaration {
 		yyclearin; // clears the lookahead
 		yyerrok; // now you can start normal parsing
 		show_error(SYNTAX, S_UNIT, "", errorout);
+		show_syntax_error();
 		$$ = new SymbolInfo("", "unit");
 	}
     ;
@@ -260,8 +267,9 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN { insert_functi
 		print_grammar_rule("func_definition", "type_specifier ID LPAREN parameter_list RPAREN compound_statement");
 		$$ = new SymbolInfo("", "func_definition");
 		show_error(SYNTAX, S_PARAM_FUNC_DEFINITION, "", errorout);
+		show_syntax_error();
 	}
-	| type_specifier ID LPAREN RPAREN { insert_function($2, $1->get_data_type(), $4->get_param_list()); } compound_statement {
+	| type_specifier ID LPAREN RPAREN { insert_function($2, $1->get_data_type(), {}); } compound_statement {
 		print_grammar_rule("func_definition", "type_specifier ID LPAREN RPAREN compound_statement");
 		$$ = new SymbolInfo("", "func_definition");
 	}
@@ -343,7 +351,7 @@ var_declaration : type_specifier declaration_list SEMICOLON {
 					sym->insert(cur_list[i]);
 				}
 				else if (res->get_data_type() != cur_list[i]->get_data_type()) {
-					cerr << "Previous: " << res->get_data_type() << " current: " << cur_list[i]->get_data_type() << " " << cur_list[i]->get_name() << " line: " << line_count << endl; 
+					// cerr << "Previous: " << res->get_data_type() << " current: " << cur_list[i]->get_data_type() << " " << cur_list[i]->get_name() << " line: " << line_count << endl; 
 					show_error(SEMANTIC, CONFLICTING_TYPE, cur_list[i]->get_name(), errorout);
 				}
 				else {
@@ -356,6 +364,7 @@ var_declaration : type_specifier declaration_list SEMICOLON {
 		print_grammar_rule("var_declaration", "type_specifier declaration_list SEMICOLON");
 		$$ = new SymbolInfo("", "var_declaration");
 		show_error(SYNTAX, S_DECL_VAR_DECLARATION, "", errorout);
+		show_syntax_error();
 	}
 	;
  		 
@@ -467,6 +476,7 @@ expression_statement : SEMICOLON {
 		yyclearin; // clear the lookahead token
 		yyerrok; // clear the error stack
 		show_error(SYNTAX, S_EXP_STATEMENT, "", errorout);
+		show_syntax_error();
 		$$ = new SymbolInfo("", "expression_statement");
 	}
 	;
@@ -511,7 +521,7 @@ variable : ID {
 		}
 		else {
 			$$->set_data_type(res->get_data_type());
-			$$->set_array(true);
+			$$->set_array(false); // if a is an int array, a[5] is also an int, but not an array
 		}
 	}
 	;
@@ -641,6 +651,14 @@ term : unary_expression {
 				$$->set_data_type("INT");
 			}
 		}
+		else if ($2->get_name() == "*") {
+			if ($1->get_data_type() == "FLOAT" || $3->get_data_type() == "FLOAT") {
+				$$->set_data_type("FLOAT");
+			}
+			else {
+				$$->set_data_type("INT");
+			}
+		}
 	}
 	;
 
@@ -686,20 +704,26 @@ factor : variable {
 		$$ = new SymbolInfo("", "factor");
 		// sym->print('A');
 		SymbolInfo* res = sym->search($1->get_name(), 'A');
+		bool ok = true;
 		if (res == nullptr) {
 			show_error(SEMANTIC, UNDECLARED_FUNCTION, $1->get_name(), errorout);
+			ok = false;
 		}
 		else if (!res->is_func_declaration() && !res->is_func_definition()) {
 			show_error(SEMANTIC, NOT_A_FUNCTION, $1->get_name(), errorout);
+			ok = false;
 		}
 		else if (res->is_func_declaration() && !res->is_func_definition()) {
 			show_error(SEMANTIC, UNDEFINED_FUNCTION, $1->get_name(), errorout);
+			ok = false;
 		}
 		else if (res->get_param_list().size() < $3->get_param_list().size()) {
 			show_error(SEMANTIC, TOO_MANY_ARGUMENTS, $1->get_name(), errorout);
+			ok = false;
 		}
 		else if (res->get_param_list().size() > $3->get_param_list().size()) {
 			show_error(SEMANTIC, TOO_FEW_ARGUMENTS, $1->get_name(), errorout);
+			ok = false;
 		}
 		else {
 			vector<SymbolInfo*> now = res->get_param_list();
@@ -713,6 +737,7 @@ factor : variable {
 					show_error(SEMANTIC, ARG_TYPE_MISMATCH, str, errorout);
 				}
 			}
+			$$->set_data_type(res->get_data_type());
 		}
 	}
 	| LPAREN expression RPAREN {
@@ -766,6 +791,7 @@ argument_list : arguments {
 		yyclearin; // clear the lookahead token
 		yyerrok; // start normal parsing again
 		show_error(SYNTAX, S_ARG_LIST, "", errorout);
+		show_syntax_error();
 		$$ = new SymbolInfo("", "argument_list");
 		$$->set_param_list($1->get_param_list());
 	}
@@ -795,9 +821,14 @@ lcurls : LCURL {
 		for (SymbolInfo* they : current_function_parameters) {
 			if (they->get_name() == "") // nameless, no need to insert
 				continue;
-			if (!sym->insert(they)) {
+			SymbolInfo* another = new SymbolInfo(they->get_name(), they->get_type(), they->get_data_type());
+			another->set_array(they->is_array());
+			if (!sym->insert(another)) {
 				// insertion failed
-				show_error(SEMANTIC, PARAM_REDEFINITION, they->get_name(), errorout);
+				show_error(SEMANTIC, PARAM_REDEFINITION, another->get_name(), errorout);
+				// in sample output, after any failure, the next arguments are not inserted to the symbol table
+				// so we will break the loop
+				break;
 			}
 		}
 		current_function_parameters.clear();

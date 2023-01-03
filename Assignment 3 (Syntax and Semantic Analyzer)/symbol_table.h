@@ -35,10 +35,6 @@ class SymbolInfo {
     bool is_terminal() const { return terminal; }
     bool is_array() const { return array; }
     vector<SymbolInfo *> get_param_list() const { 
-        cerr << "Function Getting Time: " << name << endl;
-        for (auto param : param_list) {
-            cerr << "Param : " << param->get_name() << " " << param->get_data_type() << endl;
-        }
         return param_list; 
     }
     vector<SymbolInfo *> get_declaration_list() const {
@@ -49,8 +45,6 @@ class SymbolInfo {
     void set_type(const string &type) { this->type = type; }
     void set_data_type(const string &data_type) {
         if (this->data_type != "" && data_type == "") return;
-        if (!this->data_type.empty())
-            cerr << "Previously: " << this->data_type << " Now: " << data_type << endl;
         this->data_type = data_type;
         for (char &c : this->data_type) {
             if ('a' <= c && c <= 'z') c = toupper(c);
@@ -62,12 +56,11 @@ class SymbolInfo {
         if (val) this->func_declaration = true;
     }
     void set_terminal(bool val) { this->terminal = val; }
-    void set_array(bool val) { this->array = val; this->type = "ARRAY"; }
+    void set_array(bool val) { 
+        this->array = val; 
+        if (val) this->type = "ARRAY"; 
+    }
     void set_param_list(const vector<SymbolInfo *> &param_list) {
-        cerr << "Function Setting Time: " << name << endl;
-        for (auto param : param_list) {
-            cerr << "Param : " << param->get_name() << " " << param->get_data_type() << endl;
-        }
         this->param_list = param_list;
     }
     void add_param(SymbolInfo *param) { this->param_list.push_back(param); }
@@ -81,7 +74,7 @@ class SymbolInfo {
     void print(ostream &out = cout) {
         out << "<" << name << ", ";
         if (type == "FUNCTION") out << "FUNCTION, ";
-        else if (type == "ARRAY") out << "ARRAY, ";
+        else if (array) out << "ARRAY, ";
         out << data_type << "> ";
     }
 };

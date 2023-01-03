@@ -34,9 +34,6 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
             case UNFINISHED_COMMENT:
                 out << "UNFINISHED_COMMENT " << str << endl;
                 break;
-            case VOID_USAGE:
-                out << "Void cannot be used in expression" << endl;
-                break;
             default:
                 break;
         }
@@ -114,6 +111,9 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
             case NOT_A_FUNCTION:
                 out << "\'" << str << "\' is not a function" << endl;
                 break;
+            case VOID_USAGE:
+                out << "Void cannot be used in expression" << endl;
+                break;
             default:
                 break;
         }
@@ -150,7 +150,7 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
                     << endl;
                 break;
             case MOD_BY_ZERO:
-                out << "modulus by zero" << endl;
+                out << "division by zero" << endl;
                 break;
             case DIV_BY_ZERO:
                 out << "division by zero" << endl;
