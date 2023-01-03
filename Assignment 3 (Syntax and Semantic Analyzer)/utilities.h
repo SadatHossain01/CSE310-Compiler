@@ -32,8 +32,6 @@ enum error_type {
     FUNC_AS_VAR,
     ERROR_AS_ARRAY,
     INDEX_NOT_INT,
-    INDEX_OUT_OF_BOUNDS,
-    INDEX_NEGATIVE,
     VOID_USAGE,
     MOD_OPERAND,
     TYPE_ERROR,  // if a computation is faulty, it should have a "ERROR" type,
@@ -58,6 +56,3 @@ enum line_type { SINGLE_LINE, MULTILINE };
 enum reset_type { CHAR_RESET, STRING_RESET, COMMENT_RESET };
 
 void show_error(error_class, error_type, const string&, ostream&);
-long long int apply_int_operation(long long int, const string&, long long int);
-double apply_float_operation(double, const string&, double);
-long long int apply_float_operation_2(double, const string&, double);

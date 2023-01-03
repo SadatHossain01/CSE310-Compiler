@@ -89,12 +89,6 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
             case INDEX_NOT_INT:
                 out << "Array subscript is not an integer" << endl;
                 break;
-            case INDEX_NEGATIVE:
-                out << "Array subscript cannot be negative" << endl;
-                break;
-            case INDEX_OUT_OF_BOUNDS:
-                out << "Array subscript is out of bounds" << endl;
-                break;
             case MOD_OPERAND:
                 out << "Operands of modulus must be integers" << endl;
                 break;
@@ -166,50 +160,4 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
                 break;
         }
     }
-}
-
-long long int apply_int_operation(long long int a, const string& op,
-                                  long long int b) {
-    if (op == "++") return a + 1;
-    else if (op == "--") return a - 1;
-    else if (op == "+") return a + b;
-    else if (op == "-") return a - b;
-    else if (op == "*") return a * b;
-    else if (op == "/") return a / b;
-    else if (op == "%") return a % b;
-    else if (op == "&&") return a && b;
-    else if (op == "||") return a || b;
-    else if (op == "&") return a & b;
-    else if (op == "|") return a | b;
-    else if (op == "^") return a ^ b;
-    else if (op == "<<") return a << b;
-    else if (op == ">>") return a >> b;
-    else if (op == "!") return !a;
-    else if (op == "<") return a < b;
-    else if (op == ">") return a > b;
-    else if (op == "<=") return a <= b;
-    else if (op == ">=") return a >= b;
-    else if (op == "==") return a == b;
-    else if (op == "!=") return a != b;
-    else return 0;
-}
-
-double apply_float_operation(double a, const string& op, double b) {
-    if (op == "++") return a + 1;
-    else if (op == "--") return a - 1;
-    else if (op == "+") return a + b;
-    else if (op == "-") return a - b;
-    else if (op == "*") return a * b;
-    else if (op == "/") return a / b;
-    else return 0.0;
-}
-
-long long int apply_float_operation_2(double a, const string& op, double b) {
-    if (op == "<") return a < b;
-    else if (op == ">") return a > b;
-    else if (op == "<=") return a <= b;
-    else if (op == ">=") return a >= b;
-    else if (op == "==") return a == b;
-    else if (op == "!=") return a != b;
-    else return 0;
 }

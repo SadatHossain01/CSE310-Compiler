@@ -276,13 +276,11 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 {INTEGER} 				{ 
 							printNum(INTNUM, yytext); 
 							yylval.symbol_info = new SymbolInfo(yytext, "CONST_INT", "int");
-							yylval.symbol_info->set_int_value(stoll(yytext));
 							return CONST_INT;
 						}
 {FLOATING_POINT}		{ 
 							printNum(FLOATNUM, yytext); 
 							yylval.symbol_info = new SymbolInfo(yytext, "CONST_FLOAT", "float");
-							yylval.symbol_info->set_float_value(stod(yytext));
 							return CONST_FLOAT;
  						}
 {TOO_DECIMAL}			{ 
@@ -368,16 +366,16 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 "}"						{ 	printOpPunc("RCURL");
 							yylval.symbol_info = new SymbolInfo(yytext, "RCURL");
 							// sym->exit_scope();
-							sym->print('A', logout);
+							// sym->print('A', logout);
 							return RCURL;
 						}
-"["						{ 	printOpPunc("LTHIRD");
-							yylval.symbol_info = new SymbolInfo(yytext, "LTHIRD");
-							return LTHIRD;
+"["						{ 	printOpPunc("LSQUARE");
+							yylval.symbol_info = new SymbolInfo(yytext, "LSQUARE");
+							return LSQUARE;
 						}
-"]"						{ 	printOpPunc("RTHIRD");
-							yylval.symbol_info = new SymbolInfo(yytext, "RTHIRD");
-							return RTHIRD;
+"]"						{ 	printOpPunc("RSQUARE");
+							yylval.symbol_info = new SymbolInfo(yytext, "RSQUARE");
+							return RSQUARE;
 						}
 ","						{ 	printOpPunc("COMMA");
 							yylval.symbol_info = new SymbolInfo(yytext, "COMMA");

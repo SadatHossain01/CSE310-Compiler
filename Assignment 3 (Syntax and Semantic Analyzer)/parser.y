@@ -26,7 +26,7 @@ int yyparse(void);
 int yylex(void);
 
 inline void print_grammar_rule(const string& parent, const string& children) {
-	logout << parent << " : " << children << endl;
+	logout << parent << " : " << children << " " << endl;
 }
 
 void insert_function(SymbolInfo* function, const string& type_specifier, const vector<SymbolInfo*> param_list) {
@@ -106,10 +106,6 @@ inline bool check_type_specifier(SymbolInfo* symbol) {
 	return true;
 }
 
-inline bool both_available(SymbolInfo* s1, SymbolInfo* s2 = nullptr) {
-	return (s1->get_num_state() && (s2 == nullptr || s2->get_num_state()));
-}
-
 inline int is_number(const string& number) {
 	// first check if float
 	// cerr << "number: " << number << endl;
@@ -128,31 +124,12 @@ inline int is_number(const string& number) {
 	return (dot_count == 0) ? 0 : 1; // 0 means int, 1 means float
 }
 
-inline string cast_type(const string& t1, const string& t2) {
-	if (t1 == "VOID" || t2 == "VOID") return "ERROR";
-	else if (t1 == "ERROR" || t2 == "ERROR") return "ERROR";
-	else if (t1 == "FLOAT" || t2 == "FLOAT") return "FLOAT";
-	else return "INT";
-}
-
-inline void assign_constant(SymbolInfo* s1, SymbolInfo* s2) {
-	if (s2->get_num_state() == 1) {
-		s1->set_int_value(s2->get_int_value());
+inline bool is_zero(const string& str) {
+	// already guaranteed to be a valid number from lexer, so no need to check that again
+	for (char c : str) {
+		if (c != '0' && c != 'e' && c != 'E') return false;
 	}
-	else if (s2->get_num_state() == 2) {
-		s1->set_float_value(s2->get_float_value());
-	}
-	// cerr << "line " << line_count << ": " << s1->get_type() << " " << s2->get_type() << endl;
-	// int st1 = s1->get_num_state();
-	// int st2 = s2->get_num_state();
-	// if (st1) {
-	// 	if (st1 == 1) cerr << "s1: " << s1->get_int_value() << endl;
-	// 	else cerr << "s1: " << s1->get_float_value() << endl;
-	// }
-	// if (st2) {
-	// 	if (st2 == 1) cerr << "s2: " << s2->get_int_value() << endl;
-	// 	else cerr << "s2: " << s2->get_float_value() << endl;
-	// }
+	return true;
 }
 %}
 
@@ -160,7 +137,7 @@ inline void assign_constant(SymbolInfo* s1, SymbolInfo* s2) {
 	SymbolInfo* symbol_info;
 }
 
-%token <symbol_info> IF ELSE FOR WHILE DO BREAK INT CHAR FLOAT DOUBLE VOID RETURN SWITCH CASE DEFAULT CONTINUE PRINTLN CONST_INT CONST_FLOAT ID ADDOP MULOP INCOP DECOP RELOP ASSIGNOP LOGICOP BITOP NOT LPAREN RPAREN LCURL RCURL LTHIRD RTHIRD COMMA SEMICOLON
+%token <symbol_info> IF ELSE FOR WHILE DO BREAK INT CHAR FLOAT DOUBLE VOID RETURN SWITCH CASE DEFAULT CONTINUE PRINTLN CONST_INT CONST_FLOAT ID ADDOP MULOP INCOP DECOP RELOP ASSIGNOP LOGICOP BITOP NOT LPAREN RPAREN LCURL RCURL LSQUARE RSQUARE COMMA SEMICOLON
 %type <symbol_info> start program unit var_declaration func_declaration func_definition type_specifier parameter_list compound_statement statements declaration_list statement expression expression_statement logic_expression rel_expression simple_expression term unary_expression factor variable argument_list arguments lcurls
 
 %%
@@ -385,8 +362,8 @@ declaration_list : declaration_list COMMA ID {
 		$$->set_declaration_list($1->get_declaration_list());
 		$$->add_declaration(new_symbol);
 	}
-	| declaration_list COMMA ID LTHIRD CONST_INT RTHIRD {
-		print_grammar_rule("declaration_list", "declaration_list COMMA ID LTHIRD CONST_INT RTHIRD");
+	| declaration_list COMMA ID LSQUARE CONST_INT RSQUARE {
+		print_grammar_rule("declaration_list", "declaration_list COMMA ID LSQUARE CONST_INT RSQUARE");
 		$$ = new SymbolInfo("", "declaration_list");
 		$$->set_declaration_list($1->get_declaration_list());
 		$3->set_array(true);
@@ -399,8 +376,8 @@ declaration_list : declaration_list COMMA ID {
 		SymbolInfo* new_symbol = new SymbolInfo($1->get_name(), "ID");
 		$$->add_declaration(new_symbol);
 	}
-	| ID LTHIRD CONST_INT RTHIRD {
-		print_grammar_rule("declaration_list", "ID LTHIRD CONST_INT RTHIRD");
+	| ID LSQUARE CONST_INT RSQUARE {
+		print_grammar_rule("declaration_list", "ID LSQUARE CONST_INT RSQUARE");
 		$$ = new SymbolInfo("", "declaration_list");
 		$1->set_array(true);
 		$1->set_array_size(stoi($3->get_name()));
@@ -410,26 +387,25 @@ declaration_list : declaration_list COMMA ID {
  		  
 statements : statement {
 		print_grammar_rule("statements", "statement");
-		$$ = new SymbolInfo("", "statements");
+		$$ = new SymbolInfo($1->get_name(), "statements");
 	}
 	| statements statement {
 		print_grammar_rule("statements", "statements statement");
-		$$ = new SymbolInfo("", "statements");
+		$$ = new SymbolInfo($1->get_name(), "statements");
 	}
 	;
 	   
 statement : var_declaration {
 		print_grammar_rule("statement", "var_declaration");
-		$$ = new SymbolInfo("", "statement");
+		$$ = new SymbolInfo($1->get_name(), "statement");
 	}
 	| expression_statement {
 		print_grammar_rule("statement", "expression_statement");
-		$$ = new SymbolInfo("", "statement");
-		$$->set_name($1->get_name());
+		$$ = new SymbolInfo($1->get_name(), "statement");
 	}
 	| compound_statement {
 		print_grammar_rule("statement", "compound_statement");
-		$$ = new SymbolInfo("", "statement");
+		$$ = new SymbolInfo($1->get_name(), "statement");
 	}
 	| FOR LPAREN expression_statement expression_statement expression RPAREN statement {
 		print_grammar_rule("statement", "FOR LPAREN expression_statement expression_statement expression RPAREN statement");
@@ -468,7 +444,6 @@ expression_statement : SEMICOLON {
 		print_grammar_rule("expression_statement", "expression SEMICOLON");
 		$$ = new SymbolInfo("", "expression_statement");
 		$$->set_data_type($1->get_data_type()); // result of an expression will have a certain data type, won't it?
-		assign_constant($$, $1);
 	}
 	| error SEMICOLON {
 		yyclearin; // clear the lookahead token
@@ -497,12 +472,12 @@ variable : ID {
 		else {
 			$$->set_data_type(res->get_data_type());
 			$$->set_array(false);
-			assign_constant($$, res);
+
 		}
 	}	
-	| ID LTHIRD expression RTHIRD {
+	| ID LSQUARE expression RSQUARE {
 		// it has to be an array now
-		print_grammar_rule("variable", "ID LTHIRD expression RTHIRD");
+		print_grammar_rule("variable", "ID LSQUARE expression RSQUARE");
 		$$ = new SymbolInfo($1->get_name(), "VARIABLE", $1->get_data_type());
 		
 		SymbolInfo* res = sym->search($1->get_name());
@@ -517,16 +492,6 @@ variable : ID {
 			// array index is not an integer, so error
 			show_error(SEMANTIC, INDEX_NOT_INT, $1->get_name(), errorout);
 		}
-		else if ($3->get_num_state() == 1) {
-			if ($3->get_int_value() >= res->get_array_size()) {
-				// array index is out of bounds, so error
-				show_error(SEMANTIC, INDEX_OUT_OF_BOUNDS, $1->get_name(), errorout);
-			} 
-			else if ($3->get_int_value() < 0) {
-				// array index is negative, so error
-				show_error(SEMANTIC, INDEX_NEGATIVE, $1->get_name(), errorout);
-			}
-		}
 		else {
 			$$->set_data_type(res->get_data_type());
 			$$->set_array(true);
@@ -536,14 +501,13 @@ variable : ID {
 	 
 expression : logic_expression {
 		print_grammar_rule("expression", "logic_expression");
-		$$ = new SymbolInfo("", "expression");
+		$$ = new SymbolInfo($1->get_name(), "expression");
 		$$->set_data_type($1->get_data_type());
-		assign_constant($$, $1);
+		$$->set_array($1->is_array());
 	}	
 	| variable ASSIGNOP logic_expression {
 		print_grammar_rule("expression", "variable ASSIGNOP logic_expression");
 		$$ = new SymbolInfo("", "expression");
-		bool ok = both_available($3);
 		SymbolInfo* res = sym->search($1->get_name()); // we want to store the value, so retrieving it from symbol table
 		if (res == nullptr) {
 			show_error(SEMANTIC, UNDECLARED_VARIABLE, $1->get_name(), errorout);
@@ -558,25 +522,16 @@ expression : logic_expression {
 			if ($3->get_data_type() == "FLOAT") {
 				show_error(WARNING, FLOAT_TO_INT, "", errorout);
 			}
-			if (ok) $1->set_int_value($3->get_int_value());
-		}
-		else {
-			if (ok) $1->set_float_value($3->get_float_value());
 		}
 		$$->set_data_type($1->get_data_type());
-		assign_constant($1, $3);
-		assign_constant(res, $1);
-		assign_constant($$, $1);
-		// $1 should not be void by any means, but still
 	}	
 	;
 			
 logic_expression : rel_expression {
 		print_grammar_rule("logic_expression", "rel_expression");
-		$$ = new SymbolInfo("", "logic_expression");
+		$$ = new SymbolInfo($1->get_name(), "logic_expression");
 		$$->set_data_type($1->get_data_type());
 		$$->set_array($1->is_array());
-		assign_constant($$, $1);
 	}
 	| rel_expression LOGICOP rel_expression {
 		print_grammar_rule("logic_expression", "rel_expression LOGICOP rel_expression");
@@ -589,22 +544,19 @@ logic_expression : rel_expression {
 		}
 		else if ($1->get_data_type() == "FLOAT" || $3->get_data_type() == "FLOAT") {
 			show_error(WARNING, LOGICAL_FLOAT, "", errorout);
-			
+			$$->set_data_type("INT");
 		}
-		if (both_available($1, $3)) {
-			// even if any operand is float, casting them to int and then doing the operation, as the typical compilers do
-			$$->set_int_value(apply_int_operation($1->get_int_value(), $2->get_name(), $3->get_int_value()));
+		else {
+			$$->set_data_type("INT");
 		}
-		// I have never assigned void type to any rel_expression at any point, so no need to check that either
 	}
 	;
 			
 rel_expression : simple_expression {
 		print_grammar_rule("rel_expression", "simple_expression");
-		$$ = new SymbolInfo("", "rel_expression");
+		$$ = new SymbolInfo($1->get_name(), "rel_expression");
 		$$->set_data_type($1->get_data_type());
 		$$->set_array($1->is_array());
-		assign_constant($$, $1);
 	}
 	| simple_expression RELOP simple_expression {
 		print_grammar_rule("rel_expression", "simple_expression RELOP simple_expression");
@@ -614,102 +566,66 @@ rel_expression : simple_expression {
 		}
 		else {
 			$$->set_data_type("INT"); // result of any comparison should be boolean in fact
-			if (both_available($1, $3)) {
-				// both are constants, so evaluate the expression
-				if ($1->get_data_type() == "FLOAT" || $3->get_data_type() == "FLOAT") {
-					$$->set_int_value(apply_float_operation_2($1->get_float_value(), $2->get_name(), $3->get_float_value())); // float operands, but int result
-				}
-				else $$->set_int_value(apply_int_operation($1->get_int_value(), $2->get_name(), $3->get_int_value()));
-			}
 		}
 	}	
 	;
 				
 simple_expression : term {
 		print_grammar_rule("simple_expression", "term");
-		$$ = new SymbolInfo("", "simple_expression");
+		$$ = new SymbolInfo($1->get_name(), "simple_expression");
 		$$->set_data_type($1->get_data_type());
 		$$->set_array($1->is_array());
-		assign_constant($$, $1);
 	}
 	| simple_expression ADDOP term {
 		print_grammar_rule("simple_expression", "simple_expression ADDOP term");
 		$$ = new SymbolInfo("", "simple_expression");
-		bool both_ok = both_available($1, $3);
 		if ($1->get_data_type() == "VOID" || $3->get_data_type() == "VOID") {
 			show_error(SEMANTIC, VOID_USAGE, "", errorout);
 		}
 		else if ($1->get_data_type() == "FLOAT" || $3->get_data_type() == "FLOAT") {
 			$$->set_data_type("FLOAT");
-			if (both_ok) { // both nums available to us
-				$$->set_float_value(apply_float_operation($1->get_float_value(), $2->get_name(), $3->get_float_value()));
-			}
 		}
 		else {
 			$$->set_data_type("INT");
-			if (both_ok) { // both nums available to us
-				$$->set_int_value(apply_int_operation($1->get_int_value(), $2->get_name(), $3->get_int_value()));
-			}
 		}
 	}
 	;
 					
 term : unary_expression {
 		print_grammar_rule("term", "unary_expression");
-		$$ = new SymbolInfo("", "term");
+		$$ = new SymbolInfo($1->get_name(), "term");
 		$$->set_data_type($1->get_data_type());
 		$$->set_array($1->is_array());
-		assign_constant($$, $1);
 	}
 	| term MULOP unary_expression {
 		print_grammar_rule("term", "term MULOP unary_expression");
 		$$ = new SymbolInfo("", "term");
-		bool problem = false;
-		bool both_ok = both_available($1, $3);
 		if ($1->get_data_type() == "VOID" || $3->get_data_type() == "VOID") {
 			show_error(SEMANTIC, VOID_USAGE, "", errorout);
-			problem = true;
 		}
 		else if ($1->get_data_type() == "ERROR" || $3->get_data_type() == "ERROR") {
 			show_error(SEMANTIC, TYPE_ERROR, "", errorout);
-			problem = true;
 		}
 		else if ($2->get_name() == "%") {
 			if ($1->get_data_type() == "FLOAT" || $3->get_data_type() == "FLOAT") {
 				show_error(SEMANTIC, MOD_OPERAND, "", errorout);
 			}
-			else if ($3->get_num_state() == 1 && $3->get_int_value() == 0) {
+			else if (is_zero($3->get_name())) {
 				show_error(WARNING, MOD_BY_ZERO, "", errorout);
 			}
 			else {
 				$$->set_data_type("INT");
-				if (both_ok) { // so the term value is available to us, we can use it for further calculation
-					$$->set_int_value(apply_int_operation($1->get_int_value(), "%", $3->get_int_value()));
-				}
 			}
 		}
 		else if ($2->get_name() == "/") {
-			if ($3->get_num_state() == 1 && $3->get_int_value() == 0) {
+			if (is_zero($3->get_name())) {
 				show_error(WARNING, DIV_BY_ZERO, "", errorout);
-				problem = true;
 			}
-			else if ($3->get_num_state() == 2 && fabs($3->get_float_value() < 1e-9)) {
-				show_error(WARNING, DIV_BY_ZERO, "", errorout);
-				problem = true;
-			}
-		}
-		if (!problem && ($2->get_name() == "*" || $2->get_name() == "/")) {
-			if ($1->get_data_type() == "FLOAT" || $3->get_data_type() == "FLOAT") {
+			else if ($1->get_data_type() == "FLOAT" || $3->get_data_type() == "FLOAT") {
 				$$->set_data_type("FLOAT");
-				if (both_ok) { // both nums available to us
-					$$->set_float_value(apply_float_operation($1->get_float_value(), $2->get_name(), $3->get_float_value()));
-				}
 			}
 			else {
 				$$->set_data_type("INT");
-				if (both_ok) { // both nums available to us
-					$$->set_int_value(apply_int_operation($1->get_int_value(), $2->get_name(), $3->get_int_value()));
-				}
 			}
 		}
 	}
@@ -723,45 +639,34 @@ unary_expression : ADDOP unary_expression {
 			$$->set_data_type("ERROR");
 		}
 		else $$->set_data_type($2->get_data_type());
-		if ($2->get_num_state() == 1) {
-			$$->set_int_value($2->get_int_value());
-			if ($1->get_name() == "-") $$->set_int_value(-$$->get_int_value());
-		}
-		else if ($2->get_num_state() == 2) {
-			$$->set_float_value($2->get_float_value());
-			if ($1->get_name() == "-") $$->set_float_value(-$$->get_float_value());
-		}
 	}
 	| NOT unary_expression {
 		print_grammar_rule("unary_expression", "ADDOP unary_expression");
 		$$ = new SymbolInfo("", "unary_expression");
+		bool ok = true;
 		if ($2->get_data_type() == "VOID") {
 			show_error(SEMANTIC, VOID_USAGE, "", errorout);
 			$$->set_data_type("ERROR");
+			ok = false;
 		}
 		else if ($2->get_data_type() == "FLOAT") {
 			show_error(WARNING, BITWISE_FLOAT, "", errorout);
-			if (both_available($2)) {
-				$$->set_int_value(apply_int_operation((long long)$2->get_float_value(), "!", 0));
-			}
 		}
-		else $$->set_data_type("INT");
+		if (ok) $$->set_data_type("INT");
 	}
 	| factor {
 		print_grammar_rule("unary_expression", "factor");
 		$$ = new SymbolInfo($1->get_name(), "unary_expression");
 		$$->set_data_type($1->get_data_type());
 		$$->set_array($1->is_array());
-		assign_constant($$, $1);
 	}
 	;
 	
 factor : variable {
 		print_grammar_rule("factor", "variable");
-		$$ = new SymbolInfo("", "factor");
+		$$ = new SymbolInfo($1->get_name(), "factor");
 		$$->set_data_type($1->get_data_type());
 		$$->set_array($1->is_array());
-		assign_constant($$, $1);
 	}
 	| ID LPAREN argument_list RPAREN {
 		print_grammar_rule("factor", "ID LPAREN argument_list RPAREN");
@@ -785,19 +690,16 @@ factor : variable {
 	}
 	| LPAREN expression RPAREN {
 		print_grammar_rule("factor", "LPAREN expression RPAREN");
-		$$ = new SymbolInfo("", "factor");
+		$$ = new SymbolInfo($2->get_name(), "factor");
 		$$->set_data_type($2->get_data_type());
-		assign_constant($$, $2);
 	}
 	| CONST_INT {
 		print_grammar_rule("factor", "CONST_INT");
 		$$ = new SymbolInfo($1->get_name(), "factor", "INT");
-		assign_constant($$, $1);
 	}
 	| CONST_FLOAT {
 		print_grammar_rule("factor", "CONST_INT");
 		$$ = new SymbolInfo($1->get_name(), "factor", "FLOAT");
-		assign_constant($$, $1);
 	}
 	| variable INCOP {
 		print_grammar_rule("factor", "variable INCOP");
@@ -809,13 +711,7 @@ factor : variable {
 			show_error(SEMANTIC, TYPE_ERROR, $1->get_name(), errorout);
 		}
 		else {
-			assign_constant($$, $1);
-			if ($1->get_num_state() == 1) {
-				$1->set_int_value($1->get_int_value() - 1);
-			}
-			else if ($1->get_num_state() == 2) {
-				$1->set_float_value($1->get_float_value() - 1);
-			}
+			$$->set_data_type($1->get_data_type());
 		}
 	}
 	| variable DECOP {
@@ -828,13 +724,7 @@ factor : variable {
 			show_error(SEMANTIC, TYPE_ERROR, $1->get_name(), errorout);
 		}
 		else {
-			assign_constant($$, $1);
-			if ($1->get_num_state() == 1) {
-				$1->set_int_value($1->get_int_value() - 1);
-			}
-			else if ($1->get_num_state() == 2) {
-				$1->set_float_value($1->get_float_value() - 1);
-			}
+			$$->set_data_type($1->get_data_type());
 		}
 	}
 	;

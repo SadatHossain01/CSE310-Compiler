@@ -17,13 +17,6 @@ class SymbolInfo {
     bool func_definition = false;
     bool terminal = false;
     bool array = false;
-    union {
-        long long l;
-        double d;
-    } num;
-    unsigned short num_type =
-        0;  // 0 for not a num, 1 for int, 2 for float, will only use this for
-            // constant numbers, not for variables
     int arr_size;
     vector<SymbolInfo *> param_list;
     vector<SymbolInfo *> declaration_list;
@@ -43,17 +36,6 @@ class SymbolInfo {
     bool is_terminal() const { return terminal; }
     bool is_array() const { return array; }
     int get_array_size() const { return arr_size; }
-    long long get_int_value() const {
-        if (num_type == 1) return num.l;
-        else if (num_type == 2) return (long long)num.d;
-        else assert(false);
-    }
-    double get_float_value() const {
-        if (num_type == 1) return (double)num.l;
-        else if (num_type == 2) return num.d;
-        else assert(false);
-    }
-    char get_num_state() const { return num_type; }
     vector<SymbolInfo *> get_param_list() const { return param_list; }
     vector<SymbolInfo *> get_declaration_list() const {
         return declaration_list;
@@ -75,19 +57,6 @@ class SymbolInfo {
     void set_terminal(bool val) { this->terminal = val; }
     void set_array(bool val) { this->array = val; }
     void set_array_size(int val) { this->arr_size = val; }
-    void set_num_state(char val) {
-        num_type = val;
-        if (val == 1) data_type = "INT";
-        else if (val == 2) data_type = "FLOAT";
-    }
-    void set_int_value(long long val) {
-        set_num_state(1);
-        num.l = val;
-    }
-    void set_float_value(double val) {
-        set_num_state(2);
-        num.d = val;
-    }
     void set_param_list(const vector<SymbolInfo *> &param_list) {
         this->param_list = param_list;
     }
