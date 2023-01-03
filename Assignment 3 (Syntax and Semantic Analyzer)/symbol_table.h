@@ -27,6 +27,24 @@ class SymbolInfo {
         : name(_name), type(_type) {
         set_data_type(_data_type);
     }
+    SymbolInfo(const SymbolInfo &other) {
+        name = other.name;
+        type = other.type;
+        set_data_type(other.data_type);
+        set_func_declaration(other.func_declaration);
+        set_func_definition(other.func_definition);
+        terminal = other.terminal;
+        set_array(other.array);
+        for (SymbolInfo *param : other.param_list) {
+            SymbolInfo *new_param = new SymbolInfo(*param);
+            param_list.push_back(new_param);
+        }
+        for (SymbolInfo *declaration : other.declaration_list) {
+            SymbolInfo *new_declaration = new SymbolInfo(*declaration);
+            declaration_list.push_back(new_declaration);
+        }
+        next = nullptr;
+    }
     string get_name() const { return name; }
     string get_type() const { return type; }
     string get_data_type() const { return data_type; }
@@ -61,14 +79,20 @@ class SymbolInfo {
         if (val) this->type = "ARRAY"; 
     }
     void set_param_list(const vector<SymbolInfo *> &param_list) {
-        this->param_list = param_list;
+        for (SymbolInfo* param : param_list) {
+            SymbolInfo *new_param = new SymbolInfo(*param);
+            this->param_list.push_back(new_param);
+        }
     }
     void add_param(SymbolInfo *param) { this->param_list.push_back(param); }
     void add_declaration(SymbolInfo *declaration) {
         this->declaration_list.push_back(declaration);
     }
     void set_declaration_list(const vector<SymbolInfo *> &declaration_list) {
-        this->declaration_list = declaration_list;
+        for (SymbolInfo* declaration : declaration_list) {
+            SymbolInfo *new_declaration = new SymbolInfo(*declaration);
+            this->declaration_list.push_back(new_declaration);
+        }
     }
     void set_next(SymbolInfo *next) { this->next = next; }
     void print(ostream &out = cout) {
@@ -76,6 +100,14 @@ class SymbolInfo {
         if (type == "FUNCTION") out << "FUNCTION, ";
         else if (array) out << "ARRAY, ";
         out << data_type << "> ";
+    }
+    ~SymbolInfo() {
+        for (SymbolInfo *param : param_list) {
+            if (param != nullptr) delete param;
+        }
+        for (SymbolInfo *declaration : declaration_list) {
+            if (declaration != nullptr) delete declaration;
+        }
     }
 };
 

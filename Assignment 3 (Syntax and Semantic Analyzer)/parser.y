@@ -131,6 +131,20 @@ inline bool is_zero(const string& str) {
 inline void free_s(SymbolInfo* s)	{
 	if (s != nullptr) {
 		delete s;
+		s = nullptr;
+	}
+}
+
+void reset_current_parameters() {
+	for (SymbolInfo* it : current_function_parameters) {
+		free_s(it);
+	}
+	current_function_parameters.clear();
+}
+
+void copy_func_parameters(SymbolInfo* si) {
+	for (SymbolInfo* they : si->get_param_list()) {
+		current_function_parameters.push_back(new SymbolInfo(*they));
 	}
 }
 %}
@@ -194,7 +208,7 @@ unit : var_declaration {
      
 func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 		print_grammar_rule("func_declaration", "type_specifier ID LPAREN parameter_list RPAREN SEMICOLON");
-		current_function_parameters.clear(); // resetting for this function
+		reset_current_parameters(); // resetting for this function
 		$$ = new SymbolInfo("", "func_declaration");
 		
 		SymbolInfo* func = new SymbolInfo($2->get_name(), "FUNCTION", $1->get_data_type());
@@ -219,7 +233,7 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 	}
 	| type_specifier ID LPAREN error RPAREN SEMICOLON {
 		print_grammar_rule("func_declaration", "type_specifier ID LPAREN RPAREN SEMICOLON");
-		current_function_parameters.clear();
+		reset_current_parameters();
 		$$ = new SymbolInfo("", "func_declaration");
 
 		SymbolInfo* func = new SymbolInfo($2->get_name(), "FUNCTION", $1->get_data_type());
@@ -243,7 +257,7 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 	}
 	| type_specifier ID LPAREN RPAREN SEMICOLON {
 		print_grammar_rule("func_declaration", "type_specifier ID LPAREN RPAREN SEMICOLON");
-		current_function_parameters.clear();
+		reset_current_parameters();
 		$$ = new SymbolInfo("", "func_declaration");
 
 		SymbolInfo* func = new SymbolInfo($2->get_name(), "FUNCTION", $1->get_data_type());
@@ -292,7 +306,7 @@ parameter_list : parameter_list COMMA type_specifier ID {
 		$$->set_param_list($1->get_param_list());
 		$$->add_param(new_param);
 		check_type_specifier($3, $4->get_name());
-		current_function_parameters = $$->get_param_list();
+		copy_func_parameters($$);
 		free_s($1); free_s($3); free_s($4);
 	}
 	| parameter_list COMMA type_specifier {
@@ -302,7 +316,7 @@ parameter_list : parameter_list COMMA type_specifier ID {
 		$$->set_param_list($1->get_param_list());
 		$$->add_param(new_param);
 		check_type_specifier($3, "");
-		current_function_parameters = $$->get_param_list();
+		copy_func_parameters($$);
 		free_s($1); free_s($3);
 	}
 	| type_specifier ID {
@@ -311,7 +325,7 @@ parameter_list : parameter_list COMMA type_specifier ID {
 		SymbolInfo* new_param = new SymbolInfo($2->get_name(), "ID", $1->get_data_type());
 		$$->add_param(new_param);
 		check_type_specifier($1, $2->get_name());
-		current_function_parameters = $$->get_param_list();
+		copy_func_parameters($$);
 		free_s($1); free_s($2);
 	}
 	| type_specifier {
@@ -320,7 +334,7 @@ parameter_list : parameter_list COMMA type_specifier ID {
 		SymbolInfo* new_param = new SymbolInfo("", "ID", $1->get_data_type()); // later check if this nameless parameter is used in function definition. if yes, then show error
 		$$->add_param(new_param);
 		check_type_specifier($1, "");
-		current_function_parameters = $$->get_param_list();
+		copy_func_parameters($$);
 		free_s($1);
 	}
 	;
@@ -365,16 +379,14 @@ var_declaration : type_specifier declaration_list SEMICOLON {
 				// cerr << cur_list[i]->get_data_type() << " " << cur_list[i]->get_name() << endl;
 				SymbolInfo* res = sym->search(cur_list[i]->get_name(), 'C');
 				if (res == nullptr) {
-					sym->insert(cur_list[i]);
+					sym->insert(new SymbolInfo(*cur_list[i]));
 				}
 				else if (res->get_data_type() != cur_list[i]->get_data_type()) {
 					// cerr << "Previous: " << res->get_data_type() << " current: " << cur_list[i]->get_data_type() << " " << cur_list[i]->get_name() << " line: " << line_count << endl; 
 					show_error(SEMANTIC, CONFLICTING_TYPE, cur_list[i]->get_name(), errorout);
-					delete cur_list[i];
 				}
 				else {
 					show_error(SEMANTIC, VARIABLE_REDEFINITION, cur_list[i]->get_name(), errorout);
-					delete cur_list[i];
 				}
 			}
 		}
@@ -885,7 +897,7 @@ lcurls : LCURL {
 				break;
 			}
 		}
-		current_function_parameters.clear();
+		reset_current_parameters();
 	}
 	;
  
