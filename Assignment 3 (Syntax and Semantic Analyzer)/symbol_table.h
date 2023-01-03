@@ -22,9 +22,9 @@ class SymbolInfo {
     SymbolInfo *next = nullptr;
 
    public:
-    SymbolInfo(const string &name = "", const string &type = "",
+    SymbolInfo(const string &_name = "", const string &_type = "",
                const string &_data_type = "")
-        : name(name), type(type) {
+        : name(_name), type(_type) {
         set_data_type(_data_type);
     }
     string get_name() const { return name; }
@@ -34,7 +34,13 @@ class SymbolInfo {
     bool is_func_declaration() const { return func_declaration; }
     bool is_terminal() const { return terminal; }
     bool is_array() const { return array; }
-    vector<SymbolInfo *> get_param_list() const { return param_list; }
+    vector<SymbolInfo *> get_param_list() const { 
+        cerr << "Function Getting Time: " << name << endl;
+        for (auto param : param_list) {
+            cerr << "Param : " << param->get_name() << " " << param->get_data_type() << endl;
+        }
+        return param_list; 
+    }
     vector<SymbolInfo *> get_declaration_list() const {
         return declaration_list;
     }
@@ -42,6 +48,9 @@ class SymbolInfo {
     void set_name(const string &name) { this->name = name; }
     void set_type(const string &type) { this->type = type; }
     void set_data_type(const string &data_type) {
+        if (this->data_type != "" && data_type == "") return;
+        if (!this->data_type.empty())
+            cerr << "Previously: " << this->data_type << " Now: " << data_type << endl;
         this->data_type = data_type;
         for (char &c : this->data_type) {
             if ('a' <= c && c <= 'z') c = toupper(c);
@@ -55,6 +64,10 @@ class SymbolInfo {
     void set_terminal(bool val) { this->terminal = val; }
     void set_array(bool val) { this->array = val; this->type = "ARRAY"; }
     void set_param_list(const vector<SymbolInfo *> &param_list) {
+        cerr << "Function Setting Time: " << name << endl;
+        for (auto param : param_list) {
+            cerr << "Param : " << param->get_name() << " " << param->get_data_type() << endl;
+        }
         this->param_list = param_list;
     }
     void add_param(SymbolInfo *param) { this->param_list.push_back(param); }

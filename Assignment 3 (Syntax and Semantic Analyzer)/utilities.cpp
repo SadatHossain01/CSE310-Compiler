@@ -84,6 +84,9 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
                 out << "Type mismatch for \'" << str << "\', is a function"
                     << endl;
                 break;
+            case ARG_TYPE_MISMATCH:
+                out << "Type mismatch for argument " << str << endl;
+                break;
             case ERROR_AS_ARRAY:
                 out << "\'" << str << "\' is not an array" << endl;
                 break;

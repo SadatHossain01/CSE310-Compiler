@@ -31,6 +31,7 @@ enum error_type {
     ARRAY_AS_VAR,
     FUNC_AS_VAR,
     ERROR_AS_ARRAY,
+    ARG_TYPE_MISMATCH,
     INDEX_NOT_INT,
     VOID_USAGE,
     MOD_OPERAND,

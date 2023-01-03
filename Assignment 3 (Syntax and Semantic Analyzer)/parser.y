@@ -32,6 +32,7 @@ inline void print_grammar_rule(const string& parent, const string& children) {
 void insert_function(SymbolInfo* function, const string& type_specifier, const vector<SymbolInfo*> param_list) {
 	// took the symbol info class, not string for function name
 	// so that it can be used for inserting to symbol table as well
+
 	function->set_type("FUNCTION");
 	function->set_data_type(type_specifier);
 	function->set_func_definition(true);
@@ -60,6 +61,10 @@ void insert_function(SymbolInfo* function, const string& type_specifier, const v
 		}
 	}
 
+	// cerr << "Function " << function->get_name() << endl;
+	// for (auto they : param_list) {
+	// 	cerr << they->get_name() << " " << they->get_data_type() << endl;
+	// }
 	bool success = sym->insert(function);
 	if (success) return; // no function definition available, so insert it as it is
 
@@ -332,12 +337,13 @@ var_declaration : type_specifier declaration_list SEMICOLON {
 			for (int i = 0; i < cur_list.size(); i++) {
 				// now we will set the data_type of all these symbols to $1
 				cur_list[i]->set_data_type($1->get_data_type());
-				cerr << cur_list[i]->get_data_type() << " " << cur_list[i]->get_name() << endl;
+				// cerr << cur_list[i]->get_data_type() << " " << cur_list[i]->get_name() << endl;
 				SymbolInfo* res = sym->search(cur_list[i]->get_name(), 'C');
 				if (res == nullptr) {
 					sym->insert(cur_list[i]);
 				}
 				else if (res->get_data_type() != cur_list[i]->get_data_type()) {
+					cerr << "Previous: " << res->get_data_type() << " current: " << cur_list[i]->get_data_type() << " " << cur_list[i]->get_name() << " line: " << line_count << endl; 
 					show_error(SEMANTIC, CONFLICTING_TYPE, cur_list[i]->get_name(), errorout);
 				}
 				else {
@@ -473,18 +479,17 @@ variable : ID {
 		if (res == nullptr) {
 			show_error(SEMANTIC, UNDECLARED_VARIABLE, $1->get_name(), errorout);
 		}
-		else if (res->is_array()) {
-			// declared as an array, but used like normal variable, so error
-			show_error(SEMANTIC, ARRAY_AS_VAR, $1->get_name(), errorout);
-		}
-		else if (res->is_func_definition() || res->is_func_declaration()) {
-			// declared as a function, but used like normal variable, so error
-			show_error(SEMANTIC, FUNC_AS_VAR, $1->get_name(), errorout);
-		}
+		// else if (res->is_array()) {
+		// 	// declared as an array, but used like normal variable, so error
+		// 	show_error(SEMANTIC, ARRAY_AS_VAR, $1->get_name(), errorout);
+		// }
+		// else if (res->is_func_definition() || res->is_func_declaration()) {
+		// 	// declared as a function, but used like normal variable, so error
+		// 	show_error(SEMANTIC, FUNC_AS_VAR, $1->get_name(), errorout);
+		// }
 		else {
 			$$->set_data_type(res->get_data_type());
-			$$->set_array(false);
-
+			$$->set_array(res->is_array());
 		}
 	}	
 	| ID LSQUARE expression RSQUARE {
@@ -564,7 +569,7 @@ rel_expression : simple_expression {
 		print_grammar_rule("rel_expression", "simple_expression");
 		$$ = new SymbolInfo($1->get_name(), "rel_expression");
 		$$->set_data_type($1->get_data_type());
-		$$->set_array($1->is_array());
+		$$->set_array($1->is_array()); // will need in function argument type checking
 	}
 	| simple_expression RELOP simple_expression {
 		print_grammar_rule("rel_expression", "simple_expression RELOP simple_expression");
@@ -679,6 +684,7 @@ factor : variable {
 	| ID LPAREN argument_list RPAREN {
 		print_grammar_rule("factor", "ID LPAREN argument_list RPAREN");
 		$$ = new SymbolInfo("", "factor");
+		// sym->print('A');
 		SymbolInfo* res = sym->search($1->get_name(), 'A');
 		if (res == nullptr) {
 			show_error(SEMANTIC, UNDECLARED_FUNCTION, $1->get_name(), errorout);
@@ -694,6 +700,19 @@ factor : variable {
 		}
 		else if (res->get_param_list().size() > $3->get_param_list().size()) {
 			show_error(SEMANTIC, TOO_FEW_ARGUMENTS, $1->get_name(), errorout);
+		}
+		else {
+			vector<SymbolInfo*> now = res->get_param_list();
+			vector<SymbolInfo*> they = $3->get_param_list();
+			for (int i = 0; i < now.size(); i++) {
+				if (now[i]->get_data_type() != they[i]->get_data_type() || now[i]->is_array() != they[i]->is_array()) {
+					cerr << "Function: " << res->get_name() << endl;
+					cerr << "original: " << now[i]->get_data_type() << " given: " << they[i]->get_data_type() << " name: " << now[i]->get_name() << " line " << line_count << endl;
+					string str = to_string(i + 1);
+					str += " of \'" + $1->get_name() + "\'";
+					show_error(SEMANTIC, ARG_TYPE_MISMATCH, str, errorout);
+				}
+			}
 		}
 	}
 	| LPAREN expression RPAREN {
