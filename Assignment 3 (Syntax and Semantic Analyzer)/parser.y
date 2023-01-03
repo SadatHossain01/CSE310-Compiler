@@ -142,7 +142,13 @@ inline bool is_zero(const string& str) {
 	}
 	return true;
 }
+
 %}
+
+%nonassoc LOWER_THAN_ELSE
+%nonassoc ELSE
+
+%error-verbose
 
 %union {
 	SymbolInfo* symbol_info;
@@ -438,7 +444,9 @@ statement : var_declaration {
 		print_grammar_rule("statement", "FOR LPAREN expression_statement expression_statement expression RPAREN statement");
 		$$ = new SymbolInfo("", "statement");
 	}
-	| IF LPAREN expression RPAREN statement {
+	| IF LPAREN expression RPAREN statement %prec LOWER_THAN_ELSE {
+		// how did you resolve the conflict? check at book 189 page
+		// The precedence of the token to shift must be higher than the precedence of the rule to reduce, so %nonassoc ELSE must come after %nonassoc THEN or %nonassoc LOWER_THAN_ELSE
 		print_grammar_rule("statement", "IF LPAREN expression RPAREN statement");
 		$$ = new SymbolInfo("", "statement");
 	}
