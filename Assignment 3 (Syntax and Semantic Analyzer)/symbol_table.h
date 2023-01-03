@@ -184,19 +184,18 @@ class ScopeTable {
             arr[hash_value] = si;
             success = true;
             pos = 1;
-            // cout << "\t";
-            // cout << "Inserted in ScopeTable# " << id << " at position "
-            //      << hash_value + 1 << ", " << pos << "\n";
         } else {
             pos = 1;
 
             if (cur->get_name() == si->get_name()) {
                 pos = -1;
+                success = false;
             }
 
             while (pos != -1 && cur->get_next() != nullptr) {
                 if (cur->get_name() == si->get_name()) {
                     pos = -1;
+                    success = false;
                     break;
                 }
                 cur = cur->get_next();
@@ -205,6 +204,7 @@ class ScopeTable {
 
             if (cur->get_name() == si->get_name()) {
                 pos = -1;
+                success = false;
             }
 
             if (pos == -1) {

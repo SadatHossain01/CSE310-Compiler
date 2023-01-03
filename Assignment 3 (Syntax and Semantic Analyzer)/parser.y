@@ -31,9 +31,44 @@ inline void print_grammar_rule(const string& parent, const string& children) {
 	logout << parent << " : " << children << " " << endl;
 }
 
-void insert_function(const string& func_name, const string& type_specifier, const vector<SymbolInfo*> param_list) {
+
+inline void free_s(SymbolInfo* s)	{
+	if (s != nullptr) {
+		delete s;
+		s = nullptr;
+	}
+}
+
+void reset_current_parameters() {
+	for (SymbolInfo* it : current_function_parameters) {
+		free_s(it);
+	}
+	current_function_parameters.clear();
+}
+
+void copy_func_parameters(SymbolInfo* si) {
+	for (SymbolInfo* they : si->get_param_list()) {
+		current_function_parameters.push_back(new SymbolInfo(*they));
+	}
+}
+
+void copy_func_parameters(const vector<SymbolInfo*>& si) {
+	for (SymbolInfo* they : si) {
+		current_function_parameters.push_back(new SymbolInfo(*they));
+	}
+}
+
+void insert_function(const string& func_name, const string& type_specifier, const vector<SymbolInfo*> param_list, bool is_definition) {
+	if (is_definition) {
+		reset_current_parameters();
+		copy_func_parameters(param_list);
+	}
 	SymbolInfo* function = new SymbolInfo(func_name, "FUNCTION", type_specifier);
-	function->set_func_definition(true);
+	if (is_definition) function->set_func_definition(true);
+	else {
+		function->set_func_declaration(true);
+		function->set_func_definition(false);
+	}
 	function->set_param_list(param_list);
 
 	if (function->is_func_definition()) {
@@ -45,11 +80,46 @@ void insert_function(const string& func_name, const string& type_specifier, cons
 				return; // returning as any such function is not acceptable
 			}
 		}
+		// just check the types of the parameters
+		SymbolInfo* og_func = sym->search(function->get_name(), 'A');
+		if (og_func == nullptr) {
+			// this is both declaration and definition then
+			sym->insert(function);
+		}
+		else {
+			if (!og_func->is_func_declaration() && !og_func->is_func_definition()) {
+				// same name variable already present with this name
+				show_error(SEMANTIC, DIFFERENT_REDECLARATION, function->get_name(), errorout);
+			}
+			else if (og_func->is_func_definition()) {
+				// function definition already exists
+				show_error(SEMANTIC, FUNC_REDEFINITION, function->get_name(), errorout);
+			}
+			// already declaration exists
+			else if (og_func->get_data_type() != type_specifier) {
+				// return type mismatch
+				show_error(SEMANTIC, CONFLICTING_TYPE, function->get_name(), errorout);
+			}
+			else if (og_func->get_param_list().size() != param_list.size()) {
+				// parameter size mismatch
+				show_error(SEMANTIC, CONFLICTING_TYPE, function->get_name(), errorout);
+			}
+			else {
+				// defintion param type and declaraion param type mismatch
+				vector<SymbolInfo*> og_list = og_func->get_param_list();
+				vector<SymbolInfo*> now_list = function->get_param_list();
+				for (int i = 0; i < og_list.size(); i++) {
+					if (og_list[i]->get_data_type() != now_list[i]->get_data_type()) {
+						show_error(SEMANTIC, CONFLICTING_TYPE, function->get_name(), errorout);
+					}
+				}
+			}
+			delete function;
+		}
 	}
-
-	// if it is a function definition, the check is done in lcurls -> LCURL, check there
-	// but if prototype, check not done there
-	if (function->is_func_declaration() && !function->is_func_definition()) {
+	else {
+		// if it is a function definition, the check is done in lcurls -> LCURL, check there
+		// but if prototype, check not done there
 		for (int i = 0; i < param_list.size(); i++) {
 			for (int j = i + 1; j < param_list.size(); j++) {
 				// checking if any two parameters have same name except both being ""
@@ -61,49 +131,24 @@ void insert_function(const string& func_name, const string& type_specifier, cons
 				}
 			}
 		}
-	}
-
-	// cerr << "Function " << function->get_name() << endl;
-	// for (auto they : param_list) {
-	// 	cerr << they->get_name() << " " << they->get_data_type() << endl;
-	// }
-	bool success = sym->insert(function);
-	if (success) return; // no function definition available, so insert it as it is
-
-	SymbolInfo* prev_func = sym->search(function->get_name(), 'A');
-	assert(prev_func != nullptr); // some prev instance must be there, otherwise success would be true
-
-	if (!prev_func->is_func_declaration()) {
-		// so it has been already defined either as a function or as an identifier
-		if (prev_func->is_func_definition()) {
-			// redefining this function, an error
-			show_error(SEMANTIC, FUNC_REDEFINITION, function->get_name(), errorout);
+		// this is just a prototype
+		SymbolInfo* og_func = sym->search(function->get_name(), 'A');
+		if (og_func == nullptr) {
+			// this is both declaration and definition then
+			sym->insert(function);
 		}
 		else {
-			// previously not a function, now as a function
-			show_error(SEMANTIC, DIFFERENT_REDECLARATION, function->get_name(), errorout);
-		}
-	}
-	else {
-		// previous one was a prototype
-		if (prev_func->get_data_type() != type_specifier) {
-			show_error(SEMANTIC, CONFLICTING_TYPE, function->get_name(), errorout);
-		}
-		else if (prev_func->get_param_list().size() != param_list.size()) {
-			// both same error as specification
-			show_error(SEMANTIC, CONFLICTING_TYPE, function->get_name(), errorout);
-		}
-		else {
-			vector<SymbolInfo*> prev_list = prev_func->get_param_list();
-			vector<SymbolInfo*> now_list = function->get_param_list();
-			for (int i = 0; i < prev_list.size(); i++) {
-				if (prev_list[i]->get_data_type() != now_list[i]->get_data_type()) {
-					show_error(SEMANTIC, CONFLICTING_TYPE, function->get_name(), errorout);
-				}
+			if (!og_func->is_func_declaration() && !og_func->is_func_definition()) {
+				// same name variable already present with this name
+				show_error(SEMANTIC, DIFFERENT_REDECLARATION, function->get_name(), errorout);
 			}
+			else if (og_func->is_func_definition() || og_func->is_func_declaration()) {
+				// function definition already exists
+				show_error(SEMANTIC, FUNC_REDEFINITION, function->get_name(), errorout);
+			}
+			delete function;
 		}
 	}
-	delete function;
 }
 
 inline bool check_type_specifier(SymbolInfo* ty, const string& name) {
@@ -126,26 +171,6 @@ inline bool is_zero(const string& str) {
 		if (c != '0' && c != 'e' && c != 'E') return false;
 	}
 	return true;
-}
-
-inline void free_s(SymbolInfo* s)	{
-	if (s != nullptr) {
-		delete s;
-		s = nullptr;
-	}
-}
-
-void reset_current_parameters() {
-	for (SymbolInfo* it : current_function_parameters) {
-		free_s(it);
-	}
-	current_function_parameters.clear();
-}
-
-void copy_func_parameters(SymbolInfo* si) {
-	for (SymbolInfo* they : si->get_param_list()) {
-		current_function_parameters.push_back(new SymbolInfo(*they));
-	}
 }
 %}
 
@@ -210,89 +235,37 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 		print_grammar_rule("func_declaration", "type_specifier ID LPAREN parameter_list RPAREN SEMICOLON");
 		reset_current_parameters(); // resetting for this function
 		$$ = new SymbolInfo("", "func_declaration");
-		
-		SymbolInfo* func = new SymbolInfo($2->get_name(), "FUNCTION", $1->get_data_type());
-		func->set_func_declaration(true);
-		func->set_param_list($4->get_param_list());
-
-		bool success = sym->insert(func);
-		if (!success) {
-			SymbolInfo* prev_func = sym->search(func->get_name(), 'A');
-			assert(prev_func != nullptr); // some prev instance must be there, otherwise success would be true
-			if (prev_func->is_func_declaration()) {
-				// so it was a function
-				show_error(SEMANTIC, FUNC_REDEFINITION, func->get_name(), errorout);
-			}
-			else {
-				// previously not a function, now as a function
-				show_error(SEMANTIC, DIFFERENT_REDECLARATION, func->get_name(), errorout);
-			}
-			free_s(func);
-		}
+		insert_function($2->get_name(), $1->get_data_type(), $4->get_param_list(), false);
 		free_s($1); free_s($2); free_s($4);
 	}
 	| type_specifier ID LPAREN error RPAREN SEMICOLON {
 		print_grammar_rule("func_declaration", "type_specifier ID LPAREN RPAREN SEMICOLON");
 		reset_current_parameters();
 		$$ = new SymbolInfo("", "func_declaration");
-
-		SymbolInfo* func = new SymbolInfo($2->get_name(), "FUNCTION", $1->get_data_type());
-		func->set_func_declaration(true);
-
-		bool success = sym->insert(func);
-		if (!success) {
-			SymbolInfo* prev_func = sym->search(func->get_name(), 'A');
-			assert(prev_func != nullptr); // some prev instance must be there, otherwise success would be true
-			if (prev_func->is_func_declaration()) {
-				// so it was a function
-				show_error(SEMANTIC, FUNC_REDEFINITION, func->get_name(), errorout);
-			}
-			else {
-				// previously not a function, now as a function
-				show_error(SEMANTIC, DIFFERENT_REDECLARATION, func->get_name(), errorout);
-			}
-			free_s(func);
-		}
+		insert_function($2->get_name(), $1->get_data_type(), {}, false);
 		free_s($1); free_s($2);
 	}
 	| type_specifier ID LPAREN RPAREN SEMICOLON {
 		print_grammar_rule("func_declaration", "type_specifier ID LPAREN RPAREN SEMICOLON");
 		reset_current_parameters();
 		$$ = new SymbolInfo("", "func_declaration");
-
-		SymbolInfo* func = new SymbolInfo($2->get_name(), "FUNCTION", $1->get_data_type());
-		func->set_func_declaration(true);
-
-		bool success = sym->insert(func);
-		if (!success) {
-			SymbolInfo* prev_func = sym->search(func->get_name(), 'A');
-			assert(prev_func != nullptr); // some prev instance must be there, otherwise success would be true
-			if (prev_func->is_func_declaration()) {
-				// so it was a function
-				show_error(SEMANTIC, FUNC_REDEFINITION, func->get_name(), errorout);
-			}
-			else {
-				// previously not a function, now as a function
-				show_error(SEMANTIC, DIFFERENT_REDECLARATION, func->get_name(), errorout);
-			}
-			free_s(func);
-		}
+		insert_function($2->get_name(), $1->get_data_type(), {}, false);
 		free_s($1); free_s($2);
 	}
 	;
 	 
-func_definition : type_specifier ID LPAREN parameter_list RPAREN { insert_function($2->get_name(), $1->get_data_type(), $4->get_param_list()); } compound_statement {
+func_definition : type_specifier ID LPAREN parameter_list RPAREN { insert_function($2->get_name(), $1->get_data_type(), $4->get_param_list(), true); } compound_statement {
 		print_grammar_rule("func_definition", "type_specifier ID LPAREN parameter_list RPAREN compound_statement");
 		$$ = new SymbolInfo("", "func_definition");
 		free_s($1); free_s($2); free_s($4);
 	}
-	| type_specifier ID LPAREN error RPAREN { insert_function($2->get_name(), $1->get_data_type(), {}); } compound_statement {
+	| type_specifier ID LPAREN error RPAREN { insert_function($2->get_name(), $1->get_data_type(), {}, true); } compound_statement {
 		print_grammar_rule("func_definition", "type_specifier ID LPAREN parameter_list RPAREN compound_statement");
 		$$ = new SymbolInfo("", "func_definition");
 		show_error(SYNTAX, S_PARAM_FUNC_DEFINITION, "", errorout);
 		free_s($1); free_s($2);
 	}
-	| type_specifier ID LPAREN RPAREN { insert_function($2->get_name(), $1->get_data_type(), {}); } compound_statement {
+	| type_specifier ID LPAREN RPAREN { insert_function($2->get_name(), $1->get_data_type(), {}, true); } compound_statement {
 		print_grammar_rule("func_definition", "type_specifier ID LPAREN RPAREN compound_statement");
 		$$ = new SymbolInfo("", "func_definition");
 		free_s($1); free_s($2);
@@ -883,6 +856,9 @@ arguments : arguments COMMA logic_expression {
 lcurls : LCURL {
 		$$ = new SymbolInfo("", "LCURLS");
 		sym->enter_scope();
+		// why am I inserting symbols here? so that the parameters can be recognized in the newly created scope
+		// but remember, in case of function prototypes, even though I am not inserting the symbols, I am still checking in 
+		// insert_function() whether two non-empty names are same or not
 		for (SymbolInfo* they : current_function_parameters) {
 			if (they->get_name() == "") // nameless, no need to insert
 				continue;

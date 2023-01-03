@@ -39,7 +39,10 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
         }
 
     } else if (ec == SEMANTIC) {
-        out << "Line# " << line_count << ": ";
+        // suppressing type error messages
+        if (e != TYPE_ERROR) {
+            out << "Line# " << line_count << ": ";
+        }
 
         switch (e) {
             case PARAM_REDEFINITION:
@@ -94,11 +97,11 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
                 out << "Operands of modulus must be integers" << endl;
                 break;
             case TYPE_ERROR:
-                out << "Error infering type";
-                if (str != "") {
-                    out << " of \'" << str << "\'";
-                }
-                out << endl;
+                // out << "Error infering type";
+                // if (str != "") {
+                //     out << " of \'" << str << "\'";
+                // }
+                // out << endl;
                 break;
             case TOO_MANY_ARGUMENTS:
                 out << "Too many arguments to function \'" << str << "\'"
@@ -132,7 +135,7 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
                 out << "unit" << endl;
                 break;
             case S_EXP_STATEMENT:
-                out << "expression statement" << endl;
+                out << "expression of expression statement" << endl;
                 break;
             case S_ARG_LIST:
                 out << "argument list" << endl;
