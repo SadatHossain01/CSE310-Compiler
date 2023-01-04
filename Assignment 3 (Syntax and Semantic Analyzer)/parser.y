@@ -190,6 +190,7 @@ start : program {
 		$$ = new SymbolInfo("", "start");
 		$$->set_rule("start : program");
 		$$->add_child($1);
+		$$->print_tree_node(treeout);
 	}
 	;
 

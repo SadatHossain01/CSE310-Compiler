@@ -287,12 +287,20 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 							printNum(INTNUM, yytext); 
 							yylval.symbol_info = new SymbolInfo(yytext, "CONST_INT", "int");
 							yylval.symbol_info->set_line(line_count, line_count);
+							yylval.symbol_info->set_terminal(true);
+							string str = "CONST_INT : ";
+							str += yytext;
+							yylval.symbol_info->set_rule(str);
 							return CONST_INT;
 						}
 {FLOATING_POINT}		{ 
 							printNum(FLOATNUM, yytext); 
 							yylval.symbol_info = new SymbolInfo(yytext, "CONST_FLOAT", "float");
 							yylval.symbol_info->set_line(line_count, line_count);
+							yylval.symbol_info->set_terminal(true);
+							string str = "CONST_FLOAT : ";
+							str += yytext;
+							yylval.symbol_info->set_rule(str);
 							return CONST_FLOAT;
  						}
 {TOO_DECIMAL}			{ 
@@ -307,6 +315,10 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 							printIdentifier(); 
 							yylval.symbol_info = new SymbolInfo(yytext, "ID"); // if it is a variable declaration, set its data type field in parser.y and use that
 							yylval.symbol_info->set_line(line_count, line_count);
+							yylval.symbol_info->set_terminal(true);
+							string str = "ID : ";
+							str += yytext;
+							yylval.symbol_info->set_rule(str);
 							return ID;
 						}
 {NOT_ID} 				{ 
