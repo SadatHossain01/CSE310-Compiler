@@ -51,6 +51,7 @@ enum error_type {
     S_UNIT,
     S_EXP_STATEMENT,
     S_ARG_LIST,
+    S_PARAM_NAMELESS,
     FLOAT_TO_INT,
     MOD_BY_ZERO,
     DIV_BY_ZERO,

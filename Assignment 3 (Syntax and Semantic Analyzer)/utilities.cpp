@@ -140,6 +140,9 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
             case S_ARG_LIST:
                 out << "argument list" << endl;
                 break;
+            case S_PARAM_NAMELESS:
+                out << "nameless parameter" << endl;
+                break;
             default:
                 break;
         }

@@ -251,7 +251,7 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 							printKeyword();
 							return CONTINUE;
 						}
-"printf"				{
+"println"				{
 							printKeyword();
 							return PRINTLN;
 						}

@@ -8,6 +8,15 @@
 
 using namespace std;
 
+struct Param {
+   public:
+    string name;
+    string data_type;
+    bool is_array = false;
+    Param(const string &name, const string &data_type, bool is_array = false)
+        : name(name), data_type(data_type), is_array(is_array) {}
+};
+
 class SymbolInfo {
    private:
     string name;
@@ -16,7 +25,7 @@ class SymbolInfo {
     bool func_declaration = false;  // prototype
     bool func_definition = false;
     bool array = false;
-    vector<SymbolInfo *> param_list;
+    vector<Param> param_list;  // name, data_type
     SymbolInfo *next = nullptr;
 
    public:
@@ -32,9 +41,8 @@ class SymbolInfo {
         set_func_declaration(other.func_declaration);
         set_func_definition(other.func_definition);
         set_array(other.array);
-        for (SymbolInfo *param : other.param_list) {
-            SymbolInfo *new_param = new SymbolInfo(*param);
-            param_list.push_back(new_param);
+        for (const Param &param : other.param_list) {
+            param_list.push_back(param);
         }
         next = nullptr;
     }
@@ -44,7 +52,7 @@ class SymbolInfo {
     bool is_func_definition() const { return func_definition; }
     bool is_func_declaration() const { return func_declaration; }
     bool is_array() const { return array; }
-    vector<SymbolInfo *> get_param_list() const { return param_list; }
+    vector<Param> get_param_list() const { return param_list; }
     SymbolInfo *get_next() const { return next; }
     void set_name(const string &name) { this->name = name; }
     void set_type(const string &type) { this->type = type; }
@@ -64,13 +72,17 @@ class SymbolInfo {
         this->array = val;
         if (val) this->type = "ARRAY";
     }
-    void set_param_list(const vector<SymbolInfo *> &param_list) {
-        for (SymbolInfo *param : param_list) {
-            SymbolInfo *new_param = new SymbolInfo(*param);
-            this->param_list.push_back(new_param);
+    void set_param_list(const vector<Param> &other_param_list) {
+        this->param_list.clear();
+        for (const Param &param : other_param_list) {
+            param_list.push_back(param);
         }
     }
-    void add_param(SymbolInfo *param) { this->param_list.push_back(param); }
+    void add_param(Param param) { this->param_list.push_back(param); }
+    void add_param(const string &name, const string &data_type,
+                   bool is_array = false) {
+        this->param_list.push_back({name, data_type, is_array});
+    }
     void set_next(SymbolInfo *next) { this->next = next; }
     void print(ostream &out = cout) {
         out << "<" << name << ", ";
@@ -78,12 +90,7 @@ class SymbolInfo {
         else if (array) out << "ARRAY, ";
         out << data_type << "> ";
     }
-    ~SymbolInfo() {
-        for (SymbolInfo *param : param_list) {
-            if (param != nullptr) delete param;
-        }
-        param_list.clear();
-    }
+    ~SymbolInfo() { param_list.clear(); }
 };
 
 class ScopeTable {

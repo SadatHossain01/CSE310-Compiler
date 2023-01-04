@@ -17,7 +17,7 @@ extern int line_count;
 extern int error_count;
 SymbolTable *sym;
 extern FILE* yyin;
-vector<SymbolInfo*> current_function_parameters;
+vector<Param> current_function_parameters;
 
 ofstream treeout, errorout, logout;
 
@@ -39,26 +39,18 @@ inline void free_s(SymbolInfo* s)	{
 	}
 }
 
-void reset_current_parameters() {
-	for (SymbolInfo* it : current_function_parameters) {
-		free_s(it);
-	}
+void reset_current_parameters() { current_function_parameters.clear(); }
+
+void copy_func_parameters(const vector<Param>& param_list) {
 	current_function_parameters.clear();
+	current_function_parameters = param_list; // no pointer used now, so should be no problem
 }
 
 void copy_func_parameters(SymbolInfo* si) {
-	for (SymbolInfo* they : si->get_param_list()) {
-		current_function_parameters.push_back(new SymbolInfo(*they));
-	}
+	copy_func_parameters(si->get_param_list());
 }
 
-void copy_func_parameters(const vector<SymbolInfo*>& si) {
-	for (SymbolInfo* they : si) {
-		current_function_parameters.push_back(new SymbolInfo(*they));
-	}
-}
-
-void insert_function(const string& func_name, const string& type_specifier, const vector<SymbolInfo*> param_list, bool is_definition) {
+void insert_function(const string& func_name, const string& type_specifier, const vector<Param>& param_list, bool is_definition) {
 	if (is_definition) {
 		reset_current_parameters();
 		copy_func_parameters(param_list);
@@ -74,7 +66,7 @@ void insert_function(const string& func_name, const string& type_specifier, cons
 	if (function->is_func_definition()) {
 		// no parameter can be nameless in a function definition
 		for (int i = 0; i < param_list.size(); i++) {
-			if (param_list[i]->get_name() == "") {
+			if (param_list[i].name == "") {
 				show_error(SEMANTIC, PARAM_NAMELESS, function->get_name(), errorout);
 				free_s(function);
 				return; // returning as any such function is not acceptable
@@ -106,10 +98,10 @@ void insert_function(const string& func_name, const string& type_specifier, cons
 			}
 			else {
 				// defintion param type and declaraion param type mismatch
-				vector<SymbolInfo*> og_list = og_func->get_param_list();
-				vector<SymbolInfo*> now_list = function->get_param_list();
+				vector<Param> og_list = og_func->get_param_list();
+				vector<Param> now_list = function->get_param_list();
 				for (int i = 0; i < og_list.size(); i++) {
-					if (og_list[i]->get_data_type() != now_list[i]->get_data_type()) {
+					if (og_list[i].data_type != now_list[i].data_type) {
 						show_error(SEMANTIC, CONFLICTING_TYPE, function->get_name(), errorout);
 					}
 				}
@@ -123,9 +115,9 @@ void insert_function(const string& func_name, const string& type_specifier, cons
 		for (int i = 0; i < param_list.size(); i++) {
 			for (int j = i + 1; j < param_list.size(); j++) {
 				// checking if any two parameters have same name except both being ""
-				if (param_list[i]->get_name() == "") continue;
-				if (param_list[i]->get_name() == param_list[j]->get_name()) {
-					show_error(SEMANTIC, PARAM_REDEFINITION, param_list[i]->get_name(), errorout);
+				if (param_list[i].name == "") continue;
+				if (param_list[i].name == param_list[j].name) {
+					show_error(SEMANTIC, PARAM_REDEFINITION, param_list[i].name, errorout);
 					free_s(function);
 					return; // returning as any such function is not acceptable
 				}
@@ -275,9 +267,8 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN { insert_functi
 parameter_list : parameter_list COMMA type_specifier ID {
 		print_grammar_rule("parameter_list", "parameter_list COMMA type_specifier ID");
 		$$ = new SymbolInfo("", "parameter_list");
-		SymbolInfo* new_param = new SymbolInfo($4->get_name(), "ID", $3->get_data_type());
 		$$->set_param_list($1->get_param_list());
-		$$->add_param(new_param);
+		$$->add_param($4->get_name(), $3->get_data_type());
 		check_type_specifier($3, $4->get_name());
 		copy_func_parameters($$);
 		free_s($1); free_s($3); free_s($4);
@@ -285,9 +276,8 @@ parameter_list : parameter_list COMMA type_specifier ID {
 	| parameter_list COMMA type_specifier {
 		print_grammar_rule("parameter_list", "parameter_list COMMA type_specifier");
 		$$ = new SymbolInfo("", "parameter_list");
-		SymbolInfo* new_param = new SymbolInfo("", "ID", $3->get_data_type()); // later check if this nameless parameter is used in function definition. if yes, then show error
 		$$->set_param_list($1->get_param_list());
-		$$->add_param(new_param);
+		$$->add_param("", $3->get_data_type()); // later check if this nameless parameter is used in function definition. if yes, then show error
 		check_type_specifier($3, "");
 		copy_func_parameters($$);
 		free_s($1); free_s($3);
@@ -295,8 +285,7 @@ parameter_list : parameter_list COMMA type_specifier ID {
 	| type_specifier ID {
 		print_grammar_rule("parameter_list", "type_specifier ID");
 		$$ = new SymbolInfo("", "parameter_list");
-		SymbolInfo* new_param = new SymbolInfo($2->get_name(), "ID", $1->get_data_type());
-		$$->add_param(new_param);
+		$$->add_param($2->get_name(), $1->get_data_type());
 		check_type_specifier($1, $2->get_name());
 		copy_func_parameters($$);
 		free_s($1); free_s($2);
@@ -304,8 +293,7 @@ parameter_list : parameter_list COMMA type_specifier ID {
 	| type_specifier {
 		print_grammar_rule("parameter_list", "type_specifier");
 		$$ = new SymbolInfo("", "parameter_list");
-		SymbolInfo* new_param = new SymbolInfo("", "ID", $1->get_data_type()); // later check if this nameless parameter is used in function definition. if yes, then show error
-		$$->add_param(new_param);
+		$$->add_param("", $1->get_data_type()); // later check if this nameless parameter is used in function definition. if yes, then show error
 		check_type_specifier($1, "");
 		copy_func_parameters($$);
 		free_s($1);
@@ -339,27 +327,29 @@ var_declaration : type_specifier declaration_list SEMICOLON {
 		print_grammar_rule("var_declaration", "type_specifier declaration_list SEMICOLON");
 		$$ = new SymbolInfo("", "var_declaration", $1->get_data_type());
 		string str = "";
-		auto cur_list = $2->get_param_list();
+		vector<Param> cur_list = $2->get_param_list();
 		for (int i = 0; i < cur_list.size(); i++) {
-			str += cur_list[i]->get_name();
+			str += cur_list[i].name;
 			if (i != cur_list.size() - 1) str += ", ";
 		}
 		bool ok = check_type_specifier($1, str);
 		if (ok) {
 			for (int i = 0; i < cur_list.size(); i++) {
 				// now we will set the data_type of all these symbols to $1
-				cur_list[i]->set_data_type($1->get_data_type());
-				// cerr << cur_list[i]->get_data_type() << " " << cur_list[i]->get_name() << endl;
-				SymbolInfo* res = sym->search(cur_list[i]->get_name(), 'C');
+				cur_list[i].data_type = $1->get_data_type();
+				// cerr << cur_list[i].data_type << " " << cur_list[i].name << endl;
+				SymbolInfo* res = sym->search(cur_list[i].name, 'C');
 				if (res == nullptr) {
-					sym->insert(new SymbolInfo(*cur_list[i]));
+					SymbolInfo* new_sym = new SymbolInfo(cur_list[i].name, "ID", cur_list[i].data_type);
+					if (cur_list[i].is_array) new_sym->set_array(true);
+					sym->insert(new_sym);
 				}
-				else if (res->get_data_type() != cur_list[i]->get_data_type()) {
-					// cerr << "Previous: " << res->get_data_type() << " current: " << cur_list[i]->get_data_type() << " " << cur_list[i]->get_name() << " line: " << line_count << endl; 
-					show_error(SEMANTIC, CONFLICTING_TYPE, cur_list[i]->get_name(), errorout);
+				else if (res->get_data_type() != cur_list[i].data_type) {
+					// cerr << "Previous: " << res->get_data_type() << " current: " << cur_list[i].data_type << " " << cur_list[i].name << " line: " << line_count << endl; 
+					show_error(SEMANTIC, CONFLICTING_TYPE, cur_list[i].name, errorout);
 				}
 				else {
-					show_error(SEMANTIC, VARIABLE_REDEFINITION, cur_list[i]->get_name(), errorout);
+					show_error(SEMANTIC, VARIABLE_REDEFINITION, cur_list[i].name, errorout);
 				}
 			}
 		}
@@ -392,33 +382,27 @@ type_specifier : INT {
 declaration_list : declaration_list COMMA ID {
 		print_grammar_rule("declaration_list", "declaration_list COMMA ID");
 		$$ = new SymbolInfo("", "declaration_list");
-		SymbolInfo* new_symbol = new SymbolInfo($3->get_name(), "ID");
 		$$->set_param_list($1->get_param_list());
-		$$->add_param(new_symbol);
+		$$->add_param($3->get_name(), "");
 		free_s($1); free_s($3);
 	}
 	| declaration_list COMMA ID LSQUARE CONST_INT RSQUARE {
 		print_grammar_rule("declaration_list", "declaration_list COMMA ID LSQUARE CONST_INT RSQUARE");
 		$$ = new SymbolInfo("", "declaration_list");
-		SymbolInfo* new_symbol = new SymbolInfo($3->get_name(), "ID");
-		new_symbol->set_array(true);
 		$$->set_param_list($1->get_param_list());
-		$$->add_param(new_symbol);
+		$$->add_param($3->get_name(), "ID", true);
 		free_s($1); free_s($3); free_s($5);
 	}
 	| ID {
 		print_grammar_rule("declaration_list", "ID");
 		$$ = new SymbolInfo("", "declaration_list");
-		SymbolInfo* new_symbol = new SymbolInfo($1->get_name(), "ID");
-		$$->add_param(new_symbol);
+		$$->add_param($1->get_name(), "ID");
 		free_s($1);
 	}
 	| ID LSQUARE CONST_INT RSQUARE {
 		print_grammar_rule("declaration_list", "ID LSQUARE CONST_INT RSQUARE");
 		$$ = new SymbolInfo("", "declaration_list");
-		SymbolInfo* new_symbol = new SymbolInfo($1->get_name(), "ID");
-		new_symbol->set_array(true);
-		$$->add_param(new_symbol);
+		$$->add_param($1->get_name(), "ID", true);
 		free_s($1); free_s($3);
 	}
 	;
@@ -750,12 +734,12 @@ factor : variable {
 			ok = false;
 		}
 		else {
-			vector<SymbolInfo*> now = res->get_param_list();
-			vector<SymbolInfo*> they = $3->get_param_list();
+			vector<Param> now = res->get_param_list();
+			vector<Param> they = $3->get_param_list();
 			for (int i = 0; i < now.size(); i++) {
-				if ((now[i]->get_data_type() != they[i]->get_data_type()) || (now[i]->is_array() != they[i]->is_array())) {
+				if ((now[i].data_type != they[i].data_type) || (now[i].is_array != they[i].is_array)) {
 					// cerr << "Function: " << res->get_name() << endl;
-					// cerr << "original: " << now[i]->get_data_type() << " given: " << they[i]->get_data_type() << " name: " << now[i]->get_name() << " line " << line_count << endl;
+					// cerr << "original: " << now[i].data_type << " given: " << they[i].data_type << " name: " << now[i].name << " line " << line_count << endl;
 					string str = to_string(i + 1);
 					str += " of \'" + $1->get_name() + "\'";
 					show_error(SEMANTIC, ARG_TYPE_MISMATCH, str, errorout);
@@ -840,13 +824,13 @@ arguments : arguments COMMA logic_expression {
 		print_grammar_rule("arguments", "arguments COMMA logic_expression");
 		$$ = new SymbolInfo("", "arguments");
 		$$->set_param_list($1->get_param_list());
-		$$->add_param(new SymbolInfo(*($3)));
+		$$->add_param($3->get_name(), $3->get_data_type(), $3->is_array());
 		free_s($1); free_s($3);
 	}
 	| logic_expression {
 		print_grammar_rule("arguments", "logic_expression");
 		$$ = new SymbolInfo("", "arguments");
-		$$->add_param(new SymbolInfo(*($1)));
+		$$->add_param($1->get_name(), $1->get_data_type(), $1->is_array());
 		free_s($1);
 	}
 	;
@@ -857,11 +841,13 @@ lcurls : LCURL {
 		// why am I inserting symbols here? so that the parameters can be recognized in the newly created scope
 		// but remember, in case of function prototypes, even though I am not inserting the symbols, I am still checking in 
 		// insert_function() whether two non-empty names are same or not
-		for (SymbolInfo* they : current_function_parameters) {
-			if (they->get_name() == "") // nameless, no need to insert
+		for (const Param& they : current_function_parameters) {
+			if (they.name == "") {// nameless, no need to insert 
+				show_error(SYNTAX, S_PARAM_NAMELESS, "", errorout);
 				continue;
-			SymbolInfo* another = new SymbolInfo(they->get_name(), they->get_type(), they->get_data_type());
-			another->set_array(they->is_array());
+			}
+			SymbolInfo* another = new SymbolInfo(they.name, "ID", they.data_type);
+			another->set_array(they.is_array);
 			if (!sym->insert(another)) {
 				// insertion failed
 				show_error(SEMANTIC, PARAM_REDEFINITION, another->get_name(), errorout);
