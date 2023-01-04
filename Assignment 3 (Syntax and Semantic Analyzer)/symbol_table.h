@@ -27,7 +27,7 @@ class SymbolInfo {
     bool func_definition = false;
     bool array = false;
     bool terminal = false;
-    int start_line, end_line;
+    int start_line = -1, end_line = -1;
     vector<Param> param_list;       // name, data_type
     vector<SymbolInfo *> children;  // for parse tree
     SymbolInfo *next = nullptr;
@@ -99,7 +99,14 @@ class SymbolInfo {
                    bool is_array = false) {
         this->param_list.push_back({name, data_type, is_array});
     }
-    void add_child(SymbolInfo *child) { this->children.push_back(child); }
+    void add_child(SymbolInfo *child) {
+        assert(terminal == false);
+        this->children.push_back(child);
+        if (this->start_line == -1) this->start_line = child->start_line;
+        else this->start_line = min(this->start_line, child->start_line);
+        if (this->end_line == -1) this->end_line = child->end_line;
+        else this->end_line = max(this->end_line, child->end_line);
+    }
     void set_next(SymbolInfo *next) { this->next = next; }
     void print(ostream &out = cout) {
         out << "<" << name << ", ";
