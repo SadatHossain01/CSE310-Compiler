@@ -131,6 +131,13 @@ class SymbolInfo {
                              : 1));  // the special check is for lcurls -> LCURL
         }
     }
+    void delete_tree() {
+        for (SymbolInfo *child : children) {
+            child->delete_tree();
+            delete child;
+        }
+        children.clear();
+    }
     ~SymbolInfo() { param_list.clear(); }
 };
 

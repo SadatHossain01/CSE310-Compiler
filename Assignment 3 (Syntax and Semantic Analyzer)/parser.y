@@ -191,6 +191,8 @@ start : program {
 		$$->set_rule("start : program");
 		$$->add_child($1);
 		$$->print_tree_node(treeout);
+		$$->delete_tree();
+		free_s($$);
 	}
 	;
 
@@ -539,6 +541,7 @@ expression_statement : SEMICOLON {
 		yyerrok; // clear the error stack
 		show_error(SYNTAX, S_EXP_STATEMENT, "", errorout);
 		$$ = new SymbolInfo("", "expression_statement");
+		free_s($2);
 	}
 	;
 	  
