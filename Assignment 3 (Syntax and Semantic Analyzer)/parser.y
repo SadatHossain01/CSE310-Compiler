@@ -183,8 +183,8 @@ inline bool is_zero(const string& str) {
 	SymbolInfo* symbol_info;
 }
 
-%token IF ELSE FOR WHILE DO BREAK RETURN SWITCH CASE DEFAULT CONTINUE PRINTLN ADDOP INCOP DECOP RELOP ASSIGNOP LOGICOP BITOP NOT LPAREN RPAREN LCURL RCURL LSQUARE RSQUARE COMMA SEMICOLON
-%token <symbol_info> INT CHAR FLOAT DOUBLE VOID CONST_INT CONST_FLOAT ID MULOP
+%token IF ELSE FOR WHILE DO BREAK RETURN SWITCH CASE DEFAULT CONTINUE PRINTLN ADDOP INCOP DECOP RELOP ASSIGNOP LOGICOP BITOP NOT LPAREN RPAREN LCURL RCURL LSQUARE RSQUARE COMMA SEMICOLON INT CHAR FLOAT DOUBLE VOID
+%token <symbol_info> CONST_INT CONST_FLOAT ID MULOP
 %type <symbol_info> start program unit var_declaration func_declaration func_definition type_specifier parameter_list compound_statement statements declaration_list statement expression expression_statement logic_expression rel_expression simple_expression term unary_expression factor variable argument_list arguments lcurls
 
 %%
@@ -378,17 +378,14 @@ var_declaration : type_specifier declaration_list SEMICOLON {
 type_specifier : INT {
 		print_grammar_rule("type_specifier", "INT");
 		$$ = new SymbolInfo("", "type_specifier", "int");
-		free_s($1);
 	}
 	| FLOAT {
 		print_grammar_rule("type_specifier", "FLOAT");
 		$$ = new SymbolInfo("", "type_specifier", "float");
-		free_s($1);
 	}
 	| VOID {
 		print_grammar_rule("type_specifier", "VOID");
 		$$ = new SymbolInfo("", "type_specifier", "void");
-		free_s($1);
 	}
 	;
  		

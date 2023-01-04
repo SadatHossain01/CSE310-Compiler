@@ -213,27 +213,22 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 						}
 "int"					{
 							printKeyword();
-							yylval.symbol_info = new SymbolInfo(yytext, "KEYWORD", yytext);
 							return INT;
 						}
 "char"					{
 							printKeyword();
-							yylval.symbol_info = new SymbolInfo(yytext, "KEYWORD", yytext);
 							return CHAR;
 						}
 "float"					{
 							printKeyword();
-							yylval.symbol_info = new SymbolInfo(yytext, "KEYWORD", yytext);
 							return FLOAT;
 						}
 "double"				{
 							printKeyword();
-							yylval.symbol_info = new SymbolInfo(yytext, "KEYWORD", yytext);
 							return DOUBLE;
 						}
 "void"					{
 							printKeyword();
-							yylval.symbol_info = new SymbolInfo(yytext, "KEYWORD", yytext);
 							return VOID;
 						}
 "return"				{
