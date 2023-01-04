@@ -35,6 +35,15 @@ string cur_string, cur_string_raw;
 string cur_comment;
 int char_len; // will hold the length of the original one, not raw one
 
+SymbolInfo* generate_token_class(const string& name, const string& type, const string& token_name) {
+	SymbolInfo* res = new SymbolInfo(name, type);
+	string str = token_name + " : " + name;
+	res->set_rule(str);
+	res->set_terminal(true);
+	res->set_line(line_count, line_count); // start end same line for terminal
+	return res;
+}
+
 char generate_special_character(char c) {
 	// MISC [ntafbvr0\'\"\\]
 	if (c == 'n') return '\n';
@@ -189,70 +198,87 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 
 "if"					{
 							printKeyword();
+							yylval.symbol_info = generate_token_class(yytext, "KEYWORD", capitalize(yytext));
 							return IF;
 						}
 "else"					{
 							printKeyword();
+							yylval.symbol_info = generate_token_class(yytext, "KEYWORD", capitalize(yytext));
 							return ELSE;
 						}
 "for"					{
 							printKeyword();
+							yylval.symbol_info = generate_token_class(yytext, "KEYWORD", capitalize(yytext));
 							return FOR;
 						}
 "while"					{
 							printKeyword();
+							yylval.symbol_info = generate_token_class(yytext, "KEYWORD", capitalize(yytext));
 							return WHILE;
 						}
 "do"					{
 							printKeyword();
+							yylval.symbol_info = generate_token_class(yytext, "KEYWORD", capitalize(yytext));
 							return DO;
 						}
 "break"					{
 							printKeyword();
+							yylval.symbol_info = generate_token_class(yytext, "KEYWORD", capitalize(yytext));
 							return BREAK;
 						}
 "int"					{
 							printKeyword();
+							yylval.symbol_info = generate_token_class(yytext, "KEYWORD", capitalize(yytext));
 							return INT;
 						}
 "char"					{
 							printKeyword();
+							yylval.symbol_info = generate_token_class(yytext, "KEYWORD", capitalize(yytext));
 							return CHAR;
 						}
 "float"					{
 							printKeyword();
+							yylval.symbol_info = generate_token_class(yytext, "KEYWORD", capitalize(yytext));
 							return FLOAT;
 						}
 "double"				{
 							printKeyword();
+							yylval.symbol_info = generate_token_class(yytext, "KEYWORD", capitalize(yytext));
 							return DOUBLE;
 						}
 "void"					{
 							printKeyword();
+							yylval.symbol_info = generate_token_class(yytext, "KEYWORD", capitalize(yytext));
 							return VOID;
 						}
 "return"				{
 							printKeyword();
+							yylval.symbol_info = generate_token_class(yytext, "KEYWORD", capitalize(yytext));
 							return RETURN;
 						}
 "switch"				{
 							printKeyword();
+							yylval.symbol_info = generate_token_class(yytext, "KEYWORD", capitalize(yytext));
 							return SWITCH;
 						}
 "case"					{
 							printKeyword();
+							yylval.symbol_info = generate_token_class(yytext, "KEYWORD", capitalize(yytext));
 							return CASE;
 						}
 "default"				{
 							printKeyword();
+							yylval.symbol_info = generate_token_class(yytext, "KEYWORD", capitalize(yytext));
 							return DEFAULT;
 						}
 "continue"				{
 							printKeyword();
+							yylval.symbol_info = generate_token_class(yytext, "KEYWORD", capitalize(yytext));
 							return CONTINUE;
 						}
 "println"				{
 							printKeyword();
+							yylval.symbol_info = generate_token_class(yytext, "KEYWORD", capitalize(yytext));
 							return PRINTLN;
 						}
 		
@@ -287,18 +313,21 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 
 "+"						|
 "-"						{ 	printOpPunc("ADDOP");
+							yylval.symbol_info = generate_token_class(yytext, "ADDOP", "ADDOP");
 							return ADDOP;
 						}
 "*"						|
 "/"						|
 "%"						{ 	printOpPunc("MULOP");
-							yylval.symbol_info = new SymbolInfo(yytext, "MULOP");
+							yylval.symbol_info = generate_token_class(yytext, "MULOP", "MULOP");
 							return MULOP;
 						}
 "++"					{ 	printOpPunc("INCOP");
+							yylval.symbol_info = generate_token_class(yytext, "INCOP", "INCOP");
 							return INCOP;
 						}
 "--"					{ 	printOpPunc("DECOP");
+							yylval.symbol_info = generate_token_class(yytext, "DECOP", "DECOP");
 							return DECOP;
 						}
 "<"						|
@@ -307,13 +336,16 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 ">="					|
 "=="					|
 "!="					{ 	printOpPunc("RELOP");
+							yylval.symbol_info = generate_token_class(yytext, "RELOP", "RELOP");
 							return RELOP;
 						}
 "="						{ 	printOpPunc("ASSIGNOP");
+							yylval.symbol_info = generate_token_class(yytext, "ASSIGNOP", "ASSIGNOP");
 							return ASSIGNOP;
 						}
 "&&"					|
 "||"					{ 	printOpPunc("LOGICOP");
+							yylval.symbol_info = generate_token_class(yytext, "LOGICOP", "LOGICOP");
 							return LOGICOP;
 						}
 "&"						|
@@ -321,36 +353,43 @@ ILL_FORMED ({NUM}*[Ee]{NUM}*\.{NUM}*)|(\.[Ee]{NUM}*[0-9]+{NUM}*)
 "^"						|
 "<<"					|
 ">>"					{ 	printOpPunc("BITOP");
+							yylval.symbol_info = generate_token_class(yytext, "BITOP", "BITOP");
 							return BITOP;
 						}
 "!"						{ 	printOpPunc("NOT");
+							yylval.symbol_info = generate_token_class(yytext, "NOT", "NOT");
 							return NOT;
 						}
 "("						{ 	printOpPunc("LPAREN");
+							yylval.symbol_info = generate_token_class(yytext, "LPAREN", "LPAREN");
 							return LPAREN;
 						}
 ")"						{ 	printOpPunc("RPAREN");
+							yylval.symbol_info = generate_token_class(yytext, "RPAREN", "RPAREN");
 							return RPAREN;
 						}
 "{"						{ 	printOpPunc("LCURL");
-							// sym->enter_scope();
+							yylval.symbol_info = generate_token_class(yytext, "LCURL", "LCURL");
 							return LCURL;
 						}
 "}"						{ 	printOpPunc("RCURL");
-							// sym->exit_scope();
-							// sym->print('A', logout);
+							yylval.symbol_info = generate_token_class(yytext, "RCURL", "RCURL");
 							return RCURL;
 						}
 "["						{ 	printOpPunc("LSQUARE");
+							yylval.symbol_info = generate_token_class(yytext, "LSQUARE", "LSQUARE");
 							return LSQUARE;
 						}
 "]"						{ 	printOpPunc("RSQUARE");
+							yylval.symbol_info = generate_token_class(yytext, "RSQUARE", "RSQUARE");
 							return RSQUARE;
 						}
 ","						{ 	printOpPunc("COMMA");
+							yylval.symbol_info = generate_token_class(yytext, "COMMA", "COMMA");
 							return COMMA;
 						}
 ";"						{ 	printOpPunc("SEMICOLON");
+							yylval.symbol_info = generate_token_class(yytext, "SEMICOLON", "SEMICOLON");
 							return SEMICOLON;
 						}
 

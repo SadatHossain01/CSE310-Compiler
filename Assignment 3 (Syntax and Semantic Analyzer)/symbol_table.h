@@ -22,10 +22,14 @@ class SymbolInfo {
     string name;
     string type;
     string data_type;               // should always be in uppercase
+    string rule;                    // for printing parse tree
     bool func_declaration = false;  // prototype
     bool func_definition = false;
     bool array = false;
-    vector<Param> param_list;  // name, data_type
+    bool terminal = false;
+    int start_line, end_line;
+    vector<Param> param_list;       // name, data_type
+    vector<SymbolInfo *> children;  // for parse tree
     SymbolInfo *next = nullptr;
 
    public:
@@ -49,9 +53,13 @@ class SymbolInfo {
     string get_name() const { return name; }
     string get_type() const { return type; }
     string get_data_type() const { return data_type; }
+    string get_rule() const { return rule; }
     bool is_func_definition() const { return func_definition; }
     bool is_func_declaration() const { return func_declaration; }
     bool is_array() const { return array; }
+    bool is_terminal() const { return terminal; }
+    int get_start_line() const { return start_line; }
+    int get_end_line() const { return end_line; }
     vector<Param> get_param_list() const { return param_list; }
     SymbolInfo *get_next() const { return next; }
     void set_name(const string &name) { this->name = name; }
@@ -63,6 +71,7 @@ class SymbolInfo {
             if ('a' <= c && c <= 'z') c = toupper(c);
         }
     }
+    void set_rule(const string &rule) { this->rule = rule; }
     void set_func_declaration(bool val) { this->func_declaration = val; }
     void set_func_definition(bool val) {
         this->func_definition = val;
@@ -72,6 +81,13 @@ class SymbolInfo {
         this->array = val;
         if (val) this->type = "ARRAY";
     }
+    void set_terminal(bool val) { this->terminal = val; }
+    void set_line(int start_line, int end_line) {
+        this->start_line = start_line;
+        this->end_line = end_line;
+    }
+    void set_start_line(int start_line) { this->start_line = start_line; }
+    void set_end_line(int end_line) { this->end_line = end_line; }
     void set_param_list(const vector<Param> &other_param_list) {
         this->param_list.clear();
         for (const Param &param : other_param_list) {
@@ -83,6 +99,7 @@ class SymbolInfo {
                    bool is_array = false) {
         this->param_list.push_back({name, data_type, is_array});
     }
+    void add_child(SymbolInfo *child) { this->children.push_back(child); }
     void set_next(SymbolInfo *next) { this->next = next; }
     void print(ostream &out = cout) {
         out << "<" << name << ", ";
