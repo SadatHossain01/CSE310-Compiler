@@ -101,9 +101,11 @@ class SymbolInfo {
         for (SymbolInfo *param : param_list) {
             if (param != nullptr) delete param;
         }
+        param_list.clear();
         for (SymbolInfo *declaration : declaration_list) {
             if (declaration != nullptr) delete declaration;
         }
+        declaration_list.clear();
     }
 };
 
