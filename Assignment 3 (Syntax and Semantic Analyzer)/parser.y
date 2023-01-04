@@ -184,36 +184,30 @@ inline bool is_zero(const string& str) {
 start : program {
 		print_grammar_rule("start", "program");
 		$$ = new SymbolInfo("", "start");
-		free_s($1);
 	}
 	;
 
 program : program unit {
 		print_grammar_rule("program", "program unit");
 		$$ = new SymbolInfo("", "program");	
-		free_s($1); free_s($2);
 	}
 	| unit {
 		print_grammar_rule("program", "unit");
 		$$ = new SymbolInfo("", "program");
-		free_s($1);
 	}
 	;
 	
 unit : var_declaration {
 		print_grammar_rule("unit", "var_declaration");
 		$$ = new SymbolInfo("", "unit");
-		free_s($1);
 	}
     | func_declaration {
 		print_grammar_rule("unit", "func_declaration");
 		$$ = new SymbolInfo("", "unit");
-		free_s($1);
 	}
     | func_definition {
 		print_grammar_rule("unit", "func_definition");
 		$$ = new SymbolInfo("", "unit");
-		free_s($1);
 	}
 	| error {
 		yyclearin; // clears the lookahead
@@ -228,39 +222,33 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 		reset_current_parameters(); // resetting for this function
 		$$ = new SymbolInfo("", "func_declaration");
 		insert_function($2->get_name(), $1->get_data_type(), $4->get_param_list(), false);
-		free_s($1); free_s($2); free_s($4);
 	}
 	| type_specifier ID LPAREN error RPAREN SEMICOLON {
 		print_grammar_rule("func_declaration", "type_specifier ID LPAREN RPAREN SEMICOLON");
 		reset_current_parameters();
 		$$ = new SymbolInfo("", "func_declaration");
 		insert_function($2->get_name(), $1->get_data_type(), {}, false);
-		free_s($1); free_s($2);
 	}
 	| type_specifier ID LPAREN RPAREN SEMICOLON {
 		print_grammar_rule("func_declaration", "type_specifier ID LPAREN RPAREN SEMICOLON");
 		reset_current_parameters();
 		$$ = new SymbolInfo("", "func_declaration");
 		insert_function($2->get_name(), $1->get_data_type(), {}, false);
-		free_s($1); free_s($2);
 	}
 	;
 	 
 func_definition : type_specifier ID LPAREN parameter_list RPAREN { insert_function($2->get_name(), $1->get_data_type(), $4->get_param_list(), true); } compound_statement {
 		print_grammar_rule("func_definition", "type_specifier ID LPAREN parameter_list RPAREN compound_statement");
 		$$ = new SymbolInfo("", "func_definition");
-		free_s($1); free_s($2); free_s($4); free_s($6);
 	}
 	| type_specifier ID LPAREN error RPAREN { insert_function($2->get_name(), $1->get_data_type(), {}, true); } compound_statement {
 		print_grammar_rule("func_definition", "type_specifier ID LPAREN parameter_list RPAREN compound_statement");
 		$$ = new SymbolInfo("", "func_definition");
 		show_error(SYNTAX, S_PARAM_FUNC_DEFINITION, "", errorout);
-		free_s($1); free_s($2); free_s($6);
 	}
 	| type_specifier ID LPAREN RPAREN { insert_function($2->get_name(), $1->get_data_type(), {}, true); } compound_statement {
 		print_grammar_rule("func_definition", "type_specifier ID LPAREN RPAREN compound_statement");
 		$$ = new SymbolInfo("", "func_definition");
-		free_s($1); free_s($2); free_s($5);
 	}
 	;				
 
@@ -271,7 +259,6 @@ parameter_list : parameter_list COMMA type_specifier ID {
 		$$->add_param($4->get_name(), $3->get_data_type());
 		check_type_specifier($3, $4->get_name());
 		copy_func_parameters($$);
-		free_s($1); free_s($3); free_s($4);
 	}
 	| parameter_list COMMA type_specifier {
 		print_grammar_rule("parameter_list", "parameter_list COMMA type_specifier");
@@ -280,7 +267,6 @@ parameter_list : parameter_list COMMA type_specifier ID {
 		$$->add_param("", $3->get_data_type()); // later check if this nameless parameter is used in function definition. if yes, then show error
 		check_type_specifier($3, "");
 		copy_func_parameters($$);
-		free_s($1); free_s($3);
 	}
 	| type_specifier ID {
 		print_grammar_rule("parameter_list", "type_specifier ID");
@@ -288,7 +274,6 @@ parameter_list : parameter_list COMMA type_specifier ID {
 		$$->add_param($2->get_name(), $1->get_data_type());
 		check_type_specifier($1, $2->get_name());
 		copy_func_parameters($$);
-		free_s($1); free_s($2);
 	}
 	| type_specifier {
 		print_grammar_rule("parameter_list", "type_specifier");
@@ -296,7 +281,6 @@ parameter_list : parameter_list COMMA type_specifier ID {
 		$$->add_param("", $1->get_data_type()); // later check if this nameless parameter is used in function definition. if yes, then show error
 		check_type_specifier($1, "");
 		copy_func_parameters($$);
-		free_s($1);
 	}
 	;
 	
@@ -305,21 +289,18 @@ compound_statement : lcurls statements RCURL {
 		$$ = new SymbolInfo("", "compound_statement");
 		sym->print('A', logout);
 		sym->exit_scope();
-		free_s($1); free_s($2);
 	}
 	| lcurls error RCURL {
 		print_grammar_rule("compound_statement", "LCURL RCURL");
 		$$ = new SymbolInfo("", "compound_statement");
 		sym->print('A', logout);
 		sym->exit_scope();
-		free_s($1);
 	}
 	| lcurls RCURL {
 		print_grammar_rule("compound_statement", "LCURL RCURL");
 		$$ = new SymbolInfo("", "compound_statement");
 		sym->print('A', logout);
 		sym->exit_scope();
-		free_s($1);
 	}
 	;
  		    
@@ -353,7 +334,6 @@ var_declaration : type_specifier declaration_list SEMICOLON {
 				}
 			}
 		}
-		free_s($1); free_s($2);
 	}
 	| type_specifier error SEMICOLON {
 		print_grammar_rule("var_declaration", "type_specifier declaration_list SEMICOLON");
@@ -361,7 +341,6 @@ var_declaration : type_specifier declaration_list SEMICOLON {
 		yyclearin;
 		yyerrok;
 		show_error(SYNTAX, S_DECL_VAR_DECLARATION, "", errorout);
-		free_s($1);
 	}
 	;
  		 
@@ -384,77 +363,64 @@ declaration_list : declaration_list COMMA ID {
 		$$ = new SymbolInfo("", "declaration_list");
 		$$->set_param_list($1->get_param_list());
 		$$->add_param($3->get_name(), "");
-		free_s($1); free_s($3);
 	}
 	| declaration_list COMMA ID LSQUARE CONST_INT RSQUARE {
 		print_grammar_rule("declaration_list", "declaration_list COMMA ID LSQUARE CONST_INT RSQUARE");
 		$$ = new SymbolInfo("", "declaration_list");
 		$$->set_param_list($1->get_param_list());
 		$$->add_param($3->get_name(), "ID", true);
-		free_s($1); free_s($3); free_s($5);
 	}
 	| ID {
 		print_grammar_rule("declaration_list", "ID");
 		$$ = new SymbolInfo("", "declaration_list");
 		$$->add_param($1->get_name(), "ID");
-		free_s($1);
 	}
 	| ID LSQUARE CONST_INT RSQUARE {
 		print_grammar_rule("declaration_list", "ID LSQUARE CONST_INT RSQUARE");
 		$$ = new SymbolInfo("", "declaration_list");
 		$$->add_param($1->get_name(), "ID", true);
-		free_s($1); free_s($3);
 	}
 	;
  		  
 statements : statement {
 		print_grammar_rule("statements", "statement");
 		$$ = new SymbolInfo($1->get_name(), "statements");
-		free_s($1);
 	}
 	| statements statement {
 		print_grammar_rule("statements", "statements statement");
 		$$ = new SymbolInfo($1->get_name(), "statements");
-		free_s($1); free_s($2);
 	}
 	;
 	   
 statement : var_declaration {
 		print_grammar_rule("statement", "var_declaration");
 		$$ = new SymbolInfo($1->get_name(), "statement", $1->get_data_type());
-		free_s($1);
 	}
 	| expression_statement {
 		print_grammar_rule("statement", "expression_statement");
 		$$ = new SymbolInfo($1->get_name(), "statement", $1->get_data_type());
-		free_s($1);
 	}
 	| compound_statement {
 		print_grammar_rule("statement", "compound_statement");
 		$$ = new SymbolInfo($1->get_name(), "statement", $1->get_data_type());
-		free_s($1);
 	}
 	| FOR LPAREN expression_statement expression_statement expression RPAREN statement {
 		print_grammar_rule("statement", "FOR LPAREN expression_statement expression_statement expression RPAREN statement");
 		$$ = new SymbolInfo("", "statement");
-		free_s($3); free_s($4); free_s($5); free_s($7);
 	}
 	| IF LPAREN expression RPAREN statement %prec LOWER_THAN_ELSE {
 		// how did you resolve the conflict? check at book 189 page
 		// The precedence of the token to shift must be higher than the precedence of the rule to reduce, so %nonassoc ELSE must come after %nonassoc THEN or %nonassoc LOWER_THAN_ELSE
 		print_grammar_rule("statement", "IF LPAREN expression RPAREN statement");
 		$$ = new SymbolInfo("", "statement");
-		free_s($3); free_s($5);
 	}
 	| IF LPAREN expression RPAREN statement ELSE statement {
 		print_grammar_rule("statement", "IF LPAREN expression RPAREN statement ELSE statement");
 		$$ = new SymbolInfo("", "statement");
-		free_s($3); free_s($5); free_s($7);
 	}
 	| WHILE LPAREN expression RPAREN statement {
 		print_grammar_rule("statement", "WHILE LPAREN expression RPAREN statement");
 		$$ = new SymbolInfo("", "statement");
-		free_s($3); free_s($5);
 	}
 	| PRINTLN LPAREN ID RPAREN SEMICOLON {
 		print_grammar_rule("statement", "PRINTLN LPAREN ID RPAREN SEMICOLON");
@@ -462,12 +428,10 @@ statement : var_declaration {
 		if (sym->search($3->get_name(), 'A') == nullptr) {
 			show_error(SEMANTIC, UNDECLARED_VARIABLE, $3->get_name(), errorout);
 		}
-		free_s($3);
 	}
 	| RETURN expression SEMICOLON {
 		print_grammar_rule("statement", "RETURN expression SEMICOLON");
 		$$ = new SymbolInfo("", "statement");
-		free_s($2);
 	}
 	;
 	  
@@ -479,7 +443,6 @@ expression_statement : SEMICOLON {
 		print_grammar_rule("expression_statement", "expression SEMICOLON");
 		$$ = new SymbolInfo("", "expression_statement");
 		$$->set_data_type($1->get_data_type()); // result of an expression will have a certain data type, won't it?
-		free_s($1);
 	}
 	| error SEMICOLON {
 		yyclearin; // clear the lookahead token
@@ -501,7 +464,6 @@ variable : ID {
 			$$->set_data_type(res->get_data_type());
 			$$->set_array(res->is_array());
 		}
-		free_s($1);
 	}	
 	| ID LSQUARE expression RSQUARE {
 		// it has to be an array now
@@ -524,7 +486,6 @@ variable : ID {
 			$$->set_data_type(res->get_data_type());
 			$$->set_array(false); // if a is an int array, a[5] is also an int, but not an array
 		}
-		free_s($1); free_s($3);
 	}
 	;
 	 
@@ -532,7 +493,6 @@ expression : logic_expression {
 		print_grammar_rule("expression", "logic_expression");
 		$$ = new SymbolInfo($1->get_name(), "expression", $1->get_data_type());
 		$$->set_array($1->is_array());
-		free_s($1);
 	}	
 	| variable ASSIGNOP logic_expression {
 		print_grammar_rule("expression", "variable ASSIGNOP logic_expression");
@@ -554,7 +514,6 @@ expression : logic_expression {
 		else {
 			$$->set_data_type("FLOAT");
 		}
-		free_s($1); free_s($3);
 	}	
 	;
 			
@@ -562,7 +521,6 @@ logic_expression : rel_expression {
 		print_grammar_rule("logic_expression", "rel_expression");
 		$$ = new SymbolInfo($1->get_name(), "logic_expression", $1->get_data_type());
 		$$->set_array($1->is_array());
-		free_s($1);
 	}
 	| rel_expression LOGICOP rel_expression {
 		print_grammar_rule("logic_expression", "rel_expression LOGICOP rel_expression");
@@ -582,7 +540,6 @@ logic_expression : rel_expression {
 		else {
 			$$->set_data_type("INT");
 		}
-		free_s($1); free_s($3);
 	}
 	;
 			
@@ -590,7 +547,6 @@ rel_expression : simple_expression {
 		print_grammar_rule("rel_expression", "simple_expression");
 		$$ = new SymbolInfo($1->get_name(), "rel_expression", $1->get_data_type());
 		$$->set_array($1->is_array()); // will need in function argument type checking
-		free_s($1);
 	}
 	| simple_expression RELOP simple_expression {
 		print_grammar_rule("rel_expression", "simple_expression RELOP simple_expression");
@@ -602,7 +558,6 @@ rel_expression : simple_expression {
 		else {
 			$$->set_data_type("INT"); // result of any comparison should be boolean in fact
 		}
-		free_s($1); free_s($3);
 	}	
 	;
 				
@@ -610,7 +565,6 @@ simple_expression : term {
 		print_grammar_rule("simple_expression", "term");
 		$$ = new SymbolInfo($1->get_name(), "simple_expression", $1->get_data_type());
 		$$->set_array($1->is_array());
-		free_s($1);
 	}
 	| simple_expression ADDOP term {
 		print_grammar_rule("simple_expression", "simple_expression ADDOP term");
@@ -619,7 +573,6 @@ simple_expression : term {
 			show_error(SEMANTIC, VOID_USAGE, "", errorout);
 		}
 		$$->set_data_type(type_cast($1->get_data_type(), $3->get_data_type()));
-		free_s($1); free_s($3);
 	}
 	;
 					
@@ -627,7 +580,6 @@ term : unary_expression {
 		print_grammar_rule("term", "unary_expression");
 		$$ = new SymbolInfo($1->get_name(), "term", $1->get_data_type());
 		$$->set_array($1->is_array());
-		free_s($1);
 	}
 	| term MULOP unary_expression {
 		print_grammar_rule("term", "term MULOP unary_expression");
@@ -665,7 +617,6 @@ term : unary_expression {
 		else if ($2->get_name() == "*") {
 			$$->set_data_type(type_cast($1->get_data_type(), $3->get_data_type()));
 		}
-		free_s($1); free_s($2); free_s($3);
 	}
 	;
 
@@ -677,7 +628,6 @@ unary_expression : ADDOP unary_expression {
 			$$->set_data_type("ERROR");
 		}
 		else $$->set_data_type($2->get_data_type());
-		free_s($2);
 	}
 	| NOT unary_expression {
 		print_grammar_rule("unary_expression", "ADDOP unary_expression");
@@ -692,13 +642,11 @@ unary_expression : ADDOP unary_expression {
 			show_error(WARNING, BITWISE_FLOAT, "", errorout);
 		}
 		if (ok) $$->set_data_type("INT");
-		free_s($2);
 	}
 	| factor {
 		print_grammar_rule("unary_expression", "factor");
 		$$ = new SymbolInfo($1->get_name(), "unary_expression", $1->get_data_type());
 		$$->set_array($1->is_array());
-		free_s($1);
 	}
 	;
 	
@@ -706,7 +654,6 @@ factor : variable {
 		print_grammar_rule("factor", "variable");
 		$$ = new SymbolInfo($1->get_name(), "factor", $1->get_data_type());
 		$$->set_array($1->is_array());
-		free_s($1);
 	}
 	| ID LPAREN argument_list RPAREN {
 		print_grammar_rule("factor", "ID LPAREN argument_list RPAREN");
@@ -747,22 +694,18 @@ factor : variable {
 			}
 			$$->set_data_type(res->get_data_type());
 		}
-		free_s($1); free_s($3);
 	}
 	| LPAREN expression RPAREN {
 		print_grammar_rule("factor", "LPAREN expression RPAREN");
 		$$ = new SymbolInfo($2->get_name(), "factor", $2->get_data_type());
-		free_s($2);
 	}
 	| CONST_INT {
 		print_grammar_rule("factor", "CONST_INT");
 		$$ = new SymbolInfo($1->get_name(), "factor", "INT");
-		free_s($1);
 	}
 	| CONST_FLOAT {
 		print_grammar_rule("factor", "CONST_FLOAT");
 		$$ = new SymbolInfo($1->get_name(), "factor", "FLOAT");
-		free_s($1);
 	}
 	| variable INCOP {
 		print_grammar_rule("factor", "variable INCOP");
@@ -778,7 +721,6 @@ factor : variable {
 		else {
 			$$->set_data_type($1->get_data_type());
 		}
-		free_s($1);
 	}
 	| variable DECOP {
 		print_grammar_rule("factor", "variable DECOP");
@@ -794,7 +736,6 @@ factor : variable {
 		else {
 			$$->set_data_type($1->get_data_type());
 		}
-		free_s($1);
 	}
 	;
 	
@@ -802,7 +743,6 @@ argument_list : arguments {
 		print_grammar_rule("argument_list", "arguments");
 		$$ = new SymbolInfo("", "argument_list");
 		$$->set_param_list($1->get_param_list());
-		free_s($1);
 	}
 	| arguments error {
 		print_grammar_rule("argument_list", "arguments");
@@ -811,7 +751,6 @@ argument_list : arguments {
 		show_error(SYNTAX, S_ARG_LIST, "", errorout);
 		$$ = new SymbolInfo("", "argument_list");
 		$$->set_param_list($1->get_param_list());
-		free_s($1);
 	}
 	| {
 		// empty argument list, as one of the example of the sample suggests
@@ -825,13 +764,11 @@ arguments : arguments COMMA logic_expression {
 		$$ = new SymbolInfo("", "arguments");
 		$$->set_param_list($1->get_param_list());
 		$$->add_param($3->get_name(), $3->get_data_type(), $3->is_array());
-		free_s($1); free_s($3);
 	}
 	| logic_expression {
 		print_grammar_rule("arguments", "logic_expression");
 		$$ = new SymbolInfo("", "arguments");
 		$$->add_param($1->get_name(), $1->get_data_type(), $1->is_array());
-		free_s($1);
 	}
 	;
 
