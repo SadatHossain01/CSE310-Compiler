@@ -15,7 +15,6 @@ class SymbolInfo {
     string data_type;               // should always be in uppercase
     bool func_declaration = false;  // prototype
     bool func_definition = false;
-    bool terminal = false;
     bool array = false;
     vector<SymbolInfo *> param_list;
     vector<SymbolInfo *> declaration_list;
@@ -33,7 +32,6 @@ class SymbolInfo {
         set_data_type(other.data_type);
         set_func_declaration(other.func_declaration);
         set_func_definition(other.func_definition);
-        terminal = other.terminal;
         set_array(other.array);
         for (SymbolInfo *param : other.param_list) {
             SymbolInfo *new_param = new SymbolInfo(*param);
@@ -50,7 +48,6 @@ class SymbolInfo {
     string get_data_type() const { return data_type; }
     bool is_func_definition() const { return func_definition; }
     bool is_func_declaration() const { return func_declaration; }
-    bool is_terminal() const { return terminal; }
     bool is_array() const { return array; }
     vector<SymbolInfo *> get_param_list() const { 
         return param_list; 
@@ -73,7 +70,6 @@ class SymbolInfo {
         this->func_definition = val;
         if (val) this->func_declaration = true;
     }
-    void set_terminal(bool val) { this->terminal = val; }
     void set_array(bool val) { 
         this->array = val; 
         if (val) this->type = "ARRAY"; 
