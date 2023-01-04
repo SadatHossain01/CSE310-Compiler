@@ -2,7 +2,10 @@
 
 #include <iostream>
 #include <string>
-using namespace std;
+
+using std::endl;
+using std::ostream;
+using std::string;
 
 extern int error_count;
 extern int line_count;

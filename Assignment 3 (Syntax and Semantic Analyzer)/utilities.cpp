@@ -64,7 +64,7 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
             case VOID_TYPE:
                 out << "Variable or field ";
                 if (str != "") out << "\'" << str << "\' ";
-                out <<  "declared void" << endl;
+                out << "declared void" << endl;
                 break;
             case PARAM_NAMELESS:
                 out << "Nameless parameter \'" << str

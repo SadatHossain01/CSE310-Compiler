@@ -339,7 +339,7 @@ var_declaration : type_specifier declaration_list SEMICOLON {
 		print_grammar_rule("var_declaration", "type_specifier declaration_list SEMICOLON");
 		$$ = new SymbolInfo("", "var_declaration", $1->get_data_type());
 		string str = "";
-		auto cur_list = $2->get_declaration_list();
+		auto cur_list = $2->get_param_list();
 		for (int i = 0; i < cur_list.size(); i++) {
 			str += cur_list[i]->get_name();
 			if (i != cur_list.size() - 1) str += ", ";
@@ -393,8 +393,8 @@ declaration_list : declaration_list COMMA ID {
 		print_grammar_rule("declaration_list", "declaration_list COMMA ID");
 		$$ = new SymbolInfo("", "declaration_list");
 		SymbolInfo* new_symbol = new SymbolInfo($3->get_name(), "ID");
-		$$->set_declaration_list($1->get_declaration_list());
-		$$->add_declaration(new_symbol);
+		$$->set_param_list($1->get_param_list());
+		$$->add_param(new_symbol);
 		free_s($1); free_s($3);
 	}
 	| declaration_list COMMA ID LSQUARE CONST_INT RSQUARE {
@@ -402,15 +402,15 @@ declaration_list : declaration_list COMMA ID {
 		$$ = new SymbolInfo("", "declaration_list");
 		SymbolInfo* new_symbol = new SymbolInfo($3->get_name(), "ID");
 		new_symbol->set_array(true);
-		$$->set_declaration_list($1->get_declaration_list());
-		$$->add_declaration(new_symbol);
+		$$->set_param_list($1->get_param_list());
+		$$->add_param(new_symbol);
 		free_s($1); free_s($3); free_s($5);
 	}
 	| ID {
 		print_grammar_rule("declaration_list", "ID");
 		$$ = new SymbolInfo("", "declaration_list");
 		SymbolInfo* new_symbol = new SymbolInfo($1->get_name(), "ID");
-		$$->add_declaration(new_symbol);
+		$$->add_param(new_symbol);
 		free_s($1);
 	}
 	| ID LSQUARE CONST_INT RSQUARE {
@@ -418,7 +418,7 @@ declaration_list : declaration_list COMMA ID {
 		$$ = new SymbolInfo("", "declaration_list");
 		SymbolInfo* new_symbol = new SymbolInfo($1->get_name(), "ID");
 		new_symbol->set_array(true);
-		$$->add_declaration(new_symbol);
+		$$->add_param(new_symbol);
 		free_s($1); free_s($3);
 	}
 	;

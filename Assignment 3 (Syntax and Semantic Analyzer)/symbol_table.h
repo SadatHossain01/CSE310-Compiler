@@ -17,7 +17,6 @@ class SymbolInfo {
     bool func_definition = false;
     bool array = false;
     vector<SymbolInfo *> param_list;
-    vector<SymbolInfo *> declaration_list;
     SymbolInfo *next = nullptr;
 
    public:
@@ -37,10 +36,6 @@ class SymbolInfo {
             SymbolInfo *new_param = new SymbolInfo(*param);
             param_list.push_back(new_param);
         }
-        for (SymbolInfo *declaration : other.declaration_list) {
-            SymbolInfo *new_declaration = new SymbolInfo(*declaration);
-            declaration_list.push_back(new_declaration);
-        }
         next = nullptr;
     }
     string get_name() const { return name; }
@@ -49,12 +44,7 @@ class SymbolInfo {
     bool is_func_definition() const { return func_definition; }
     bool is_func_declaration() const { return func_declaration; }
     bool is_array() const { return array; }
-    vector<SymbolInfo *> get_param_list() const { 
-        return param_list; 
-    }
-    vector<SymbolInfo *> get_declaration_list() const {
-        return declaration_list;
-    }
+    vector<SymbolInfo *> get_param_list() const { return param_list; }
     SymbolInfo *get_next() const { return next; }
     void set_name(const string &name) { this->name = name; }
     void set_type(const string &type) { this->type = type; }
@@ -70,26 +60,17 @@ class SymbolInfo {
         this->func_definition = val;
         if (val) this->func_declaration = true;
     }
-    void set_array(bool val) { 
-        this->array = val; 
-        if (val) this->type = "ARRAY"; 
+    void set_array(bool val) {
+        this->array = val;
+        if (val) this->type = "ARRAY";
     }
     void set_param_list(const vector<SymbolInfo *> &param_list) {
-        for (SymbolInfo* param : param_list) {
+        for (SymbolInfo *param : param_list) {
             SymbolInfo *new_param = new SymbolInfo(*param);
             this->param_list.push_back(new_param);
         }
     }
     void add_param(SymbolInfo *param) { this->param_list.push_back(param); }
-    void add_declaration(SymbolInfo *declaration) {
-        this->declaration_list.push_back(declaration);
-    }
-    void set_declaration_list(const vector<SymbolInfo *> &declaration_list) {
-        for (SymbolInfo* declaration : declaration_list) {
-            SymbolInfo *new_declaration = new SymbolInfo(*declaration);
-            this->declaration_list.push_back(new_declaration);
-        }
-    }
     void set_next(SymbolInfo *next) { this->next = next; }
     void print(ostream &out = cout) {
         out << "<" << name << ", ";
@@ -102,10 +83,6 @@ class SymbolInfo {
             if (param != nullptr) delete param;
         }
         param_list.clear();
-        for (SymbolInfo *declaration : declaration_list) {
-            if (declaration != nullptr) delete declaration;
-        }
-        declaration_list.clear();
     }
 };
 
