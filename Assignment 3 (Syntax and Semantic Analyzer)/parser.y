@@ -76,7 +76,7 @@ void insert_function(const string& func_name, const string& type_specifier, cons
 		for (int i = 0; i < param_list.size(); i++) {
 			if (param_list[i]->get_name() == "") {
 				show_error(SEMANTIC, PARAM_NAMELESS, function->get_name(), errorout);
-				delete function;
+				free_s(function);
 				return; // returning as any such function is not acceptable
 			}
 		}
@@ -114,7 +114,7 @@ void insert_function(const string& func_name, const string& type_specifier, cons
 					}
 				}
 			}
-			delete function;
+			free_s(function);
 		}
 	}
 	else {
@@ -126,7 +126,7 @@ void insert_function(const string& func_name, const string& type_specifier, cons
 				if (param_list[i]->get_name() == "") continue;
 				if (param_list[i]->get_name() == param_list[j]->get_name()) {
 					show_error(SEMANTIC, PARAM_REDEFINITION, param_list[i]->get_name(), errorout);
-					delete function;
+					free_s(function);
 					return; // returning as any such function is not acceptable
 				}
 			}
@@ -146,7 +146,7 @@ void insert_function(const string& func_name, const string& type_specifier, cons
 				// function definition already exists
 				show_error(SEMANTIC, FUNC_REDEFINITION, function->get_name(), errorout);
 			}
-			delete function;
+			free_s(function);
 		}
 	}
 }
@@ -257,18 +257,18 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 func_definition : type_specifier ID LPAREN parameter_list RPAREN { insert_function($2->get_name(), $1->get_data_type(), $4->get_param_list(), true); } compound_statement {
 		print_grammar_rule("func_definition", "type_specifier ID LPAREN parameter_list RPAREN compound_statement");
 		$$ = new SymbolInfo("", "func_definition");
-		free_s($1); free_s($2); free_s($4);
+		free_s($1); free_s($2); free_s($4); free_s($6);
 	}
 	| type_specifier ID LPAREN error RPAREN { insert_function($2->get_name(), $1->get_data_type(), {}, true); } compound_statement {
 		print_grammar_rule("func_definition", "type_specifier ID LPAREN parameter_list RPAREN compound_statement");
 		$$ = new SymbolInfo("", "func_definition");
 		show_error(SYNTAX, S_PARAM_FUNC_DEFINITION, "", errorout);
-		free_s($1); free_s($2);
+		free_s($1); free_s($2); free_s($6);
 	}
 	| type_specifier ID LPAREN RPAREN { insert_function($2->get_name(), $1->get_data_type(), {}, true); } compound_statement {
 		print_grammar_rule("func_definition", "type_specifier ID LPAREN RPAREN compound_statement");
 		$$ = new SymbolInfo("", "func_definition");
-		free_s($1); free_s($2);
+		free_s($1); free_s($2); free_s($5);
 	}
 	;				
 
@@ -684,7 +684,7 @@ term : unary_expression {
 		else if ($2->get_name() == "*") {
 			$$->set_data_type(type_cast($1->get_data_type(), $3->get_data_type()));
 		}
-		free_s($1); free_s($3);
+		free_s($1); free_s($2); free_s($3);
 	}
 	;
 
@@ -843,13 +843,14 @@ arguments : arguments COMMA logic_expression {
 		print_grammar_rule("arguments", "arguments COMMA logic_expression");
 		$$ = new SymbolInfo("", "arguments");
 		$$->set_param_list($1->get_param_list());
-		$$->add_param($3); // whenever you do an add param, you should not delete that object
-		free_s($1);
+		$$->add_param(new SymbolInfo(*($3)));
+		free_s($1); free_s($3);
 	}
 	| logic_expression {
 		print_grammar_rule("arguments", "logic_expression");
 		$$ = new SymbolInfo("", "arguments");
-		$$->add_param($1); // whenever you do an add param, you should not delete that object
+		$$->add_param(new SymbolInfo(*($1)));
+		free_s($1);
 	}
 	;
 
@@ -900,13 +901,14 @@ int main(int argc,char *argv[]) {
 	yyparse();
 
 	fclose(yyin);
+	delete sym;
+	reset_current_parameters();
 
 	logout << "Total Lines: " << line_count << endl;
 	logout << "Total Errors: " << error_count << endl;
 	treeout.close();
 	errorout.close();
 	logout.close();
-	// delete sym;
 	return 0;
 }
 
