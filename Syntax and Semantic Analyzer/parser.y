@@ -918,7 +918,7 @@ arguments : arguments COMMA logic_expression {
 	;
 
 lcurls : LCURL {
-		$$ = new SymbolInfo("", "LCURLS");
+		$$ = $1;
 		sym->enter_scope();
 		// why am I inserting symbols here? so that the parameters can be recognized in the newly created scope
 		// but remember, in case of function prototypes, even though I am not inserting the symbols, I am still checking in 
@@ -940,8 +940,6 @@ lcurls : LCURL {
 			}
 		}
 		reset_current_parameters();
-		$$->set_rule("");
-		$$->add_child($1);
 	}
 	;
  

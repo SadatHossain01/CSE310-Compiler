@@ -115,20 +115,17 @@ class SymbolInfo {
         out << data_type << "> ";
     }
     void print_tree_node(ostream &out = cout, int level = 0) {
-        if (!rule.empty()) {
-            for (int j = 0; j < level; j++) out << " ";
-            out << rule << (terminal ? "" : " ") << "\t";
-            out << "<Line: ";
-            if (terminal) out << start_line;
-            else out << start_line << "-" << end_line;
-            out << ">" << endl;
-        }
+        for (int j = 0; j < level; j++) out << " ";
+        out << rule << (terminal ? "" : " ") << "\t";
+        out << "<Line: ";
+        if (terminal) out << start_line;
+        else out << start_line << "-" << end_line;
+        out << ">" << endl;
         for (SymbolInfo *child : children) {
             child->print_tree_node(
                 out,
-                level + (rule.empty()
-                             ? 0
-                             : 1));  // the special check is for lcurls -> LCURL
+                level + 1);  // lcurls -> LCURL has been handled, so no need to
+                             // check that separately
         }
     }
     void delete_tree() {
