@@ -158,7 +158,7 @@ inline bool is_zero(const string& str) {
 }
 %}
 
-%nonassoc LOWER_THAN_ELSE
+%nonassoc THEN
 %nonassoc ELSE
 
 %error-verbose
@@ -474,10 +474,10 @@ statement : var_declaration {
 		$$->set_rule("statement : FOR LPAREN expression_statement expression_statement expression RPAREN statement");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($5); $$->add_child($6); $$->add_child($7);
 	}
-	| IF LPAREN expression RPAREN statement %prec LOWER_THAN_ELSE {
+	| IF LPAREN expression RPAREN statement %prec THEN {
 		// how did you resolve the conflict? check at book 189 page
 		// The precedence of the token to shift must be higher than the precedence of the rule to reduce, so %nonassoc ELSE must come after %nonassoc THEN or %nonassoc LOWER_THAN_ELSE
-		print_grammar_rule("statement", "IF LPAREN expression RPAREN statement");
+		print_grammar_rule("statement", "IF LPAREN expression RPAREN statement %prec THEN");
 		$$ = new SymbolInfo("", "statement");
 		$$->set_rule("statement : IF LPAREN expression RPAREN statement");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($5);
@@ -737,7 +737,7 @@ unary_expression : ADDOP unary_expression {
 		$$->add_child($1); $$->add_child($2);
 	}
 	| NOT unary_expression {
-		print_grammar_rule("unary_expression", "ADDOP unary_expression");
+		print_grammar_rule("unary_expression", "NOT unary_expression");
 		$$ = new SymbolInfo("", "unary_expression");
 		bool ok = true;
 		if ($2->get_data_type() == "VOID") {
