@@ -43,21 +43,10 @@ inline void free_s(SymbolInfo* s)	{
 	}
 }
 
-void reset_current_parameters() { current_function_parameters.clear(); }
-
-void copy_func_parameters(const vector<Param>& param_list) {
-	current_function_parameters.clear();
-	current_function_parameters = param_list; // no pointer used now, so should be no problem
-}
-
-void copy_func_parameters(SymbolInfo* si) {
-	copy_func_parameters(si->get_param_list());
-}
-
 void insert_function(const string& func_name, const string& type_specifier, const vector<Param>& param_list, bool is_definition) {
 	if (is_definition) {
-		reset_current_parameters();
-		copy_func_parameters(param_list);
+		current_function_parameters.clear();
+		current_function_parameters = param_list;
 	}
 	SymbolInfo* function = new SymbolInfo(func_name, "FUNCTION", type_specifier);
 	if (is_definition) function->set_func_type(DEFINITION);
@@ -237,7 +226,7 @@ unit : var_declaration {
      
 func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 		print_grammar_rule("func_declaration", "type_specifier ID LPAREN parameter_list RPAREN SEMICOLON");
-		reset_current_parameters(); // resetting for this function
+		current_function_parameters.clear(); // resetting for this function
 		$$ = new SymbolInfo("", "func_declaration");
 		insert_function($2->get_name(), $1->get_data_type(), $4->get_param_list(), false);
 		$$->set_rule("func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON");
@@ -245,7 +234,7 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 	}
 	| type_specifier ID LPAREN error RPAREN SEMICOLON {
 		print_grammar_rule("func_declaration", "type_specifier ID LPAREN RPAREN SEMICOLON");
-		reset_current_parameters();
+		current_function_parameters.clear();
 		$$ = new SymbolInfo("", "func_declaration");
 		insert_function($2->get_name(), $1->get_data_type(), {}, false);
 		$$->set_rule("func_declaration : type_specifier ID LPAREN RPAREN SEMICOLON");
@@ -253,7 +242,7 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 	}
 	| type_specifier ID LPAREN RPAREN SEMICOLON {
 		print_grammar_rule("func_declaration", "type_specifier ID LPAREN RPAREN SEMICOLON");
-		reset_current_parameters();
+		current_function_parameters.clear();
 		$$ = new SymbolInfo("", "func_declaration");
 		insert_function($2->get_name(), $1->get_data_type(), {}, false);
 		$$->set_rule("func_declaration : type_specifier ID LPAREN RPAREN SEMICOLON");
@@ -288,7 +277,7 @@ parameter_list : parameter_list COMMA type_specifier ID {
 		$$->set_param_list($1->get_param_list());
 		$$->add_param($4->get_name(), $3->get_data_type());
 		check_type_specifier($3, $4->get_name());
-		copy_func_parameters($$);
+		current_function_parameters = $$->get_param_list();
 		$$->set_rule("parameter_list : parameter_list COMMA type_specifier ID");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4);
 	}
@@ -298,7 +287,7 @@ parameter_list : parameter_list COMMA type_specifier ID {
 		$$->set_param_list($1->get_param_list());
 		$$->add_param("", $3->get_data_type()); // later check if this nameless parameter is used in function definition. if yes, then show error
 		check_type_specifier($3, "");
-		copy_func_parameters($$);
+		current_function_parameters = $$->get_param_list();
 		$$->set_rule("parameter_list : parameter_list COMMA type_specifier");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3);
 	}
@@ -307,7 +296,7 @@ parameter_list : parameter_list COMMA type_specifier ID {
 		$$ = new SymbolInfo("", "parameter_list");
 		$$->add_param($2->get_name(), $1->get_data_type());
 		check_type_specifier($1, $2->get_name());
-		copy_func_parameters($$);
+		current_function_parameters = $$->get_param_list();
 		$$->set_rule("parameter_list : type_specifier ID");
 		$$->add_child($1); $$->add_child($2);
 	}
@@ -316,7 +305,7 @@ parameter_list : parameter_list COMMA type_specifier ID {
 		$$ = new SymbolInfo("", "parameter_list");
 		$$->add_param("", $1->get_data_type()); // later check if this nameless parameter is used in function definition. if yes, then show error
 		check_type_specifier($1, "");
-		copy_func_parameters($$);
+		current_function_parameters = $$->get_param_list();
 		$$->set_rule("parameter_list : type_specifier");
 		$$->add_child($1);
 	}
@@ -938,7 +927,7 @@ lcurls : LCURL {
 				break;
 			}
 		}
-		reset_current_parameters();
+		current_function_parameters.clear();
 	}
 	;
  
@@ -966,7 +955,7 @@ int main(int argc,char *argv[]) {
 
 	fclose(yyin);
 	delete sym;
-	reset_current_parameters();
+	current_function_parameters.clear();
 
 	logout << "Total Lines: " << line_count << endl;
 	logout << "Total Errors: " << error_count << endl;
