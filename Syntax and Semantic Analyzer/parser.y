@@ -60,14 +60,13 @@ void insert_function(const string& func_name, const string& type_specifier, cons
 		copy_func_parameters(param_list);
 	}
 	SymbolInfo* function = new SymbolInfo(func_name, "FUNCTION", type_specifier);
-	if (is_definition) function->set_func_definition(true);
+	if (is_definition) function->set_func_type(DEFINITION);
 	else {
-		function->set_func_declaration(true);
-		function->set_func_definition(false);
+		function->set_func_type(DECLARATION);
 	}
 	function->set_param_list(param_list);
 
-	if (function->is_func_definition()) {
+	if (function->get_func_type() == DEFINITION) {
 		// no parameter can be nameless in a function definition
 		for (int i = 0; i < param_list.size(); i++) {
 			if (param_list[i].name == "") {
@@ -83,11 +82,11 @@ void insert_function(const string& func_name, const string& type_specifier, cons
 			sym->insert(function);
 		}
 		else {
-			if (!og_func->is_func_declaration() && !og_func->is_func_definition()) {
+			if (og_func->get_func_type() == NONE) {
 				// same name variable already present with this name
 				show_error(SEMANTIC, DIFFERENT_REDECLARATION, function->get_name(), errorout);
 			}
-			else if (og_func->is_func_definition()) {
+			else if (og_func->get_func_type() == DEFINITION) {
 				// function definition already exists
 				show_error(SEMANTIC, FUNC_REDEFINITION, function->get_name(), errorout);
 			}
@@ -134,11 +133,11 @@ void insert_function(const string& func_name, const string& type_specifier, cons
 			sym->insert(function);
 		}
 		else {
-			if (!og_func->is_func_declaration() && !og_func->is_func_definition()) {
+			if (og_func->get_func_type() == NONE) {
 				// same name variable already present with this name
 				show_error(SEMANTIC, DIFFERENT_REDECLARATION, function->get_name(), errorout);
 			}
-			else if (og_func->is_func_definition() || og_func->is_func_declaration()) {
+			else if (og_func->get_func_type() != NONE) {
 				// function definition already exists
 				show_error(SEMANTIC, FUNC_REDEFINITION, function->get_name(), errorout);
 			}
@@ -789,11 +788,11 @@ factor : variable {
 			show_error(SEMANTIC, UNDECLARED_FUNCTION, $1->get_name(), errorout);
 			ok = false;
 		}
-		else if (!res->is_func_declaration() && !res->is_func_definition()) {
+		else if (res->get_func_type() == NONE) {
 			show_error(SEMANTIC, NOT_A_FUNCTION, $1->get_name(), errorout);
 			ok = false;
 		}
-		else if (res->is_func_declaration() && !res->is_func_definition()) {
+		else if (res->get_func_type() == DECLARATION) {
 			show_error(SEMANTIC, UNDEFINED_FUNCTION, $1->get_name(), errorout);
 			ok = false;
 		}

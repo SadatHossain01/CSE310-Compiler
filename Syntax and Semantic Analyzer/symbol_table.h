@@ -17,14 +17,15 @@ struct Param {
         : name(name), data_type(data_type), is_array(is_array) {}
 };
 
+enum func_status { NONE, DECLARATION, DEFINITION };
+
 class SymbolInfo {
    private:
     string name;
     string type;
-    string data_type;               // should always be in uppercase
-    string rule;                    // for printing parse tree
-    bool func_declaration = false;  // prototype
-    bool func_definition = false;
+    string data_type;  // should always be in uppercase
+    string rule;       // for printing parse tree
+    func_status func_type = NONE;
     bool array = false;
     bool terminal = false;
     int start_line = -1, end_line = -1;
@@ -42,8 +43,7 @@ class SymbolInfo {
         name = other.name;
         type = other.type;
         set_data_type(other.data_type);
-        set_func_declaration(other.func_declaration);
-        set_func_definition(other.func_definition);
+        func_type = other.func_type;
         set_array(other.array);
         for (const Param &param : other.param_list) {
             param_list.push_back(param);
@@ -54,8 +54,7 @@ class SymbolInfo {
     string get_type() const { return type; }
     string get_data_type() const { return data_type; }
     string get_rule() const { return rule; }
-    bool is_func_definition() const { return func_definition; }
-    bool is_func_declaration() const { return func_declaration; }
+    func_status get_func_type() const { return func_type; }
     bool is_array() const { return array; }
     bool is_terminal() const { return terminal; }
     int get_start_line() const { return start_line; }
@@ -72,11 +71,7 @@ class SymbolInfo {
         }
     }
     void set_rule(const string &rule) { this->rule = rule; }
-    void set_func_declaration(bool val) { this->func_declaration = val; }
-    void set_func_definition(bool val) {
-        this->func_definition = val;
-        if (val) this->func_declaration = true;
-    }
+    void set_func_type(func_status fs) { this->func_type = fs; }
     void set_array(bool val) {
         this->array = val;
         if (val) this->type = "ARRAY";
