@@ -40,9 +40,7 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
 
     } else if (ec == SEMANTIC) {
         // suppressing type error messages
-        if (e != TYPE_ERROR) {
-            out << "Line# " << line_count << ": ";
-        }
+        out << "Line# " << line_count << ": ";
 
         switch (e) {
             case PARAM_REDEFINITION:
@@ -76,6 +74,9 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
             case UNDECLARED_FUNCTION:
                 out << "Undeclared function \'" << str << "\'" << endl;
                 break;
+            case UNDEFINED_FUNCTION:
+                out << "Undefined function \'" << str << "\'" << endl;
+                break;
             case ARRAY_AS_VAR:
                 out << "Type mismatch for \'" << str << "\', is an array"
                     << endl;
@@ -95,13 +96,6 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
                 break;
             case MOD_OPERAND:
                 out << "Operands of modulus must be integers" << endl;
-                break;
-            case TYPE_ERROR:
-                // out << "Error infering type";
-                // if (str != "") {
-                //     out << " of \'" << str << "\'";
-                // }
-                // out << endl;
                 break;
             case TOO_MANY_ARGUMENTS:
                 out << "Too many arguments to function \'" << str << "\'"

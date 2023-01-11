@@ -38,8 +38,6 @@ enum error_type {
     INDEX_NOT_INT,
     VOID_USAGE,
     MOD_OPERAND,
-    TYPE_ERROR,  // if a computation is faulty, it should have a "ERROR" type,
-                 // and wherever it follows, should consider that
     NOT_A_FUNCTION,
     UNDEFINED_FUNCTION,
     TOO_MANY_ARGUMENTS,

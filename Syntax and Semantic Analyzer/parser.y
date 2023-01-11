@@ -89,7 +89,7 @@ void insert_function(const string& func_name, const string& type_specifier, cons
 				show_error(SEMANTIC, CONFLICTING_TYPE, function->get_name(), errorout);
 			}
 			else {
-				// defintion param type and declaraion param type mismatch
+				// defintion param type and declaraion param type mismatch check
 				vector<Param> og_list = og_func->get_param_list();
 				vector<Param> now_list = function->get_param_list();
 				for (int i = 0; i < og_list.size(); i++) {
@@ -98,6 +98,7 @@ void insert_function(const string& func_name, const string& type_specifier, cons
 					}
 				}
 			}
+			og_func->set_func_type(DEFINITION); // set the func type to definition
 			free_s(function);
 		}
 	}
@@ -589,7 +590,7 @@ expression : logic_expression {
 			$$->set_data_type("ERROR");
 		}
 		else if ($1->get_data_type() == "ERROR" || $3->get_data_type() == "ERROR") {
-			show_error(SEMANTIC, TYPE_ERROR, "", errorout);
+			// show_error(SEMANTIC, TYPE_ERROR, "", errorout);
 			$$->set_data_type("ERROR");
 		}
 		else if ($1->get_data_type() == "INT") {
@@ -621,7 +622,7 @@ logic_expression : rel_expression {
 			$$->set_data_type("ERROR");
 		}
 		else if ($1->get_data_type() == "ERROR" || $3->get_data_type() == "ERROR") {
-			show_error(SEMANTIC, TYPE_ERROR, "", errorout);
+			// show_error(SEMANTIC, TYPE_ERROR, "", errorout);
 			$$->set_data_type("ERROR");
 		}
 		else if ($1->get_data_type() == "FLOAT" || $3->get_data_type() == "FLOAT") {
@@ -692,7 +693,7 @@ term : unary_expression {
 			$$->set_data_type("ERROR");
 		}
 		else if ($1->get_data_type() == "ERROR" || $3->get_data_type() == "ERROR") {
-			show_error(SEMANTIC, TYPE_ERROR, "", errorout);
+			// show_error(SEMANTIC, TYPE_ERROR, "", errorout);
 			$$->set_data_type("ERROR");
 		}
 		else if ($2->get_name() == "%") {
@@ -836,7 +837,7 @@ factor : variable {
 			$$->set_data_type("ERROR");
 		}
 		else if ($1->get_data_type() == "ERROR") {
-			show_error(SEMANTIC, TYPE_ERROR, $1->get_name(), errorout);
+			// show_error(SEMANTIC, TYPE_ERROR, $1->get_name(), errorout);
 			$$->set_data_type("ERROR");
 		}
 		else {
@@ -853,7 +854,7 @@ factor : variable {
 			$$->set_data_type("ERROR");
 		}
 		else if ($1->get_data_type() == "ERROR") {
-			show_error(SEMANTIC, TYPE_ERROR, "", errorout);
+			// show_error(SEMANTIC, TYPE_ERROR, "", errorout);
 			$$->set_data_type("ERROR");
 		}
 		else {
