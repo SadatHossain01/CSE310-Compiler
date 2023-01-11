@@ -43,6 +43,28 @@ inline void free_s(SymbolInfo* s)	{
 	}
 }
 
+inline bool check_type_specifier(const string& ty, const string& name) {
+	if (ty == "VOID") {
+		show_error(SEMANTIC, VOID_TYPE, name, errorout);
+		return false;
+	}
+	return true;
+}
+
+inline string type_cast(const string& s1, const string& s2) {
+	if (s1 == "VOID" || s2 == "VOID" || s1 == "ERROR" || s2 == "ERROR") return "ERROR";
+	else if (s1 == "FLOAT" || s2 == "FLOAT") return "FLOAT";
+	else return "INT";
+}
+
+inline bool is_zero(const string& str) {
+	// already guaranteed to be a valid number from lexer, so no need to check that again
+	for (char c : str) {
+		if (c != '0' && c != 'e' && c != 'E') return false;
+	}
+	return true;
+}
+
 void insert_function(const string& func_name, const string& type_specifier, const vector<Param>& param_list, bool is_definition) {
 	if (is_definition) {
 		current_function_parameters.clear();
@@ -136,27 +158,36 @@ void insert_function(const string& func_name, const string& type_specifier, cons
 	}
 }
 
-inline bool check_type_specifier(SymbolInfo* ty, const string& name) {
-	if (ty->get_data_type() == "VOID") {
-		show_error(SEMANTIC, VOID_TYPE, name, errorout);
-		return false;
+void insert_symbols(const string& type, const vector<Param>& param_list) {
+	string str = "";
+	vector<Param> cur_list = param_list;
+	for (int i = 0; i < cur_list.size(); i++) {
+		str += cur_list[i].name;
+		if (i != cur_list.size() - 1) str += ", ";
 	}
-	return true;
+	bool ok = check_type_specifier(type, str);
+	if (ok) {
+		for (int i = 0; i < cur_list.size(); i++) {
+			// now we will set the data_type of all these symbols to $1
+			cur_list[i].data_type = type;
+			// cerr << cur_list[i].data_type << " " << cur_list[i].name << endl;
+			SymbolInfo* res = sym->search(cur_list[i].name, 'C');
+			if (res == nullptr) {
+				SymbolInfo* new_sym = new SymbolInfo(cur_list[i].name, "ID", cur_list[i].data_type);
+				if (cur_list[i].is_array) new_sym->set_array(true);
+				sym->insert(new_sym);
+			}
+			else if (res->get_data_type() != cur_list[i].data_type) {
+				// cerr << "Previous: " << res->get_data_type() << " current: " << cur_list[i].data_type << " " << cur_list[i].name << " line: " << line_count << endl; 
+				show_error(SEMANTIC, CONFLICTING_TYPE, cur_list[i].name, errorout);
+			}
+			else {
+				show_error(SEMANTIC, VARIABLE_REDEFINITION, cur_list[i].name, errorout);
+			}
+		}
+	}
 }
 
-inline string type_cast(const string& s1, const string& s2) {
-	if (s1 == "VOID" || s2 == "VOID" || s1 == "ERROR" || s2 == "ERROR") return "ERROR";
-	else if (s1 == "FLOAT" || s2 == "FLOAT") return "FLOAT";
-	else return "INT";
-}
-
-inline bool is_zero(const string& str) {
-	// already guaranteed to be a valid number from lexer, so no need to check that again
-	for (char c : str) {
-		if (c != '0' && c != 'e' && c != 'E') return false;
-	}
-	return true;
-}
 %}
 
 %nonassoc THEN
@@ -218,8 +249,6 @@ unit : var_declaration {
 		$$->add_child($1);
 	}
 	| error {
-		yyclearin; // clears the lookahead
-		yyerrok; // now you can start normal parsing
 		show_error(SYNTAX, S_UNIT, "", errorout);
 		$$ = new SymbolInfo("", "unit");
 	}
@@ -257,8 +286,9 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN { insert_functi
 		$$->set_rule("func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($5); $$->add_child(comp_statement);
 	}
-	| type_specifier ID LPAREN error RPAREN { insert_function($2->get_name(), $1->get_data_type(), {}, true); } compound_statement {
-		print_grammar_rule("func_definition", "type_specifier ID LPAREN parameter_list RPAREN compound_statement");
+	| type_specifier ID LPAREN error RPAREN compound_statement {
+		// not inserting the function if any error occurs in parameter list
+		// print_grammar_rule("func_definition", "type_specifier ID LPAREN parameter_list RPAREN compound_statement");
 		$$ = new SymbolInfo("", "func_definition");
 		show_error(SYNTAX, S_PARAM_FUNC_DEFINITION, "", errorout);
 		$$->set_rule("func_definition : type_specifier ID LPAREN RPAREN compound_statement");
@@ -277,7 +307,7 @@ parameter_list : parameter_list COMMA type_specifier ID {
 		$$ = new SymbolInfo("", "parameter_list");
 		$$->set_param_list($1->get_param_list());
 		$$->add_param($4->get_name(), $3->get_data_type());
-		check_type_specifier($3, $4->get_name());
+		check_type_specifier($3->get_data_type(), $4->get_name());
 		current_function_parameters = $$->get_param_list();
 		$$->set_rule("parameter_list : parameter_list COMMA type_specifier ID");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4);
@@ -287,7 +317,7 @@ parameter_list : parameter_list COMMA type_specifier ID {
 		$$ = new SymbolInfo("", "parameter_list");
 		$$->set_param_list($1->get_param_list());
 		$$->add_param("", $3->get_data_type()); // later check if this nameless parameter is used in function definition. if yes, then show error
-		check_type_specifier($3, "");
+		check_type_specifier($3->get_data_type(), "");
 		current_function_parameters = $$->get_param_list();
 		$$->set_rule("parameter_list : parameter_list COMMA type_specifier");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3);
@@ -296,7 +326,7 @@ parameter_list : parameter_list COMMA type_specifier ID {
 		print_grammar_rule("parameter_list", "type_specifier ID");
 		$$ = new SymbolInfo("", "parameter_list");
 		$$->add_param($2->get_name(), $1->get_data_type());
-		check_type_specifier($1, $2->get_name());
+		check_type_specifier($1->get_data_type(), $2->get_name());
 		current_function_parameters = $$->get_param_list();
 		$$->set_rule("parameter_list : type_specifier ID");
 		$$->add_child($1); $$->add_child($2);
@@ -305,7 +335,7 @@ parameter_list : parameter_list COMMA type_specifier ID {
 		print_grammar_rule("parameter_list", "type_specifier");
 		$$ = new SymbolInfo("", "parameter_list");
 		$$->add_param("", $1->get_data_type()); // later check if this nameless parameter is used in function definition. if yes, then show error
-		check_type_specifier($1, "");
+		check_type_specifier($1->get_data_type(), "");
 		current_function_parameters = $$->get_param_list();
 		$$->set_rule("parameter_list : type_specifier");
 		$$->add_child($1);
@@ -344,41 +374,22 @@ compound_statement : lcurls statements RCURL {
 var_declaration : type_specifier declaration_list SEMICOLON {
 		print_grammar_rule("var_declaration", "type_specifier declaration_list SEMICOLON");
 		$$ = new SymbolInfo("", "var_declaration", $1->get_data_type());
-		string str = "";
-		vector<Param> cur_list = $2->get_param_list();
-		for (int i = 0; i < cur_list.size(); i++) {
-			str += cur_list[i].name;
-			if (i != cur_list.size() - 1) str += ", ";
-		}
-		bool ok = check_type_specifier($1, str);
-		if (ok) {
-			for (int i = 0; i < cur_list.size(); i++) {
-				// now we will set the data_type of all these symbols to $1
-				cur_list[i].data_type = $1->get_data_type();
-				// cerr << cur_list[i].data_type << " " << cur_list[i].name << endl;
-				SymbolInfo* res = sym->search(cur_list[i].name, 'C');
-				if (res == nullptr) {
-					SymbolInfo* new_sym = new SymbolInfo(cur_list[i].name, "ID", cur_list[i].data_type);
-					if (cur_list[i].is_array) new_sym->set_array(true);
-					sym->insert(new_sym);
-				}
-				else if (res->get_data_type() != cur_list[i].data_type) {
-					// cerr << "Previous: " << res->get_data_type() << " current: " << cur_list[i].data_type << " " << cur_list[i].name << " line: " << line_count << endl; 
-					show_error(SEMANTIC, CONFLICTING_TYPE, cur_list[i].name, errorout);
-				}
-				else {
-					show_error(SEMANTIC, VARIABLE_REDEFINITION, cur_list[i].name, errorout);
-				}
-			}
-		}
+		insert_symbols($1->get_data_type(), $2->get_param_list());
 		$$->set_rule("var_declaration : type_specifier declaration_list SEMICOLON");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3);
 	}
+	| type_specifier declaration_list error SEMICOLON {
+		print_grammar_rule("var_declaration", "type_specifier declaration_list SEMICOLON");	
+		$$ = new SymbolInfo("", "var_declaration", $1->get_data_type());
+		insert_symbols($1->get_data_type(), $2->get_param_list());
+		show_error(SYNTAX, S_DECL_VAR_DECLARATION, "", errorout);
+		$$->set_rule("var_declaration : type_specifier declaration_list SEMICOLON");
+		$$->add_child($1); $$->add_child($2); $$->add_child($4);
+
+	}
 	| type_specifier error SEMICOLON {
 		print_grammar_rule("var_declaration", "type_specifier declaration_list SEMICOLON");
-		$$ = new SymbolInfo("", "var_declaration");
-		yyclearin;
-		yyerrok;
+		$$ = new SymbolInfo("", "var_declaration", $1->get_data_type());
 		show_error(SYNTAX, S_DECL_VAR_DECLARATION, "", errorout);
 		$$->set_rule("var_declaration : type_specifier SEMICOLON");
 		$$->add_child($1); $$->add_child($3);
@@ -526,8 +537,6 @@ expression_statement : SEMICOLON {
 		$$->add_child($1); $$->add_child($2);
 	}
 	| error SEMICOLON {
-		yyclearin; // clear the lookahead token
-		yyerrok; // clear the error stack
 		show_error(SYNTAX, S_EXP_STATEMENT, "", errorout);
 		$$ = new SymbolInfo("", "expression_statement");
 		free_s($2);
@@ -773,26 +782,21 @@ factor : variable {
 		print_grammar_rule("factor", "ID LPAREN argument_list RPAREN");
 		$$ = new SymbolInfo("", "factor");
 		SymbolInfo* res = sym->search($1->get_name(), 'A');
-		bool ok = true;
 		if (res == nullptr) {
 			show_error(SEMANTIC, UNDECLARED_FUNCTION, $1->get_name(), errorout);
-			ok = false;
 		}
 		else if (res->get_func_type() == NONE) {
 			show_error(SEMANTIC, NOT_A_FUNCTION, $1->get_name(), errorout);
-			ok = false;
 		}
 		else if (res->get_func_type() == DECLARATION) {
-			show_error(SEMANTIC, UNDEFINED_FUNCTION, $1->get_name(), errorout);
-			ok = false;
+			// show_error(SEMANTIC, UNDEFINED_FUNCTION, $1->get_name(), errorout);
+			// gcc does not provide error in above scenario, runtime error happens
 		}
 		else if (res->get_param_list().size() < $3->get_param_list().size()) {
 			show_error(SEMANTIC, TOO_MANY_ARGUMENTS, $1->get_name(), errorout);
-			ok = false;
 		}
 		else if (res->get_param_list().size() > $3->get_param_list().size()) {
 			show_error(SEMANTIC, TOO_FEW_ARGUMENTS, $1->get_name(), errorout);
-			ok = false;
 		}
 		else {
 			vector<Param> now = res->get_param_list();
@@ -874,8 +878,6 @@ argument_list : arguments {
 	}
 	| arguments error {
 		print_grammar_rule("argument_list", "arguments");
-		yyclearin; // clear the lookahead token
-		yyerrok; // start normal parsing again
 		show_error(SYNTAX, S_ARG_LIST, "", errorout);
 		$$ = new SymbolInfo("", "argument_list");
 		$$->set_param_list($1->get_param_list());

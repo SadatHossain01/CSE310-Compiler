@@ -17,7 +17,7 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
                 out << "UNFINISHED_CONST_CHAR " << str << endl;
                 break;
             case UNRECOGNIZED:
-                out << "UNRECOGNIZED_CHAR " << str << endl;
+                out << "UNRECOGNIZED CHAR " << str << endl;
                 break;
             case TOO_DECIMAL:
                 out << "TOO_MANY_DECIMAL_POINTS " << str << endl;
