@@ -594,7 +594,10 @@ expression : logic_expression {
 	| variable ASSIGNOP logic_expression {
 		print_grammar_rule("expression", "variable ASSIGNOP logic_expression");
 		$$ = new SymbolInfo("", "expression");
-		if ($1->get_data_type() == "VOID" || $3->get_data_type() == "VOID") {
+		if ($1->is_array() && !$3->is_array()) {
+			show_error(SEMANTIC, ARRAY_AS_VAR, $1->get_name(), errorout);
+		}
+		else if ($1->get_data_type() == "VOID" || $3->get_data_type() == "VOID") {
 			show_error(SEMANTIC, VOID_USAGE, "", errorout);
 			$$->set_data_type("ERROR");
 		}
