@@ -1,6 +1,7 @@
 yacc -d parser.y
+echo 'Generated the parser C file'
 flex scanner.l
-# g++ lex.yy.c y.tab.c utilities.cpp -o out
+echo 'Generated the scanner C file'
 g++ lex.yy.c y.tab.c utilities.cpp -fsanitize=address -g -o out
-# g++ lex.yy.c y.tab.c utilities.cpp -o out
-./out errorrecover.c
+echo 'All ready, running'
+./out noerror.c
