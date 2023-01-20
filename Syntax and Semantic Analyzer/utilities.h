@@ -59,4 +59,5 @@ enum num_type { INTNUM, FLOATNUM };
 enum line_type { SINGLE_LINE, MULTILINE };
 enum reset_type { CHAR_RESET, STRING_RESET, COMMENT_RESET };
 
-void show_error(error_class, error_type, const string&, ostream&);
+void show_error(error_class, error_type, const string&, ostream&,
+                int line_no = line_count);

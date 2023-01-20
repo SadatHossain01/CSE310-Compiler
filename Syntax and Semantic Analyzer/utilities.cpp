@@ -1,10 +1,11 @@
 #include "utilities.h"
 
-void show_error(error_class ec, error_type e, const string& str, ostream& out) {
+void show_error(error_class ec, error_type e, const string& str, ostream& out,
+                int line_no) {
     error_count++;
 
     if (ec == LEXICAL) {
-        out << "Error at line# " << line_count << ": ";
+        out << "Error at line# " << line_no << ": ";
 
         switch (e) {
             case MULTICHAR:
@@ -40,7 +41,7 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
 
     } else if (ec == SEMANTIC) {
         // suppressing type error messages
-        out << "Line# " << line_count << ": ";
+        out << "Line# " << line_no << ": ";
 
         switch (e) {
             case PARAM_REDEFINITION:
@@ -115,7 +116,7 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
                 break;
         }
     } else if (ec == SYNTAX) {
-        out << "Line# " << line_count << ": ";
+        out << "Line# " << line_no << ": ";
         out << "Syntax error at ";
 
         switch (e) {
@@ -141,7 +142,7 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out) {
                 break;
         }
     } else if (ec == WARNING) {
-        out << "Line# " << line_count << ": ";
+        out << "Line# " << line_no << ": ";
         out << "Warning: ";
 
         switch (e) {

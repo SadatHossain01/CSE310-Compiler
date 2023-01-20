@@ -15,19 +15,16 @@ using namespace std;
 
 extern int line_count;
 extern int error_count;
+int syntax_error_line;
 SymbolTable *sym;
 extern FILE* yyin;
 vector<Param> current_function_parameters;
-// for some reason, for the func_declarations, after encountering the RPAREN, comp_statement's 
-// corresponding pointer is not being recognized and resulting in segmentation faults, but when
-// those same compound_statement pointers are kept in a global variable like the following, things
-// seem to work.
-SymbolInfo* comp_statement; 
 
 ofstream treeout, errorout, logout;
 
 void yyerror(const string& s) {
 	logout << "Error at line no " << line_count << " : syntax error" << endl;
+	syntax_error_line = line_count;
 }
 int yyparse(void);
 int yylex(void);
@@ -199,6 +196,12 @@ void insert_symbols(const string& type, const vector<Param>& param_list) {
 	SymbolInfo* symbol_info;
 }
 
+%destructor {  
+	// handles error tokens and start symbol
+	$$->delete_tree();
+	free_s($$);
+} <symbol_info>
+
 %token <symbol_info> IF ELSE FOR WHILE DO BREAK RETURN SWITCH CASE DEFAULT CONTINUE PRINTLN ADDOP INCOP DECOP RELOP ASSIGNOP LOGICOP BITOP NOT LPAREN RPAREN LCURL RCURL LSQUARE RSQUARE COMMA SEMICOLON INT CHAR FLOAT DOUBLE VOID
 %token <symbol_info> CONST_INT CONST_FLOAT ID MULOP
 %type <symbol_info> start program unit var_declaration func_declaration func_definition type_specifier parameter_list compound_statement statements declaration_list statement expression expression_statement logic_expression rel_expression simple_expression term unary_expression factor variable argument_list arguments lcurls
@@ -211,8 +214,9 @@ start : program {
 		$$->set_rule("start : program");
 		$$->add_child($1);
 		$$->print_tree_node(treeout);
-		$$->delete_tree();
-		free_s($$);
+		// the following is being handled in %destructor
+		// $$->delete_tree();
+		// free_s($$);
 	}
 	;
 
@@ -284,21 +288,22 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN { insert_functi
 		print_grammar_rule("func_definition", "type_specifier ID LPAREN parameter_list RPAREN compound_statement");
 		$$ = new SymbolInfo("", "func_definition");
 		$$->set_rule("func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement");
-		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($5); $$->add_child(comp_statement);
+		// notice that compound_statement is not $6, it is $7
+		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($5); $$->add_child($7);
 	}
 	| type_specifier ID LPAREN error RPAREN compound_statement {
 		// not inserting the function if any error occurs in parameter list
 		// print_grammar_rule("func_definition", "type_specifier ID LPAREN parameter_list RPAREN compound_statement");
 		$$ = new SymbolInfo("", "func_definition");
-		show_error(SYNTAX, S_PARAM_FUNC_DEFINITION, "", errorout);
+		show_error(SYNTAX, S_PARAM_FUNC_DEFINITION, "", errorout, syntax_error_line);
 		$$->set_rule("func_definition : type_specifier ID LPAREN RPAREN compound_statement");
-		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($5); $$->add_child(comp_statement);
+		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($5); $$->add_child($6);
 	}
 	| type_specifier ID LPAREN RPAREN { insert_function($2->get_name(), $1->get_data_type(), {}, true); } compound_statement {
 		print_grammar_rule("func_definition", "type_specifier ID LPAREN RPAREN compound_statement");
 		$$ = new SymbolInfo("", "func_definition");
 		$$->set_rule("func_definition : type_specifier ID LPAREN RPAREN compound_statement");
-		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child(comp_statement);
+		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($6);
 	}
 	;				
 
@@ -316,7 +321,7 @@ parameter_list : parameter_list COMMA type_specifier ID {
 		print_grammar_rule("parameter_list", "parameter_list COMMA type_specifier");
 		$$ = new SymbolInfo("", "parameter_list");
 		$$->set_param_list($1->get_param_list());
-		$$->add_param("", $3->get_data_type()); // later check if this nameless parameter is used in function definition. if yes, then show error
+		$$->add_param("", $3->get_data_type());
 		check_type_specifier($3->get_data_type(), "");
 		current_function_parameters = $$->get_param_list();
 		$$->set_rule("parameter_list : parameter_list COMMA type_specifier");
@@ -334,7 +339,7 @@ parameter_list : parameter_list COMMA type_specifier ID {
 	| type_specifier {
 		print_grammar_rule("parameter_list", "type_specifier");
 		$$ = new SymbolInfo("", "parameter_list");
-		$$->add_param("", $1->get_data_type()); // later check if this nameless parameter is used in function definition. if yes, then show error
+		$$->add_param("", $1->get_data_type());
 		check_type_specifier($1->get_data_type(), "");
 		current_function_parameters = $$->get_param_list();
 		$$->set_rule("parameter_list : type_specifier");
@@ -345,7 +350,6 @@ parameter_list : parameter_list COMMA type_specifier ID {
 compound_statement : lcurls statements RCURL {
 		print_grammar_rule("compound_statement", "LCURL statements RCURL");
 		$$ = new SymbolInfo("", "compound_statement");
-		comp_statement = $$;
 		sym->print('A', logout);
 		sym->exit_scope();
 		$$->set_rule("compound_statement : LCURL statements RCURL");
@@ -354,7 +358,6 @@ compound_statement : lcurls statements RCURL {
 	| lcurls error RCURL {
 		print_grammar_rule("compound_statement", "LCURL RCURL");
 		$$ = new SymbolInfo("", "compound_statement");
-		comp_statement = $$;
 		sym->print('A', logout);
 		sym->exit_scope();
 		$$->set_rule("compound_statement : LCURL RCURL");
@@ -363,7 +366,6 @@ compound_statement : lcurls statements RCURL {
 	| lcurls RCURL {
 		print_grammar_rule("compound_statement", "LCURL RCURL");
 		$$ = new SymbolInfo("", "compound_statement");
-		comp_statement = $$;
 		sym->print('A', logout);
 		sym->exit_scope();
 		$$->set_rule("compound_statement : LCURL RCURL");
@@ -382,7 +384,7 @@ var_declaration : type_specifier declaration_list SEMICOLON {
 		print_grammar_rule("var_declaration", "type_specifier declaration_list SEMICOLON");	
 		$$ = new SymbolInfo("", "var_declaration", $1->get_data_type());
 		insert_symbols($1->get_data_type(), $2->get_param_list());
-		show_error(SYNTAX, S_DECL_VAR_DECLARATION, "", errorout);
+		show_error(SYNTAX, S_DECL_VAR_DECLARATION, "", errorout, syntax_error_line);
 		$$->set_rule("var_declaration : type_specifier declaration_list SEMICOLON");
 		$$->add_child($1); $$->add_child($2); $$->add_child($4);
 
@@ -390,7 +392,7 @@ var_declaration : type_specifier declaration_list SEMICOLON {
 	| type_specifier error SEMICOLON {
 		print_grammar_rule("var_declaration", "type_specifier declaration_list SEMICOLON");
 		$$ = new SymbolInfo("", "var_declaration", $1->get_data_type());
-		show_error(SYNTAX, S_DECL_VAR_DECLARATION, "", errorout);
+		show_error(SYNTAX, S_DECL_VAR_DECLARATION, "", errorout, syntax_error_line);
 		$$->set_rule("var_declaration : type_specifier SEMICOLON");
 		$$->add_child($1); $$->add_child($3);
 	}
@@ -487,8 +489,7 @@ statement : var_declaration {
 		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($5); $$->add_child($6); $$->add_child($7);
 	}
 	| IF LPAREN expression RPAREN statement %prec THEN {
-		// how did you resolve the conflict? check at book 189 page
-		// The precedence of the token to shift must be higher than the precedence of the rule to reduce, so %nonassoc ELSE must come after %nonassoc THEN or %nonassoc LOWER_THAN_ELSE
+		// use the precedence of THEN here
 		print_grammar_rule("statement", "IF LPAREN expression RPAREN statement %prec THEN");
 		$$ = new SymbolInfo("", "statement");
 		$$->set_rule("statement : IF LPAREN expression RPAREN statement");
@@ -520,6 +521,7 @@ statement : var_declaration {
 		$$ = new SymbolInfo("", "statement");
 		$$->set_rule("statement : RETURN expression SEMICOLON");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3);
+		// add return type check here
 	}
 	;
 	  
@@ -537,7 +539,7 @@ expression_statement : SEMICOLON {
 		$$->add_child($1); $$->add_child($2);
 	}
 	| error SEMICOLON {
-		show_error(SYNTAX, S_EXP_STATEMENT, "", errorout);
+		show_error(SYNTAX, S_EXP_STATEMENT, "", errorout, syntax_error_line);
 		$$ = new SymbolInfo("", "expression_statement");
 		free_s($2);
 	}
@@ -881,7 +883,7 @@ argument_list : arguments {
 	}
 	| arguments error {
 		print_grammar_rule("argument_list", "arguments");
-		show_error(SYNTAX, S_ARG_LIST, "", errorout);
+		show_error(SYNTAX, S_ARG_LIST, "", errorout, syntax_error_line);
 		$$ = new SymbolInfo("", "argument_list");
 		$$->set_param_list($1->get_param_list());
 		$$->set_rule("argument_list : arguments");
@@ -919,7 +921,8 @@ lcurls : LCURL {
 		// insert_function() whether two non-empty names are same or not
 		for (const Param& they : current_function_parameters) {
 			if (they.name == "") {// nameless, no need to insert 
-				show_error(SYNTAX, S_PARAM_NAMELESS, "", errorout);
+				// show_error(SYNTAX, S_PARAM_NAMELESS, "", errorout);
+				errorout << "nameless parameter" << endl;
 				continue;
 			}
 			SymbolInfo* another = new SymbolInfo(they.name, "ID", they.data_type);
@@ -929,7 +932,7 @@ lcurls : LCURL {
 				show_error(SEMANTIC, PARAM_REDEFINITION, another->get_name(), errorout);
 				// in sample output, after any failure, the next arguments are not inserted to the symbol table
 				// so we will break the loop
-				delete another;
+				free_s(another);
 				break;
 			}
 		}
