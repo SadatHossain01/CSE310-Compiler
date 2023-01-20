@@ -547,14 +547,14 @@ expression_statement : SEMICOLON {
 	| expression SEMICOLON {
 		print_grammar_rule("expression_statement", "expression SEMICOLON");
 		$$ = new SymbolInfo("", "expression_statement");
-		$$->set_data_type($1->get_data_type()); // result of an expression will have a certain data type, won't it?
+		$$->set_data_type($1->get_data_type()); // result of an expression will have a certain data type
 		$$->set_rule("expression_statement : expression SEMICOLON");
 		$$->add_child($1); $$->add_child($2);
 	}
 	| error SEMICOLON {
 		show_error(SYNTAX, S_EXP_STATEMENT, "", errorout, syntax_error_line);
 		$$ = new SymbolInfo("", "expression_statement");
-		free_s($2);
+		free_s($2); // as this SEMICOLON cannot be passed to any parent
 	}
 	;
 	  
@@ -574,11 +574,11 @@ variable : ID {
 		$$->add_child($1);
 	}	
 	| ID LSQUARE expression RSQUARE {
-		// it has to be an array now
 		print_grammar_rule("variable", "ID LSQUARE expression RSQUARE");
 		$$ = new SymbolInfo($1->get_name(), "VARIABLE", $1->get_data_type());
 		
 		SymbolInfo* res = sym->search($1->get_name(), 'A');
+		// it has to be an array now
 		if (res == nullptr) {
 			show_error(SEMANTIC, UNDECLARED_VARIABLE, $1->get_name(), errorout);
 		}
