@@ -60,6 +60,9 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out,
             case CONFLICTING_TYPE:
                 out << "Conflicting types for \'" << str << "\'" << endl;
                 break;
+            case RETURNING_IN_VOID:
+                out << "Function return type has been declared void" << endl;
+                break;
             case VOID_TYPE:
                 out << "Variable or field ";
                 if (str != "") out << "\'" << str << "\' ";

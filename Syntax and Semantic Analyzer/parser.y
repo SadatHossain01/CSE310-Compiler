@@ -19,6 +19,7 @@ int syntax_error_line;
 SymbolTable *sym;
 extern FILE* yyin;
 vector<Param> current_function_parameters;
+string func_return_type;
 
 ofstream treeout, errorout, logout;
 
@@ -284,22 +285,28 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 	}
 	;
 	 
-func_definition : type_specifier ID LPAREN parameter_list RPAREN { insert_function($2->get_name(), $1->get_data_type(), $4->get_param_list(), true); } compound_statement {
+func_definition : type_specifier ID LPAREN parameter_list RPAREN { 
+			func_return_type = $1->get_data_type(); 
+			insert_function($2->get_name(), $1->get_data_type(), $4->get_param_list(), true); } 
+		compound_statement {
 		print_grammar_rule("func_definition", "type_specifier ID LPAREN parameter_list RPAREN compound_statement");
 		$$ = new SymbolInfo("", "func_definition");
 		$$->set_rule("func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement");
 		// notice that compound_statement is not $6, it is $7
 		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($5); $$->add_child($7);
 	}
-	| type_specifier ID LPAREN error RPAREN compound_statement {
+	| type_specifier ID LPAREN error RPAREN { func_return_type = $1->get_data_type(); } compound_statement {
 		// not inserting the function if any error occurs in parameter list
 		// print_grammar_rule("func_definition", "type_specifier ID LPAREN parameter_list RPAREN compound_statement");
 		$$ = new SymbolInfo("", "func_definition");
 		show_error(SYNTAX, S_PARAM_FUNC_DEFINITION, "", errorout, syntax_error_line);
 		$$->set_rule("func_definition : type_specifier ID LPAREN RPAREN compound_statement");
-		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($5); $$->add_child($6);
+		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($5); $$->add_child($7);
 	}
-	| type_specifier ID LPAREN RPAREN { insert_function($2->get_name(), $1->get_data_type(), {}, true); } compound_statement {
+	| type_specifier ID LPAREN RPAREN { 
+			func_return_type = $1->get_data_type();
+			insert_function($2->get_name(), $1->get_data_type(), {}, true); } 
+		compound_statement {
 		print_grammar_rule("func_definition", "type_specifier ID LPAREN RPAREN compound_statement");
 		$$ = new SymbolInfo("", "func_definition");
 		$$->set_rule("func_definition : type_specifier ID LPAREN RPAREN compound_statement");
@@ -521,7 +528,13 @@ statement : var_declaration {
 		$$ = new SymbolInfo("", "statement");
 		$$->set_rule("statement : RETURN expression SEMICOLON");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3);
-		// add return type check here
+		// adding return type check here
+		if (func_return_type == "VOID") {
+			show_error(SEMANTIC, RETURNING_IN_VOID, "", errorout);
+		}
+		else if (func_return_type == "INT" && $2->get_data_type() == "FLOAT") {
+			show_error(WARNING, FLOAT_TO_INT, "", errorout);
+		}
 	}
 	;
 	  

@@ -25,8 +25,9 @@ enum error_type {
     VARIABLE_REDEFINITION,
     DIFFERENT_REDECLARATION,  // originally declared one thing, but now being
                               // declared as another thing (or data type)
-    CONFLICTING_TYPE,  // return type mismatch or number of parameters mismatch
-                       // or any individual type mismatch
+    CONFLICTING_TYPE,         // number of parameters mismatch
+                              // or any individual type mismatch
+    RETURNING_IN_VOID,
     VOID_TYPE,
     PARAM_NAMELESS,
     UNDECLARED_VARIABLE,
