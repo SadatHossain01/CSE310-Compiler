@@ -199,7 +199,6 @@ void insert_symbols(const string& type, const vector<Param>& param_list) {
 
 %destructor {  
 	// handles error tokens and start symbol
-	$$->delete_tree();
 	free_s($$);
 } <symbol_info>
 
@@ -216,7 +215,6 @@ start : program {
 		$$->add_child($1);
 		$$->print_tree_node(treeout);
 		// the following is being handled in %destructor
-		// $$->delete_tree();
 		// free_s($$);
 	}
 	;

@@ -123,14 +123,13 @@ class SymbolInfo {
                              // check that separately
         }
     }
-    void delete_tree() {
+    ~SymbolInfo() {
         for (SymbolInfo *child : children) {
-            child->delete_tree();
             delete child;
         }
         children.clear();
+        param_list.clear();
     }
-    ~SymbolInfo() { param_list.clear(); }
 };
 
 class ScopeTable {
