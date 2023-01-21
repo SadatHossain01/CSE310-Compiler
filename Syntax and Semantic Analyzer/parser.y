@@ -20,6 +20,7 @@ SymbolTable *sym;
 extern FILE* yyin;
 vector<Param> current_function_parameters;
 string func_return_type;
+SymbolInfo* error_token;
 
 ofstream treeout, errorout, logout;
 
@@ -186,6 +187,14 @@ void insert_symbols(const string& type, const vector<Param>& param_list) {
 	}
 }
 
+SymbolInfo* create_error_token(const string& rule) {
+	SymbolInfo* error_token = new SymbolInfo("", "error");
+	error_token->set_rule(rule);
+	error_token->set_line(syntax_error_line, syntax_error_line);
+	error_token->set_terminal(true);
+	return error_token;
+}
+
 %}
 
 %nonassoc THEN
@@ -254,6 +263,9 @@ unit : var_declaration {
 	| error {
 		show_error(SYNTAX, S_UNIT, "", errorout);
 		$$ = new SymbolInfo("", "unit");
+		$$->set_rule("unit : error");
+		$$->set_line(syntax_error_line, syntax_error_line);
+		$$->set_terminal(true);
 	}
     ;
      
@@ -266,12 +278,13 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($5); $$->add_child($6);
 	}
 	| type_specifier ID LPAREN error RPAREN SEMICOLON {
-		print_grammar_rule("func_declaration", "type_specifier ID LPAREN RPAREN SEMICOLON");
+		print_grammar_rule("func_declaration", "type_specifier ID LPAREN parameter_list RPAREN SEMICOLON");
 		current_function_parameters.clear();
 		$$ = new SymbolInfo("", "func_declaration");
 		insert_function($2->get_name(), $1->get_data_type(), {}, false);
 		$$->set_rule("func_declaration : type_specifier ID LPAREN RPAREN SEMICOLON");
-		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($5); $$->add_child($6);
+		SymbolInfo* error_token = create_error_token("parameter_list : error");
+		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child(error_token); $$->add_child($5); $$->add_child($6);
 	}
 	| type_specifier ID LPAREN RPAREN SEMICOLON {
 		print_grammar_rule("func_declaration", "type_specifier ID LPAREN RPAREN SEMICOLON");
@@ -298,8 +311,9 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {
 		// print_grammar_rule("func_definition", "type_specifier ID LPAREN parameter_list RPAREN compound_statement");
 		$$ = new SymbolInfo("", "func_definition");
 		show_error(SYNTAX, S_PARAM_FUNC_DEFINITION, "", errorout, syntax_error_line);
-		$$->set_rule("func_definition : type_specifier ID LPAREN RPAREN compound_statement");
-		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($5); $$->add_child($7);
+		SymbolInfo* error_token = create_error_token("parameter_list : error");
+		$$->set_rule("func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement");
+		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child(error_token); $$->add_child($5); $$->add_child($7);
 	}
 	| type_specifier ID LPAREN RPAREN { 
 			func_return_type = $1->get_data_type();
@@ -398,8 +412,9 @@ var_declaration : type_specifier declaration_list SEMICOLON {
 		print_grammar_rule("var_declaration", "type_specifier declaration_list SEMICOLON");
 		$$ = new SymbolInfo("", "var_declaration", $1->get_data_type());
 		show_error(SYNTAX, S_DECL_VAR_DECLARATION, "", errorout, syntax_error_line);
-		$$->set_rule("var_declaration : type_specifier SEMICOLON");
-		$$->add_child($1); $$->add_child($3);
+		$$->set_rule("var_declaration : type_specifier declaration_list SEMICOLON");
+		SymbolInfo* error_token = create_error_token("declaration_list : error");
+		$$->add_child($1); $$->add_child(error_token); $$->add_child($3);
 	}
 	;
  		 
@@ -552,7 +567,9 @@ expression_statement : SEMICOLON {
 	| error SEMICOLON {
 		show_error(SYNTAX, S_EXP_STATEMENT, "", errorout, syntax_error_line);
 		$$ = new SymbolInfo("", "expression_statement");
-		free_s($2); // as this SEMICOLON cannot be passed to any parent
+		$$->set_rule("expression_statement : expression SEMICOLON");
+		SymbolInfo* error_token = create_error_token("expression : error");
+		$$->add_child(error_token); $$->add_child($2);
 	}
 	;
 	  
