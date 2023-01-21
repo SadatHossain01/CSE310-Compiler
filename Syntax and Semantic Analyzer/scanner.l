@@ -17,7 +17,6 @@ using namespace std;
 
 extern SymbolTable* sym;
 int line_count = 1;
-int cur_line_start = 1;
 int error_count = 0;
 
 extern ofstream logout;
