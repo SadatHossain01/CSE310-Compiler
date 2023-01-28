@@ -3,12 +3,16 @@
 #include <iostream>
 #include <string>
 
+#include "symbol_table.h"
+
 using std::endl;
 using std::ostream;
 using std::string;
 
 extern int error_count;
 extern int line_count;
+extern ofstream treeout, errorout, logout;
+extern SymbolTable* sym;
 
 enum error_type {
     MULTICHAR,
@@ -62,3 +66,11 @@ enum reset_type { CHAR_RESET, STRING_RESET, COMMENT_RESET };
 
 void show_error(error_class, error_type, const string&, ostream&,
                 int line_no = line_count);
+SymbolInfo* create_error_token(const string&, int);
+void print_grammar_rule(const string&, const string&);
+void free_s(SymbolInfo*);
+bool check_type_specifier(const string&, const string&);
+string type_cast(const string&, const string&);
+bool is_zero(const string&);
+void insert_function(const string&, const string&, const vector<Param>&, bool);
+void insert_symbols(const string&, const vector<Param>&);

@@ -172,3 +172,166 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out,
         }
     }
 }
+SymbolInfo* create_error_token(const string& rule, int syntax_error_line) {
+    SymbolInfo* error_token = new SymbolInfo("", "error");
+    error_token->set_rule(rule);
+    error_token->set_line(syntax_error_line, syntax_error_line);
+    error_token->set_terminal(true);
+    return error_token;
+}
+void print_grammar_rule(const string& parent, const string& children) {
+    logout << parent << " : " << children << " " << endl;
+}
+void free_s(SymbolInfo* s) {
+    if (s != nullptr) {
+        delete s;
+        s = nullptr;
+    }
+}
+bool check_type_specifier(const string& ty, const string& name) {
+    if (ty == "VOID") {
+        show_error(SEMANTIC, VOID_TYPE, name, errorout);
+        return false;
+    }
+    return true;
+}
+string type_cast(const string& s1, const string& s2) {
+    if (s1 == "VOID" || s2 == "VOID" || s1 == "ERROR" || s2 == "ERROR")
+        return "ERROR";
+    else if (s1 == "FLOAT" || s2 == "FLOAT") return "FLOAT";
+    else return "INT";
+}
+bool is_zero(const string& str) {
+    // already guaranteed to be a valid number from lexer, so no need to check
+    // that again
+    for (char c : str) {
+        if (c != '0' && c != 'e' && c != 'E') return false;
+    }
+    return true;
+}
+void insert_function(const string& func_name, const string& type_specifier,
+                     const vector<Param>& param_list, bool is_definition) {
+    SymbolInfo* function =
+        new SymbolInfo(func_name, "FUNCTION", type_specifier);
+    if (is_definition) function->set_func_type(DEFINITION);
+    else {
+        function->set_func_type(DECLARATION);
+    }
+    function->set_param_list(param_list);
+
+    if (function->get_func_type() == DEFINITION) {
+        // no parameter can be nameless in a function definition
+        for (int i = 0; i < param_list.size(); i++) {
+            if (param_list[i].name == "") {
+                show_error(SEMANTIC, PARAM_NAMELESS, function->get_name(),
+                           errorout);
+                free_s(function);
+                return;  // returning as any such function is not acceptable
+            }
+        }
+        // just check the types of the parameters
+        SymbolInfo* og_func = sym->search(function->get_name(), 'A');
+        if (og_func == nullptr) {
+            // this is both declaration and definition then
+            sym->insert(function);
+        } else {
+            if (og_func->get_func_type() == NONE) {
+                // same name variable already present with this name
+                show_error(SEMANTIC, DIFFERENT_REDECLARATION,
+                           function->get_name(), errorout);
+            } else if (og_func->get_func_type() == DEFINITION) {
+                // function definition already exists
+                show_error(SEMANTIC, FUNC_REDEFINITION, function->get_name(),
+                           errorout);
+            }
+            // already declaration exists
+            else if (og_func->get_data_type() != type_specifier) {
+                // return type mismatch
+                show_error(SEMANTIC, CONFLICTING_TYPE, function->get_name(),
+                           errorout);
+            } else if (og_func->get_param_list().size() != param_list.size()) {
+                // parameter size mismatch
+                show_error(SEMANTIC, CONFLICTING_TYPE, function->get_name(),
+                           errorout);
+            } else {
+                // defintion param type and declaraion param type mismatch check
+                vector<Param> og_list = og_func->get_param_list();
+                vector<Param> now_list = function->get_param_list();
+                for (int i = 0; i < og_list.size(); i++) {
+                    if (og_list[i].data_type != now_list[i].data_type) {
+                        show_error(SEMANTIC, CONFLICTING_TYPE,
+                                   function->get_name(), errorout);
+                    }
+                }
+            }
+            og_func->set_func_type(
+                DEFINITION);  // set the func type to definition
+            free_s(function);
+        }
+    } else {
+        // if it is a function definition, the check is done in lcurls -> LCURL,
+        // check there but if prototype, check not done there
+        for (int i = 0; i < param_list.size(); i++) {
+            for (int j = i + 1; j < param_list.size(); j++) {
+                // checking if any two parameters have same name except both
+                // being ""
+                if (param_list[i].name == "") continue;
+                if (param_list[i].name == param_list[j].name) {
+                    show_error(SEMANTIC, PARAM_REDEFINITION, param_list[i].name,
+                               errorout);
+                    free_s(function);
+                    return;  // returning as any such function is not acceptable
+                }
+            }
+        }
+        // this is just a prototype
+        SymbolInfo* og_func = sym->search(function->get_name(), 'A');
+        if (og_func == nullptr) {
+            // this is both declaration and definition then
+            sym->insert(function);
+        } else {
+            if (og_func->get_func_type() == NONE) {
+                // same name variable already present with this name
+                show_error(SEMANTIC, DIFFERENT_REDECLARATION,
+                           function->get_name(), errorout);
+            } else if (og_func->get_func_type() != NONE) {
+                // function definition already exists
+                show_error(SEMANTIC, FUNC_REDEFINITION, function->get_name(),
+                           errorout);
+            }
+            free_s(function);
+        }
+    }
+}
+void insert_symbols(const string& type, const vector<Param>& param_list) {
+    string str = "";
+    vector<Param> cur_list = param_list;
+    for (int i = 0; i < cur_list.size(); i++) {
+        str += cur_list[i].name;
+        if (i != cur_list.size() - 1) str += ", ";
+    }
+    bool ok = check_type_specifier(type, str);
+    if (ok) {
+        for (int i = 0; i < cur_list.size(); i++) {
+            // now we will set the data_type of all these symbols to $1
+            cur_list[i].data_type = type;
+            // cerr << cur_list[i].data_type << " " << cur_list[i].name << endl;
+            SymbolInfo* res = sym->search(cur_list[i].name, 'C');
+            if (res == nullptr) {
+                SymbolInfo* new_sym = new SymbolInfo(cur_list[i].name, "ID",
+                                                     cur_list[i].data_type);
+                if (cur_list[i].is_array) new_sym->set_array(true);
+                sym->insert(new_sym);
+            } else if (res->get_data_type() != cur_list[i].data_type) {
+                // cerr << "Previous: " << res->get_data_type() << " current: "
+                // << cur_list[i].data_type << " " << cur_list[i].name << "
+                // line: " << line_count << endl;
+                show_error(SEMANTIC, CONFLICTING_TYPE, cur_list[i].name,
+                           errorout);
+            } else {
+                show_error(SEMANTIC, VARIABLE_REDEFINITION, cur_list[i].name,
+                           errorout);
+            }
+        }
+    }
+}
