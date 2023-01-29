@@ -47,9 +47,8 @@ int yylex(void);
 	free_s($$);
 } <symbol_info>
 
-%token <symbol_info> IF ELSE FOR WHILE DO BREAK RETURN SWITCH CASE DEFAULT CONTINUE PRINTLN ADDOP INCOP DECOP RELOP ASSIGNOP LOGICOP BITOP NOT LPAREN RPAREN LCURL RCURL LSQUARE RSQUARE COMMA SEMICOLON INT CHAR FLOAT DOUBLE VOID
-%token <symbol_info> CONST_INT CONST_FLOAT ID MULOP
-%type <symbol_info> start program unit var_declaration func_declaration func_definition type_specifier parameter_list compound_statement statements declaration_list statement expression expression_statement logic_expression rel_expression simple_expression term unary_expression factor variable argument_list arguments lcurls
+%token <symbol_info> IF ELSE FOR WHILE DO BREAK RETURN SWITCH CASE DEFAULT CONTINUE PRINTLN ADDOP INCOP DECOP RELOP ASSIGNOP LOGICOP BITOP NOT LPAREN RPAREN LCURL RCURL LSQUARE RSQUARE COMMA SEMICOLON INT CHAR FLOAT DOUBLE VOID CONST_INT CONST_FLOAT ID MULOP
+%type <symbol_info> start program unit var_declaration func_declaration func_definition type_specifier parameter_list compound_statement statements declaration_list statement expression expression_statement logic_expression rel_expression simple_expression term unary_expression factor variable argument_list arguments LCURL_
 
 %%
 
@@ -204,7 +203,7 @@ parameter_list : parameter_list COMMA type_specifier ID {
 	}
 	;
 	
-compound_statement : lcurls statements RCURL {
+compound_statement : LCURL_ statements RCURL {
 		print_grammar_rule("compound_statement", "LCURL statements RCURL");
 		$$ = new SymbolInfo("", "compound_statement");
 		sym->print('A', logout);
@@ -212,7 +211,7 @@ compound_statement : lcurls statements RCURL {
 		$$->set_rule("compound_statement : LCURL statements RCURL");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3);
 	}
-	| lcurls error RCURL {
+	| LCURL_ error RCURL {
 		print_grammar_rule("compound_statement", "LCURL RCURL");
 		$$ = new SymbolInfo("", "compound_statement");
 		sym->print('A', logout);
@@ -220,7 +219,7 @@ compound_statement : lcurls statements RCURL {
 		$$->set_rule("compound_statement : LCURL RCURL");
 		$$->add_child($1); $$->add_child($3);
 	}
-	| lcurls RCURL {
+	| LCURL_ RCURL {
 		print_grammar_rule("compound_statement", "LCURL RCURL");
 		$$ = new SymbolInfo("", "compound_statement");
 		sym->print('A', logout);
@@ -774,12 +773,12 @@ arguments : arguments COMMA logic_expression {
 	}
 	;
 
-lcurls : LCURL {
+LCURL_ : LCURL {
 		$$ = $1;
 		sym->enter_scope();
 		for (const Param& they : current_function_parameters) {
 			if (they.name == "") {// nameless, no need to insert 
-				// show_error(SYNTAX, S_PARAM_NAMELESS, "", errorout);
+				show_error(SYNTAX, S_PARAM_NAMELESS, "", errorout);
 				continue;
 			}
 			SymbolInfo* another = new SymbolInfo(they.name, "ID", they.data_type);
@@ -787,8 +786,7 @@ lcurls : LCURL {
 			if (!sym->insert(another)) {
 				// insertion failed
 				show_error(SEMANTIC, PARAM_REDEFINITION, another->get_name(), errorout);
-				// in sample output, after any failure, the next arguments are not inserted to the symbol table
-				// so we will break the loop
+				// in sample output, after any failure, the next arguments are not inserted to the symbol table, so breaking
 				free_s(another);
 				break;
 			}
@@ -830,4 +828,3 @@ int main(int argc,char *argv[]) {
 	logout.close();
 	return 0;
 }
-
