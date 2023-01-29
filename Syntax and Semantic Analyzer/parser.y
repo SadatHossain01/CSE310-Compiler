@@ -821,10 +821,6 @@ factor : variable {
 		else if (res->get_func_type() == NONE) {
 			show_error(SEMANTIC, NOT_A_FUNCTION, $1->get_name(), errorout);
 		}
-		else if (res->get_func_type() == DECLARATION) {
-			// show_error(SEMANTIC, UNDEFINED_FUNCTION, $1->get_name(), errorout);
-			// gcc does not provide error in above scenario, runtime error happens
-		}
 		else if (res->get_param_list().size() < $3->get_param_list().size()) {
 			show_error(SEMANTIC, TOO_MANY_ARGUMENTS, $1->get_name(), errorout);
 		}
@@ -921,6 +917,8 @@ argument_list : arguments {
 		// empty argument list, as one of the example of the sample suggests
 		print_grammar_rule("argument_list", "");
 		$$ = new SymbolInfo("", "argument_list");
+		$$->set_rule("argument_list : ");
+		$$->set_line(line_count, line_count);
 	}
 	;
 	
@@ -950,7 +948,6 @@ lcurls : LCURL {
 		for (const Param& they : current_function_parameters) {
 			if (they.name == "") {// nameless, no need to insert 
 				// show_error(SYNTAX, S_PARAM_NAMELESS, "", errorout);
-				errorout << "nameless parameter" << endl;
 				continue;
 			}
 			SymbolInfo* another = new SymbolInfo(they.name, "ID", they.data_type);

@@ -780,7 +780,6 @@ lcurls : LCURL {
 		for (const Param& they : current_function_parameters) {
 			if (they.name == "") {// nameless, no need to insert 
 				// show_error(SYNTAX, S_PARAM_NAMELESS, "", errorout);
-				errorout << "nameless parameter" << endl;
 				continue;
 			}
 			SymbolInfo* another = new SymbolInfo(they.name, "ID", they.data_type);
