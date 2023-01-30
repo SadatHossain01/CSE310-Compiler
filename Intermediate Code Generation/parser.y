@@ -20,7 +20,6 @@ SymbolTable *sym;
 extern FILE* yyin;
 vector<Param> current_function_parameters;
 string func_return_type;
-SymbolInfo* error_token;
 
 ofstream treeout, errorout, logout;
 void yyerror(const string& s) {
