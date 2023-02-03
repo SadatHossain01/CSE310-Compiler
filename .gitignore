@@ -15,4 +15,5 @@ Syntax and Semantic Analyzer/democodes/
 Syntax and Semantic Analyzer/*.c
 Syntax and Semantic Analyzer/*.txt
 Intermediate Code Generation/*.txt
+Intermediate Code Generation/*.c
 Intermediate Code Generation/.~*

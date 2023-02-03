@@ -115,7 +115,7 @@ class SymbolInfo {
         out << "<Line: ";
         if (terminal) out << start_line;
         else out << start_line << "-" << end_line;
-        out << ">" << endl;
+        out << ">\n";
         for (SymbolInfo *child : children) {
             child->print_tree_node(
                 out,

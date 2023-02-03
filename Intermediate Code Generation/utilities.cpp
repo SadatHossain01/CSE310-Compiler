@@ -9,31 +9,31 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out,
 
         switch (e) {
             case MULTICHAR:
-                out << "MULTICHAR_CONST_CHAR " << str << endl;
+                out << "MULTICHAR_CONST_CHAR " << str << "\n";
                 break;
             case EMPTY_CHAR:
-                out << "EMPTY_CONST_CHAR " << str << endl;
+                out << "EMPTY_CONST_CHAR " << str << "\n";
                 break;
             case UNFINISHED_CHAR:
-                out << "UNFINISHED_CONST_CHAR " << str << endl;
+                out << "UNFINISHED_CONST_CHAR " << str << "\n";
                 break;
             case UNRECOGNIZED:
-                out << "UNRECOGNIZED CHAR " << str << endl;
+                out << "UNRECOGNIZED CHAR " << str << "\n";
                 break;
             case TOO_DECIMAL:
-                out << "TOO_MANY_DECIMAL_POINTS " << str << endl;
+                out << "TOO_MANY_DECIMAL_POINTS " << str << "\n";
                 break;
             case ILL_FORMED:
-                out << "ILLFORMED_NUMBER " << str << endl;
+                out << "ILLFORMED_NUMBER " << str << "\n";
                 break;
             case INVALID_SUFFIX:
-                out << "INVALID_ID_SUFFIX_NUM_PREFIX " << str << endl;
+                out << "INVALID_ID_SUFFIX_NUM_PREFIX " << str << "\n";
                 break;
             case UNFINISHED_STRING:
-                out << "UNFINISHED_STRING " << str << endl;
+                out << "UNFINISHED_STRING " << str << "\n";
                 break;
             case UNFINISHED_COMMENT:
-                out << "UNFINISHED_COMMENT " << str << endl;
+                out << "UNFINISHED_COMMENT " << str << "\n";
                 break;
             default:
                 break;
@@ -45,75 +45,91 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out,
 
         switch (e) {
             case PARAM_REDEFINITION:
-                out << "Redefinition of parameter \'" << str << "\'" << endl;
+                out << "Redefinition of parameter \'" << str << "\'"
+                    << "\n";
                 break;
             case FUNC_REDEFINITION:
-                out << "Redefinition of function \'" << str << "\'" << endl;
+                out << "Redefinition of function \'" << str << "\'"
+                    << "\n";
                 break;
             case VARIABLE_REDEFINITION:
-                out << "Redefinition of variable \'" << str << "\'" << endl;
+                out << "Redefinition of variable \'" << str << "\'"
+                    << "\n";
                 break;
             case DIFFERENT_REDECLARATION:
                 out << "\'" << str
-                    << "\' redeclared as different kind of symbol" << endl;
+                    << "\' redeclared as different kind of symbol"
+                    << "\n";
                 break;
             case CONFLICTING_TYPE:
-                out << "Conflicting types for \'" << str << "\'" << endl;
+                out << "Conflicting types for \'" << str << "\'"
+                    << "\n";
                 break;
             case RETURNING_IN_VOID:
-                out << "Function return type has been declared void" << endl;
+                out << "Function return type has been declared void"
+                    << "\n";
                 break;
             case VOID_TYPE:
                 out << "Variable or field ";
                 if (str != "") out << "\'" << str << "\' ";
-                out << "declared void" << endl;
+                out << "declared void"
+                    << "\n";
                 break;
             case PARAM_NAMELESS:
                 out << "Nameless parameter \'" << str
-                    << "\' not allowed in function definition" << endl;
+                    << "\' not allowed in function definition"
+                    << "\n";
                 break;
             case UNDECLARED_VARIABLE:
-                out << "Undeclared variable \'" << str << "\'" << endl;
+                out << "Undeclared variable \'" << str << "\'"
+                    << "\n";
                 break;
             case UNDECLARED_FUNCTION:
-                out << "Undeclared function \'" << str << "\'" << endl;
+                out << "Undeclared function \'" << str << "\'"
+                    << "\n";
                 break;
             case UNDEFINED_FUNCTION:
-                out << "Undefined function \'" << str << "\'" << endl;
+                out << "Undefined function \'" << str << "\'"
+                    << "\n";
                 break;
             case ARRAY_AS_VAR:
                 out << "Type mismatch for \'" << str << "\', is an array"
-                    << endl;
+                    << "\n";
                 break;
             case FUNC_AS_VAR:
                 out << "Type mismatch for \'" << str << "\', is a function"
-                    << endl;
+                    << "\n";
                 break;
             case ARG_TYPE_MISMATCH:
-                out << "Type mismatch for argument " << str << endl;
+                out << "Type mismatch for argument " << str << "\n";
                 break;
             case ERROR_AS_ARRAY:
-                out << "\'" << str << "\' is not an array" << endl;
+                out << "\'" << str << "\' is not an array"
+                    << "\n";
                 break;
             case INDEX_NOT_INT:
-                out << "Array subscript is not an integer" << endl;
+                out << "Array subscript is not an integer"
+                    << "\n";
                 break;
             case MOD_OPERAND:
-                out << "Operands of modulus must be integers" << endl;
+                out << "Operands of modulus must be integers"
+                    << "\n";
                 break;
             case TOO_MANY_ARGUMENTS:
                 out << "Too many arguments to function \'" << str << "\'"
-                    << endl;
+                    << "\n";
                 break;
             case TOO_FEW_ARGUMENTS:
                 out << "Too few arguments to function \'" << str << "\'"
-                    << endl;
+                    << "\n";
                 break;
             case NOT_A_FUNCTION:
-                out << "\'" << str << "\' is not a function" << endl;
+                out << "\'" << str << "\' is not a function"
+                    << "\n";
                 break;
             case VOID_USAGE:
-                out << "Void cannot be used in expression" << endl;
+                out << "Void cannot be used in expression"
+                    << "\n";
                 break;
             default:
                 break;
@@ -124,22 +140,28 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out,
 
         switch (e) {
             case S_PARAM_FUNC_DEFINITION:
-                out << "parameter list of function definition" << endl;
+                out << "parameter list of function definition"
+                    << "\n";
                 break;
             case S_DECL_VAR_DECLARATION:
-                out << "declaration list of variable declaration" << endl;
+                out << "declaration list of variable declaration"
+                    << "\n";
                 break;
             case S_UNIT:
-                out << "unit" << endl;
+                out << "unit"
+                    << "\n";
                 break;
             case S_EXP_STATEMENT:
-                out << "expression of expression statement" << endl;
+                out << "expression of expression statement"
+                    << "\n";
                 break;
             case S_ARG_LIST:
-                out << "argument list" << endl;
+                out << "argument list"
+                    << "\n";
                 break;
             case S_PARAM_NAMELESS:
-                out << "nameless parameter" << endl;
+                out << "nameless parameter"
+                    << "\n";
                 break;
             default:
                 break;
@@ -151,21 +173,23 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out,
         switch (e) {
             case FLOAT_TO_INT:
                 out << "possible loss of data in assignment of FLOAT to INT"
-                    << endl;
+                    << "\n";
                 break;
             case MOD_BY_ZERO:
-                out << "division by zero" << endl;
+                out << "division by zero"
+                    << "\n";
                 break;
             case DIV_BY_ZERO:
-                out << "division by zero" << endl;
+                out << "division by zero"
+                    << "\n";
                 break;
             case BITWISE_FLOAT:
                 out << "Operands of bitwise operation should be integers"
-                    << endl;
+                    << "\n";
                 break;
             case LOGICAL_FLOAT:
                 out << "Operands of logical operation should be integers"
-                    << endl;
+                    << "\n";
                 break;
             default:
                 break;
@@ -180,7 +204,8 @@ SymbolInfo* create_error_token(const string& rule, int syntax_error_line) {
     return error_token;
 }
 void print_grammar_rule(const string& parent, const string& children) {
-    logout << parent << " : " << children << " " << endl;
+    logout << parent << " : " << children << " "
+           << "\n";
 }
 void free_s(SymbolInfo* s) {
     if (s != nullptr) {
@@ -315,7 +340,7 @@ void insert_symbols(const string& type, const vector<Param>& param_list) {
         for (int i = 0; i < cur_list.size(); i++) {
             // now we will set the data_type of all these symbols to $1
             cur_list[i].data_type = type;
-            // cerr << cur_list[i].data_type << " " << cur_list[i].name << endl;
+            // cerr << cur_list[i].data_type << " " << cur_list[i].name << "\n";
             SymbolInfo* res = sym->search(cur_list[i].name, 'C');
             if (res == nullptr) {
                 SymbolInfo* new_sym = new SymbolInfo(cur_list[i].name, "ID",
@@ -325,7 +350,7 @@ void insert_symbols(const string& type, const vector<Param>& param_list) {
             } else if (res->get_data_type() != cur_list[i].data_type) {
                 // cerr << "Previous: " << res->get_data_type() << " current: "
                 // << cur_list[i].data_type << " " << cur_list[i].name << "
-                // line: " << line_count << endl;
+                // line: " << line_count << "\n";
                 show_error(SEMANTIC, CONFLICTING_TYPE, cur_list[i].name,
                            errorout);
             } else {

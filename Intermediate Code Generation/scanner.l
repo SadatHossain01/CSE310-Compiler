@@ -107,13 +107,13 @@ string get_real_string(string ss) {
 
 void printKeyword() {
 	string cap = capitalize(yytext);
-	// // tokenout << "<" << cap << ", " << yytext << ">" << endl;
-	logout << "Line# " << line_count << ": Token <" << cap << "> Lexeme " << yytext << " found" << endl;
+	// // tokenout << "<" << cap << ", " << yytext << ">" << "\n";
+	logout << "Line# " << line_count << ": Token <" << cap << "> Lexeme " << yytext << " found" << "\n";
 }
 
 void printIdentifier() {
-	logout << "Line# " << line_count << ": Token <ID> Lexeme " << yytext << " found" << endl;
-	// tokenout << "<ID, " << yytext << ">" << endl;
+	logout << "Line# " << line_count << ": Token <ID> Lexeme " << yytext << " found" << "\n";
+	// tokenout << "<ID, " << yytext << ">" << "\n";
 	// bool success = sym->insert(yytext, "ID", logout);
 	// if (success) sym->print('A', logout);
 }
@@ -124,42 +124,42 @@ void printNum(num_type nt, const string& str) {
 	// 	str.pop_back();
 	// }
 	if (nt == INTNUM) {
-		// tokenout << "<CONST_INT, " << str << ">" << endl;
-		logout << "Line# " << line_count << ": Token <CONST_INT> Lexeme " << str << " found" << endl;
+		// tokenout << "<CONST_INT, " << str << ">" << "\n";
+		logout << "Line# " << line_count << ": Token <CONST_INT> Lexeme " << str << " found" << "\n";
 	}
 	else if (nt == FLOATNUM) {
-		// tokenout << "<CONST_FLOAT, " << str << ">" << endl;
-		logout << "Line# " << line_count << ": Token <CONST_FLOAT> Lexeme " << str << " found" << endl;
+		// tokenout << "<CONST_FLOAT, " << str << ">" << "\n";
+		logout << "Line# " << line_count << ": Token <CONST_FLOAT> Lexeme " << str << " found" << "\n";
 	}
 }
 
 void printOpPunc(const string& token) {
-	// tokenout << "<" << token << ", " << yytext << ">" << endl;
-	logout << "Line# " << line_count << ": Token <" << token << "> Lexeme " << yytext << " found" << endl;	
+	// tokenout << "<" << token << ", " << yytext << ">" << "\n";
+	logout << "Line# " << line_count << ": Token <" << token << "> Lexeme " << yytext << " found" << "\n";	
 }
 
 void printChar(const string& str) {
-	// tokenout << "<CONST_CHAR, " << str << ">" << endl;
-	logout << "Line# " << line_count << ": Token <CONST_CHAR> Lexeme " << str << " found" << endl;
+	// tokenout << "<CONST_CHAR, " << str << ">" << "\n";
+	logout << "Line# " << line_count << ": Token <CONST_CHAR> Lexeme " << str << " found" << "\n";
 }
 
 void printString(line_type lt, const string& str1, const string& str2) {
 	if (lt == SINGLE_LINE) {
-		logout << "Line# " << line_count << ": Token <SINGLE LINE STRING> Lexeme " << str1 << " found" << endl;
-		// tokenout << "<SINGLE LINE STRING, " << str2 << ">" << endl; 
+		logout << "Line# " << line_count << ": Token <SINGLE LINE STRING> Lexeme " << str1 << " found" << "\n";
+		// tokenout << "<SINGLE LINE STRING, " << str2 << ">" << "\n"; 
 	}
 	else if (lt == MULTILINE) {
-		logout << "Line# " << line_count << ": Token <MULTI LINE STRING> Lexeme " << str1 << " found" << endl;
-		// tokenout << "<MULTI LINE STRING, " << str2 << ">" << endl;
+		logout << "Line# " << line_count << ": Token <MULTI LINE STRING> Lexeme " << str1 << " found" << "\n";
+		// tokenout << "<MULTI LINE STRING, " << str2 << ">" << "\n";
 	}
 }
 
 void printComment(line_type lt, const string& str) {
 	if (lt == SINGLE_LINE) {
-		logout << "Line# " << line_count << ": Token <SINGLE LINE COMMENT> Lexeme " << str << " found" << endl;
+		logout << "Line# " << line_count << ": Token <SINGLE LINE COMMENT> Lexeme " << str << " found" << "\n";
 	}
 	else if (lt == MULTILINE) {
-		logout << "Line# " << line_count << ": Token <MULTI LINE COMMENT> Lexeme " << str << " found" << endl;
+		logout << "Line# " << line_count << ": Token <MULTI LINE COMMENT> Lexeme " << str << " found" << "\n";
 	}
 }
 

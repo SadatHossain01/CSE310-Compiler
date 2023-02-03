@@ -7,6 +7,7 @@
 #include <vector>
 #include <cassert>
 #include "utilities.h"
+#include "icg_util.h"
 #include "symbol_table.h"
 
 using namespace std;
@@ -22,8 +23,9 @@ vector<Param> current_function_parameters;
 string func_return_type;
 
 ofstream treeout, errorout, logout;
+ofstream codeout, tempout; // keep writing data segment in codeout, code segment in tempout, lastly merge both in codeout
 void yyerror(const string& s) {
-    logout << "Error at line no " << line_count << " : syntax error" << endl;
+    logout << "Error at line no " << line_count << " : syntax error" << "\n";
     syntax_error_line = line_count;
 }
 int yyparse(void);
@@ -51,12 +53,14 @@ int yylex(void);
 
 %%
 
-start : program {
+start : { init_icg(); } program {
 		print_grammar_rule("start", "program");
 		$$ = new SymbolInfo("", "start");
 		$$->set_rule("start : program");
-		$$->add_child($1);
+		$$->add_child($2);
 		$$->print_tree_node(treeout);
+		generate_printing_function();
+		generate_final_assembly();
 	}
 	;
 
@@ -810,6 +814,8 @@ int main(int argc,char *argv[]) {
 	treeout.open("parsetree.txt");
 	errorout.open("error.txt");
 	logout.open("log.txt");
+	codeout.open("code.asm");
+	tempout.open("temp.txt");
 
 	sym = new SymbolTable(BUCKET_SIZE);
 
@@ -820,8 +826,8 @@ int main(int argc,char *argv[]) {
 	delete sym;
 	current_function_parameters.clear();
 
-	logout << "Total Lines: " << line_count << endl;
-	logout << "Total Errors: " << error_count << endl;
+	logout << "Total Lines: " << line_count << "\n";
+	logout << "Total Errors: " << error_count << "\n";
 	treeout.close();
 	errorout.close();
 	logout.close();
