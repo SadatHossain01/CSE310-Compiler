@@ -21,6 +21,7 @@ SymbolTable *sym;
 extern FILE* yyin;
 vector<Param> current_function_parameters;
 string func_return_type;
+int current_offset = 0;
 
 ofstream treeout, errorout, logout;
 ofstream codeout, tempout; // keep writing data segment in codeout, code segment in tempout, lastly merge both in codeout
@@ -210,39 +211,48 @@ compound_statement : LCURL_ statements RCURL {
 		print_grammar_rule("compound_statement", "LCURL statements RCURL");
 		$$ = new SymbolInfo("", "compound_statement");
 		sym->print('A', logout);
-		sym->exit_scope();
 		$$->set_rule("compound_statement : LCURL statements RCURL");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3);
+
+		// let, base offset of current scope is 6, meaning 3 variables declared in previous scope
+		// so, if we want to assign an offset to the next variable, it should be 8
+		// hence, we need to set the current_scope to the base offset of the latest one
+		current_offset = sym->get_current_scope()->get_base_offset(); 
+		sym->exit_scope();
 	}
 	| LCURL_ error RCURL {
 		print_grammar_rule("compound_statement", "LCURL RCURL");
 		$$ = new SymbolInfo("", "compound_statement");
 		sym->print('A', logout);
-		sym->exit_scope();
 		$$->set_rule("compound_statement : LCURL RCURL");
 		$$->add_child($1); $$->add_child($3);
+
+		current_offset = sym->get_current_scope()->get_base_offset(); 
+		sym->exit_scope();
 	}
 	| LCURL_ RCURL {
 		print_grammar_rule("compound_statement", "LCURL RCURL");
 		$$ = new SymbolInfo("", "compound_statement");
 		sym->print('A', logout);
-		sym->exit_scope();
 		$$->set_rule("compound_statement : LCURL RCURL");
 		$$->add_child($1); $$->add_child($2);
+		
+		current_offset = sym->get_current_scope()->get_base_offset(); 
+		sym->exit_scope();
 	}
 	;
  		    
 var_declaration : type_specifier declaration_list SEMICOLON {
 		print_grammar_rule("var_declaration", "type_specifier declaration_list SEMICOLON");
 		$$ = new SymbolInfo("", "var_declaration", $1->get_data_type());
-		insert_symbols($1->get_data_type(), $2->get_param_list());
+		insert_symbols($1->get_data_type(), $2->get_param_list(), sym->get_current_scope()->get_id() == 1); // offset assigning will also be done there
 		$$->set_rule("var_declaration : type_specifier declaration_list SEMICOLON");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3);
 	}
 	| type_specifier declaration_list error SEMICOLON {
 		print_grammar_rule("var_declaration", "type_specifier declaration_list SEMICOLON");	
 		$$ = new SymbolInfo("", "var_declaration", $1->get_data_type());
-		insert_symbols($1->get_data_type(), $2->get_param_list());
+		insert_symbols($1->get_data_type(), $2->get_param_list(), sym->get_current_scope()->get_id() == 1); // offset assigning will also be done there
 		show_error(SYNTAX, S_DECL_VAR_DECLARATION, "", errorout, syntax_error_line);
 		$$->set_rule("var_declaration : type_specifier declaration_list SEMICOLON");
 		$$->add_child($1); $$->add_child($2); $$->add_child($4);
@@ -779,6 +789,7 @@ arguments : arguments COMMA logic_expression {
 LCURL_ : LCURL {
 		$$ = $1;
 		sym->enter_scope();
+		sym->get_current_scope()->set_base_offset(current_offset);
 		for (const Param& they : current_function_parameters) {
 			if (they.name == "") {// nameless, no need to insert 
 				show_error(SYNTAX, S_PARAM_NAMELESS, "", errorout);

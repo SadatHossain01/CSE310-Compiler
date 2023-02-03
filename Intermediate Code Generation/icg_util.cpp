@@ -5,12 +5,13 @@ void init_icg() {
     codeout << "\tCR EQU 0DH\r\n\tLF EQU 0AH\r\n\tnumber DB \"00000$\"\r\n";
     tempout << "\r\n.CODE\r\n";
     tempout << "MAIN PROC\r\n";
-    tempout << "\tMOV AX, @DATA\r\n\tMOV DS, AX\r\n";
+    tempout << "\tMOV AX, @DATA\r\n\tMOV DS, AX\r\n\tMOV BP, SP\r\n";
 }
 
 void generate_printing_function() {
     // first the number printing function
-    tempout << "\r\nPRINT PROC\r\n";
+    tempout << "\r\n; PRINT WHAT IS IN REGISTER AX\r\n";
+    tempout << "PRINT PROC\r\n";
     tempout << "\tPUSH SI\r\n\tPUSH AX\r\n\tPUSH BX\r\n\tPUSH CX\r\n\tPUSH DX\r\n";
     tempout << "\tLEA SI, NUMBER\r\n\tADD SI, 5\r\n";
     tempout << "\t; FIRST CHECK IF THE NUMBER IN AX IS NEGATIVE\r\n";

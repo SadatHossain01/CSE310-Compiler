@@ -1,7 +1,6 @@
 #include "utilities.h"
 
-void show_error(error_class ec, error_type e, const string& str, ostream& out,
-                int line_no) {
+void show_error(error_class ec, error_type e, const string& str, ostream& out, int line_no) {
     error_count++;
 
     if (ec == LEXICAL) {
@@ -57,8 +56,7 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out,
                     << "\n";
                 break;
             case DIFFERENT_REDECLARATION:
-                out << "\'" << str
-                    << "\' redeclared as different kind of symbol"
+                out << "\'" << str << "\' redeclared as different kind of symbol"
                     << "\n";
                 break;
             case CONFLICTING_TYPE:
@@ -76,8 +74,7 @@ void show_error(error_class ec, error_type e, const string& str, ostream& out,
                     << "\n";
                 break;
             case PARAM_NAMELESS:
-                out << "Nameless parameter \'" << str
-                    << "\' not allowed in function definition"
+                out << "Nameless parameter \'" << str << "\' not allowed in function definition"
                     << "\n";
                 break;
             case UNDECLARED_VARIABLE:
@@ -221,8 +218,7 @@ bool check_type_specifier(const string& ty, const string& name) {
     return true;
 }
 string type_cast(const string& s1, const string& s2) {
-    if (s1 == "VOID" || s2 == "VOID" || s1 == "ERROR" || s2 == "ERROR")
-        return "ERROR";
+    if (s1 == "VOID" || s2 == "VOID" || s1 == "ERROR" || s2 == "ERROR") return "ERROR";
     else if (s1 == "FLOAT" || s2 == "FLOAT") return "FLOAT";
     else return "INT";
 }
@@ -234,10 +230,8 @@ bool is_zero(const string& str) {
     }
     return true;
 }
-void insert_function(const string& func_name, const string& type_specifier,
-                     const vector<Param>& param_list, bool is_definition) {
-    SymbolInfo* function =
-        new SymbolInfo(func_name, "FUNCTION", type_specifier);
+void insert_function(const string& func_name, const string& type_specifier, const vector<Param>& param_list, bool is_definition) {
+    SymbolInfo* function = new SymbolInfo(func_name, "FUNCTION", type_specifier);
     if (is_definition) function->set_func_type(DEFINITION);
     else {
         function->set_func_type(DECLARATION);
@@ -248,8 +242,7 @@ void insert_function(const string& func_name, const string& type_specifier,
         // no parameter can be nameless in a function definition
         for (int i = 0; i < param_list.size(); i++) {
             if (param_list[i].name == "") {
-                show_error(SEMANTIC, PARAM_NAMELESS, function->get_name(),
-                           errorout);
+                show_error(SEMANTIC, PARAM_NAMELESS, function->get_name(), errorout);
                 free_s(function);
                 return;  // returning as any such function is not acceptable
             }
@@ -262,35 +255,29 @@ void insert_function(const string& func_name, const string& type_specifier,
         } else {
             if (og_func->get_func_type() == NONE) {
                 // same name variable already present with this name
-                show_error(SEMANTIC, DIFFERENT_REDECLARATION,
-                           function->get_name(), errorout);
+                show_error(SEMANTIC, DIFFERENT_REDECLARATION, function->get_name(), errorout);
             } else if (og_func->get_func_type() == DEFINITION) {
                 // function definition already exists
-                show_error(SEMANTIC, FUNC_REDEFINITION, function->get_name(),
-                           errorout);
+                show_error(SEMANTIC, FUNC_REDEFINITION, function->get_name(), errorout);
             }
             // already declaration exists
             else if (og_func->get_data_type() != type_specifier) {
                 // return type mismatch
-                show_error(SEMANTIC, CONFLICTING_TYPE, function->get_name(),
-                           errorout);
+                show_error(SEMANTIC, CONFLICTING_TYPE, function->get_name(), errorout);
             } else if (og_func->get_param_list().size() != param_list.size()) {
                 // parameter size mismatch
-                show_error(SEMANTIC, CONFLICTING_TYPE, function->get_name(),
-                           errorout);
+                show_error(SEMANTIC, CONFLICTING_TYPE, function->get_name(), errorout);
             } else {
                 // defintion param type and declaraion param type mismatch check
                 vector<Param> og_list = og_func->get_param_list();
                 vector<Param> now_list = function->get_param_list();
                 for (int i = 0; i < og_list.size(); i++) {
                     if (og_list[i].data_type != now_list[i].data_type) {
-                        show_error(SEMANTIC, CONFLICTING_TYPE,
-                                   function->get_name(), errorout);
+                        show_error(SEMANTIC, CONFLICTING_TYPE, function->get_name(), errorout);
                     }
                 }
             }
-            og_func->set_func_type(
-                DEFINITION);  // set the func type to definition
+            og_func->set_func_type(DEFINITION);  // set the func type to definition
             free_s(function);
         }
     } else {
@@ -302,8 +289,7 @@ void insert_function(const string& func_name, const string& type_specifier,
                 // being ""
                 if (param_list[i].name == "") continue;
                 if (param_list[i].name == param_list[j].name) {
-                    show_error(SEMANTIC, PARAM_REDEFINITION, param_list[i].name,
-                               errorout);
+                    show_error(SEMANTIC, PARAM_REDEFINITION, param_list[i].name, errorout);
                     free_s(function);
                     return;  // returning as any such function is not acceptable
                 }
@@ -317,18 +303,16 @@ void insert_function(const string& func_name, const string& type_specifier,
         } else {
             if (og_func->get_func_type() == NONE) {
                 // same name variable already present with this name
-                show_error(SEMANTIC, DIFFERENT_REDECLARATION,
-                           function->get_name(), errorout);
+                show_error(SEMANTIC, DIFFERENT_REDECLARATION, function->get_name(), errorout);
             } else if (og_func->get_func_type() != NONE) {
                 // function definition already exists
-                show_error(SEMANTIC, FUNC_REDEFINITION, function->get_name(),
-                           errorout);
+                show_error(SEMANTIC, FUNC_REDEFINITION, function->get_name(), errorout);
             }
             free_s(function);
         }
     }
 }
-void insert_symbols(const string& type, const vector<Param>& param_list) {
+void insert_symbols(const string& type, const vector<Param>& param_list, bool global_scope) {
     string str = "";
     vector<Param> cur_list = param_list;
     for (int i = 0; i < cur_list.size(); i++) {
@@ -343,19 +327,26 @@ void insert_symbols(const string& type, const vector<Param>& param_list) {
             // cerr << cur_list[i].data_type << " " << cur_list[i].name << "\n";
             SymbolInfo* res = sym->search(cur_list[i].name, 'C');
             if (res == nullptr) {
-                SymbolInfo* new_sym = new SymbolInfo(cur_list[i].name, "ID",
-                                                     cur_list[i].data_type);
+                SymbolInfo* new_sym = new SymbolInfo(cur_list[i].name, "ID", cur_list[i].data_type);
                 if (cur_list[i].is_array) new_sym->set_array(true);
+
+                // if global scope, print to data segment
+                if (global_scope) {
+                    codeout << "\t" << cur_list[i].name << " DW 1 DUP (0000H)\r\n";
+                    new_sym->set_stack_offset(-1);  // -10 means global
+                } else {
+                    new_sym->set_stack_offset(current_offset);
+                    current_offset += 2;
+                }
+
                 sym->insert(new_sym);
             } else if (res->get_data_type() != cur_list[i].data_type) {
                 // cerr << "Previous: " << res->get_data_type() << " current: "
                 // << cur_list[i].data_type << " " << cur_list[i].name << "
                 // line: " << line_count << "\n";
-                show_error(SEMANTIC, CONFLICTING_TYPE, cur_list[i].name,
-                           errorout);
+                show_error(SEMANTIC, CONFLICTING_TYPE, cur_list[i].name, errorout);
             } else {
-                show_error(SEMANTIC, VARIABLE_REDEFINITION, cur_list[i].name,
-                           errorout);
+                show_error(SEMANTIC, VARIABLE_REDEFINITION, cur_list[i].name, errorout);
             }
         }
     }

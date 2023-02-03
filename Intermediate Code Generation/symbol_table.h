@@ -13,8 +13,7 @@ struct Param {
     string name;
     string data_type;
     bool is_array = false;
-    Param(const string &name, const string &data_type, bool is_array = false)
-        : name(name), data_type(data_type), is_array(is_array) {}
+    Param(const string &name, const string &data_type, bool is_array = false) : name(name), data_type(data_type), is_array(is_array) {}
 };
 
 enum func_status { NONE, DECLARATION, DEFINITION };
@@ -29,16 +28,13 @@ class SymbolInfo {
     bool array = false;
     bool terminal = false;
     int start_line = -1, end_line = -1;
+    int stack_offset = -1;          // -1 offset means global variable
     vector<Param> param_list;       // name, data_type
     vector<SymbolInfo *> children;  // for parse tree
     SymbolInfo *next = nullptr;
 
    public:
-    SymbolInfo(const string &_name = "", const string &_type = "",
-               const string &_data_type = "")
-        : name(_name), type(_type) {
-        set_data_type(_data_type);
-    }
+    SymbolInfo(const string &_name = "", const string &_type = "", const string &_data_type = "") : name(_name), type(_type) { set_data_type(_data_type); }
     SymbolInfo(const SymbolInfo &other) {
         name = other.name;
         type = other.type;
@@ -49,6 +45,10 @@ class SymbolInfo {
             param_list.push_back(param);
         }
         next = nullptr;
+    }
+    int get_stack_offset() const {
+        assert(stack_offset != -1);
+        return stack_offset;
     }
     string get_name() const { return name; }
     string get_type() const { return type; }
@@ -63,6 +63,7 @@ class SymbolInfo {
     SymbolInfo *get_next() const { return next; }
     void set_name(const string &name) { this->name = name; }
     void set_type(const string &type) { this->type = type; }
+    void set_stack_offset(int offset) { this->stack_offset = offset; }
     void set_data_type(const string &data_type) {
         if (this->data_type != "" && data_type == "") return;
         this->data_type = data_type;
@@ -90,10 +91,7 @@ class SymbolInfo {
         }
     }
     void add_param(Param param) { this->param_list.push_back(param); }
-    void add_param(const string &name, const string &data_type,
-                   bool is_array = false) {
-        this->param_list.push_back({name, data_type, is_array});
-    }
+    void add_param(const string &name, const string &data_type, bool is_array = false) { this->param_list.push_back({name, data_type, is_array}); }
     void add_child(SymbolInfo *child) {
         assert(terminal == false);
         this->children.push_back(child);
@@ -117,10 +115,9 @@ class SymbolInfo {
         else out << start_line << "-" << end_line;
         out << ">\n";
         for (SymbolInfo *child : children) {
-            child->print_tree_node(
-                out,
-                level + 1);  // lcurls -> LCURL has been handled, so no need to
-                             // check that separately
+            child->print_tree_node(out,
+                                   level + 1);  // lcurls -> LCURL has been handled, so no need to
+                                                // check that separately
         }
     }
     ~SymbolInfo() {
@@ -138,6 +135,7 @@ class ScopeTable {
     ScopeTable *parent_scope;
     int id;
     int num_buckets;
+    int base_offset = 0;
 
     unsigned long long SDBMHash(const string &str) {
         unsigned long long hash = 0;
@@ -151,29 +149,25 @@ class ScopeTable {
         return hash;
     }
 
-    unsigned long long myhash(const string &s) {
-        return SDBMHash(s) % num_buckets;
-    }
+    unsigned long long myhash(const string &s) { return SDBMHash(s) % num_buckets; }
 
    public:
     ScopeTable(int num_buckets, int id) {
         this->num_buckets = num_buckets;
         this->id = id;
         arr = new SymbolInfo *[num_buckets];
-        for (int i = 0; i < num_buckets; i++)
-            arr[i] = nullptr;  // not writing this caused the initial issues
+        for (int i = 0; i < num_buckets; i++) arr[i] = nullptr;  // not writing this caused the initial issues
         parent_scope = nullptr;
         cout << "\t";
         cout << "ScopeTable# " << id << " created\n";
     }
 
     void set_parent(ScopeTable *par) { parent_scope = par; }
-
+    void set_base_offset(int base_offset) { this->base_offset = base_offset; }
     void set_id(int id) { this->id = id; }
-
-    int get_id() { return id; }
-
-    ScopeTable *get_parent() { return parent_scope; }
+    int get_base_offset() const { return base_offset; }
+    int get_id() const { return id; }
+    ScopeTable *get_parent() const { return parent_scope; }
 
     SymbolInfo *search(const string &s) {
         unsigned long long hash_value = myhash(s);
@@ -348,11 +342,12 @@ class SymbolTable {
         current_scope->set_parent(prev);
     }
 
+    ScopeTable *get_current_scope() { return current_scope; }
+
     bool exit_scope() {
         if (current_scope->get_parent() == nullptr) {
             cout << "\t";
-            cout << "ScopeTable# " << current_scope->get_id()
-                 << " cannot be removed\n";
+            cout << "ScopeTable# " << current_scope->get_id() << " cannot be removed\n";
             return false;  // this is the root scope, can't exit
         } else {
             ScopeTable *temp = current_scope;
@@ -362,13 +357,9 @@ class SymbolTable {
         }
     }
 
-    bool insert(string name, string type, ostream &out = cout) {
-        return current_scope->insert(new SymbolInfo(name, type), out);
-    }
+    bool insert(string name, string type, ostream &out = cout) { return current_scope->insert(new SymbolInfo(name, type), out); }
 
-    bool insert(SymbolInfo *si, ostream &out = cout) {
-        return current_scope->insert(si, out);
-    }
+    bool insert(SymbolInfo *si, ostream &out = cout) { return current_scope->insert(si, out); }
 
     bool remove(const string &s) { return current_scope->remove(s); }
 
@@ -379,8 +370,7 @@ class SymbolTable {
         if (type == 'C' || type == 'c' || res != nullptr) return res;
         while (true) {
             res = cur->search(s);
-            if (res != nullptr)
-                return res;  // search message printed in scope table's search
+            if (res != nullptr) return res;  // search message printed in scope table's search
             else cur = cur->get_parent();
             if (cur == nullptr) {
                 // cout << "\t";
