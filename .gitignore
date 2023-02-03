@@ -17,3 +17,4 @@ Syntax and Semantic Analyzer/*.txt
 Intermediate Code Generation/*.txt
 Intermediate Code Generation/*.c
 Intermediate Code Generation/.~*
+Intermediate Code Generation/*.asm
