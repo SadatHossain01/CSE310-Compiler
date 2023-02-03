@@ -815,7 +815,7 @@ int main(int argc,char *argv[]) {
 	errorout.open("error.txt");
 	logout.open("log.txt");
 	codeout.open("code.asm");
-	tempout.open("temp.txt");
+	tempout.open("temp.asm");
 
 	sym = new SymbolTable(BUCKET_SIZE);
 

@@ -1,6 +1,9 @@
 #pragma once
 #include <fstream>
+#include <string>
+using std::ifstream;
 using std::ofstream;
+using std::string;
 
 extern ofstream codeout, tempout;
 
