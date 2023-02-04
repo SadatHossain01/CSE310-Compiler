@@ -60,6 +60,7 @@ start : { init_icg(); } program {
 		$$->set_rule("start : program");
 		$$->add_child($2);
 		$$->print_tree_node(treeout);
+		tempout << "\tMOV AX, 4CH\r\n\tINT 21H\r\nMAIN ENDP\r\n";
 		generate_printing_function();
 		generate_final_assembly();
 	}
@@ -385,6 +386,11 @@ statement : var_declaration {
 		}
 		$$->set_rule("statement : PRINTLN LPAREN ID RPAREN SEMICOLON");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($5);
+
+		int offset = sym->search($3->get_name(), 'A')->get_stack_offset();
+
+		if (offset == -1) print_id($3->get_name()); // global variable
+		else print_id("[BP+" + to_string(offset) + "]"); // local variable
 	}
 	| RETURN expression SEMICOLON {
 		print_grammar_rule("statement", "RETURN expression SEMICOLON");
@@ -434,6 +440,7 @@ variable : ID {
 		else {
 			$$->set_data_type(res->get_data_type());
 			$$->set_array(res->is_array());
+			$$->set_stack_offset(res->get_stack_offset());
 		}
 		$$->set_rule("variable : ID");
 		$$->add_child($1);
@@ -490,6 +497,7 @@ expression : logic_expression {
 				show_error(WARNING, FLOAT_TO_INT, "", errorout);
 			}
 			$$->set_data_type("INT");
+			tempout << "\tMOV " << ($1->get_stack_offset() == -1 ? $1->get_name() : "[BP+" + to_string($1->get_stack_offset()) + "]") << ", CX\r\n"; 
 		}
 		else {
 			$$->set_data_type("FLOAT");
@@ -703,6 +711,8 @@ factor : variable {
 		$$ = new SymbolInfo($1->get_name(), "factor", "INT");
 		$$->set_rule("factor : CONST_INT");
 		$$->add_child($1);
+
+		tempout << "\tMOV CX, " << $1->get_name() << "\r\n";
 	}
 	| CONST_FLOAT {
 		print_grammar_rule("factor", "CONST_FLOAT");

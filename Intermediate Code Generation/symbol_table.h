@@ -47,7 +47,7 @@ class SymbolInfo {
         next = nullptr;
     }
     int get_stack_offset() const {
-        assert(stack_offset != -1);
+        // assert(stack_offset != -1);
         return stack_offset;
     }
     string get_name() const { return name; }

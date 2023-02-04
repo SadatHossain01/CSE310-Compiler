@@ -10,3 +10,4 @@ extern ofstream codeout, tempout;
 void init_icg();
 void generate_printing_function();
 void generate_final_assembly();
+void print_id(const string& s);
