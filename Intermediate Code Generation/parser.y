@@ -346,6 +346,9 @@ statement : var_declaration {
 		$$ = new SymbolInfo($1->get_name(), "statement", $1->get_data_type());
 		$$->set_rule("statement : expression_statement");
 		$$->add_child($1);
+
+		// codegen
+		generate_code("POP AX");
 	}
 	| compound_statement {
 		print_grammar_rule("statement", "compound_statement");
@@ -388,9 +391,7 @@ statement : var_declaration {
 		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($5);
 
 		int offset = sym->search($3->get_name(), 'A')->get_stack_offset();
-
-		if (offset == -1) print_id($3->get_name()); // global variable
-		else print_id("[BP+" + to_string(offset) + "]"); // local variable
+		print_id(base_indexed_mode(offset, $3->get_name()));
 	}
 	| RETURN expression SEMICOLON {
 		print_grammar_rule("statement", "RETURN expression SEMICOLON");
@@ -497,7 +498,11 @@ expression : logic_expression {
 				show_error(WARNING, FLOAT_TO_INT, "", errorout);
 			}
 			$$->set_data_type("INT");
-			tempout << "\tMOV " << ($1->get_stack_offset() == -1 ? $1->get_name() : "[BP+" + to_string($1->get_stack_offset()) + "]") << ", CX\r\n"; 
+
+			// codegen
+			generate_code("POP AX");
+			generate_code("MOV " + base_indexed_mode($1->get_stack_offset(), $1->get_name()) + ", AX");
+			generate_code("PUSH AX");
 		}
 		else {
 			$$->set_data_type("FLOAT");
@@ -668,6 +673,7 @@ factor : variable {
 		$$->set_array($1->is_array());
 		$$->set_rule("factor : variable");
 		$$->add_child($1);
+
 	}
 	| ID LPAREN argument_list RPAREN {
 		print_grammar_rule("factor", "ID LPAREN argument_list RPAREN");
@@ -712,7 +718,8 @@ factor : variable {
 		$$->set_rule("factor : CONST_INT");
 		$$->add_child($1);
 
-		tempout << "\tMOV CX, " << $1->get_name() << "\r\n";
+		// codegen
+		generate_code("PUSH " + $1->get_name());
 	}
 	| CONST_FLOAT {
 		print_grammar_rule("factor", "CONST_FLOAT");
