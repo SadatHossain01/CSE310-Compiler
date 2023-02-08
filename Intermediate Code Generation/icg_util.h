@@ -4,7 +4,7 @@
 using namespace std;
 
 extern ofstream codeout, tempout;
-extern int line_count;
+extern int line_count, current_offset;
 
 void init_icg();
 void generate_printing_function();

@@ -50,6 +50,8 @@ void generate_final_assembly() {
 }
 
 void print_id(const string& s) {
+    tempout << "\tMOV SP, BP ; Line No: " << line_count << "\r\n";
+    tempout << "\tADD SP, " << current_offset << " ; Line No: " << line_count << "\r\n";
     tempout << "\tPUSH AX ; Line No: " << line_count << "\r\n";
     tempout << "\tMOV AX, " << s << " ; Line No: " << line_count << "\r\n";
     tempout << "\tCALL PRINT_OUTPUT ; Line No: " << line_count << "\r\n";
@@ -59,7 +61,7 @@ void print_id(const string& s) {
 
 string base_indexed_mode(int offset, const string& name) {
     if (offset == -1) return name;  // global variable
-    else return "[BP" + (offset ? ((offset > 0 ? "+" : "-") + to_string(offset)) : "") + "]";
+    else return "[BP" + (offset ? ((offset > 0 ? "+" : "") + to_string(offset)) : "") + "]";
 }
 
 void generate_code(const string& code, const string& comment) {

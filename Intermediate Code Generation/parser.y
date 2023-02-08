@@ -346,9 +346,6 @@ statement : var_declaration {
 		$$ = new SymbolInfo($1->get_name(), "statement", $1->get_data_type());
 		$$->set_rule("statement : expression_statement");
 		$$->add_child($1);
-
-		// codegen
-		generate_code("POP AX");
 	}
 	| compound_statement {
 		print_grammar_rule("statement", "compound_statement");
@@ -441,7 +438,7 @@ variable : ID {
 		else {
 			$$->set_data_type(res->get_data_type());
 			$$->set_array(res->is_array());
-			$$->set_stack_offset(res->get_stack_offset());
+			$$->set_stack_offset(res->get_stack_offset()); // will need stack offset for assignment to variable (and inc, dec operations)
 		}
 		$$->set_rule("variable : ID");
 		$$->add_child($1);
@@ -499,10 +496,8 @@ expression : logic_expression {
 			}
 			$$->set_data_type("INT");
 
-			// codegen
-			generate_code("POP AX");
+			// icg code
 			generate_code("MOV " + base_indexed_mode($1->get_stack_offset(), $1->get_name()) + ", AX");
-			generate_code("PUSH AX");
 		}
 		else {
 			$$->set_data_type("FLOAT");
@@ -518,6 +513,8 @@ logic_expression : rel_expression {
 		$$->set_array($1->is_array());
 		$$->set_rule("logic_expression : rel_expression");
 		$$->add_child($1);
+
+		// rel_expression is on top of the stack
 	}
 	| rel_expression LOGICOP rel_expression {
 		print_grammar_rule("logic_expression", "rel_expression LOGICOP rel_expression");
@@ -548,6 +545,8 @@ rel_expression : simple_expression {
 		$$->set_array($1->is_array()); // will need in function argument type checking
 		$$->set_rule("rel_expression : simple_expression");
 		$$->add_child($1);
+
+		// simple_expression value is on top of the stack
 	}
 	| simple_expression RELOP simple_expression {
 		print_grammar_rule("rel_expression", "simple_expression RELOP simple_expression");
@@ -570,6 +569,8 @@ simple_expression : term {
 		$$->set_array($1->is_array());
 		$$->set_rule("simple_expression : term");
 		$$->add_child($1);
+
+		// term value is on top of the stack
 	}
 	| simple_expression ADDOP term {
 		print_grammar_rule("simple_expression", "simple_expression ADDOP term");
@@ -589,6 +590,8 @@ term : unary_expression {
 		$$->set_array($1->is_array());
 		$$->set_rule("term : unary_expression");
 		$$->add_child($1);
+
+		// unary_expression value is on top of the stack
 	}
 	| term MULOP unary_expression {
 		print_grammar_rule("term", "term MULOP unary_expression");
@@ -664,6 +667,8 @@ unary_expression : ADDOP unary_expression {
 		$$->set_array($1->is_array());
 		$$->set_rule("unary_expression : factor");
 		$$->add_child($1);
+
+		// factor is on top of stack now, no code needed
 	}
 	;
 	
@@ -674,6 +679,8 @@ factor : variable {
 		$$->set_rule("factor : variable");
 		$$->add_child($1);
 
+		// icg code
+		generate_code("MOV AX, " + base_indexed_mode($1->get_stack_offset(), $1->get_name()));
 	}
 	| ID LPAREN argument_list RPAREN {
 		print_grammar_rule("factor", "ID LPAREN argument_list RPAREN");
@@ -718,8 +725,8 @@ factor : variable {
 		$$->set_rule("factor : CONST_INT");
 		$$->add_child($1);
 
-		// codegen
-		generate_code("PUSH " + $1->get_name());
+		// icg code
+		generate_code("MOV AX, " + $1->get_name());
 	}
 	| CONST_FLOAT {
 		print_grammar_rule("factor", "CONST_FLOAT");
@@ -808,7 +815,7 @@ LCURL_ : LCURL {
 		sym->enter_scope();
 		sym->get_current_scope()->set_base_offset(current_offset);
 		for (const Param& they : current_function_parameters) {
-			if (they.name == "") {// nameless, no need to insert 
+			if (they.name == "") { // nameless, no need to insert 
 				show_error(SYNTAX, S_PARAM_NAMELESS, "", errorout);
 				continue;
 			}
