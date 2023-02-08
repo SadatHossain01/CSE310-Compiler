@@ -13,7 +13,8 @@ struct Param {
     string name;
     string data_type;
     bool is_array = false;
-    Param(const string &name, const string &data_type, bool is_array = false) : name(name), data_type(data_type), is_array(is_array) {}
+    Param(const string &name, const string &data_type, bool is_array = false)
+        : name(name), data_type(data_type), is_array(is_array) {}
 };
 
 enum func_status { NONE, DECLARATION, DEFINITION };
@@ -34,7 +35,10 @@ class SymbolInfo {
     SymbolInfo *next = nullptr;
 
    public:
-    SymbolInfo(const string &_name = "", const string &_type = "", const string &_data_type = "") : name(_name), type(_type) { set_data_type(_data_type); }
+    SymbolInfo(const string &_name = "", const string &_type = "", const string &_data_type = "")
+        : name(_name), type(_type) {
+        set_data_type(_data_type);
+    }
     SymbolInfo(const SymbolInfo &other) {
         name = other.name;
         type = other.type;
@@ -91,7 +95,9 @@ class SymbolInfo {
         }
     }
     void add_param(Param param) { this->param_list.push_back(param); }
-    void add_param(const string &name, const string &data_type, bool is_array = false) { this->param_list.push_back({name, data_type, is_array}); }
+    void add_param(const string &name, const string &data_type, bool is_array = false) {
+        this->param_list.push_back({name, data_type, is_array});
+    }
     void add_child(SymbolInfo *child) {
         assert(terminal == false);
         this->children.push_back(child);
@@ -156,7 +162,8 @@ class ScopeTable {
         this->num_buckets = num_buckets;
         this->id = id;
         arr = new SymbolInfo *[num_buckets];
-        for (int i = 0; i < num_buckets; i++) arr[i] = nullptr;  // not writing this caused the initial issues
+        for (int i = 0; i < num_buckets; i++)
+            arr[i] = nullptr;  // not writing this caused the initial issues
         parent_scope = nullptr;
         cout << "\t";
         cout << "ScopeTable# " << id << " created\n";
@@ -357,7 +364,9 @@ class SymbolTable {
         }
     }
 
-    bool insert(string name, string type, ostream &out = cout) { return current_scope->insert(new SymbolInfo(name, type), out); }
+    bool insert(string name, string type, ostream &out = cout) {
+        return current_scope->insert(new SymbolInfo(name, type), out);
+    }
 
     bool insert(SymbolInfo *si, ostream &out = cout) { return current_scope->insert(si, out); }
 

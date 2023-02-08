@@ -59,7 +59,13 @@ void print_id(const string& s) {
     tempout << "\tPOP AX ; Line No: " << line_count << "\r\n";
 }
 
-string base_indexed_mode(int offset, const string& name) {
+string get_variable_address(SymbolInfo* sym) {
+    int offset = sym->get_stack_offset();
+    string name = sym->get_name();
+    if (offset == -1) return name;  // global variable
+    else return "[BP" + (offset ? ((offset > 0 ? "+" : "") + to_string(offset)) : "") + "]";
+}
+string get_variable_address(const string& name, const int offset) {
     if (offset == -1) return name;  // global variable
     else return "[BP" + (offset ? ((offset > 0 ? "+" : "") + to_string(offset)) : "") + "]";
 }
@@ -67,4 +73,79 @@ string base_indexed_mode(int offset, const string& name) {
 void generate_code(const string& code, const string& comment) {
     tempout << "\t" << code << " ; Line No: " << line_count
             << (comment.empty() ? "" : ", " + comment) << "\r\n";
+}
+
+void generate_incop_code(SymbolInfo* sym, const string& op) {
+    generate_code("MOV AX, " + get_variable_address(sym));
+    generate_code(op + " " + get_variable_address(sym));
+}
+
+void generate_logicop_code(const string& op) {
+    if (op == "NOT") {
+        generate_code("CMP AX, 0");
+        generate_code("JZ, L" + to_string(label_count++));
+        tempout << "L" << label_count - 1 << ":\r\n";
+        generate_code("MOV AX, 1");
+        generate_code("JMP L" + to_string(++label_count));
+        tempout << "L" << label_count - 1 << ":\r\n";
+        generate_code("MOV AX, 0");
+        tempout << "L" << label_count++ << ":\r\n";
+    } else {
+        if (op == "&&") generate_code("AND AX, BX");
+        else if (op == "||") generate_code("OR AX, BX");
+    }
+}
+
+void generate_addop_code(const string& op) {
+    // first operand is in BX, second one is in AX
+    if (op == "+") {
+        generate_code("ADD AX, BX");
+    } else if (op == "-") {
+        generate_code("SUB AX, BX");
+        generate_code("NEG AX");
+    }
+}
+
+void generate_mulop_code(const string& op) {
+    // first operand is in BX, second one is in AX
+    if (op == "*") {
+        generate_code("IMUL BX");  // result gets stored in DX:AX, only AX should do (including
+                                   // negative result cases)
+    } else {
+        // we want to do BX / AX
+        // so take the dividend from BX to AX first
+        generate_code("MOV BX, CX");
+        generate_code("MOV AX, BX");
+        generate_code("MOV BX, CX");
+        generate_code("IDIV BX");
+
+        if (op == "/") {
+            // quotient is in AL, so sign extend AL to AX
+            generate_code(
+                "CBW");  // extends the sign of AL to AH register,
+                         // http://www.c-jump.com/CIS77/MLabs/M11arithmetic/M11_0110_cbw_cwd_cdq.htm
+        } else if (op == "%") {
+            // remainder is in AH, so move it to AX
+            generate_code("SAR AH, 8");
+        }
+    }
+}
+
+void generate_relop_code(const string& op) {
+    // first operand is in BX, second one is in AX
+    string jmpi = "";
+    if (op == "<") jmpi = "JL";
+    else if (op == "<=") jmpi = "JLE";
+    else if (op == ">") jmpi = "JG";
+    else if (op == ">=") jmpi = "JGE";
+    else if (op == "==") jmpi = "JE";
+    else if (op == "!=") jmpi = "JNE";
+    generate_code("CMP BX, AX");
+    generate_code(jmpi + " L" + to_string(label_count++));
+    tempout << "L" << label_count - 1 << ":\r\n";
+    generate_code("MOV AX, 1");
+    generate_code("JMP L" + to_string(++label_count));
+    tempout << "L" << label_count - 1 << ":\r\n";
+    generate_code("MOV AX, 0");
+    tempout << "L" << label_count++ << ":\r\n";
 }

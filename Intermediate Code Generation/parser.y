@@ -22,6 +22,7 @@ extern FILE* yyin;
 vector<Param> current_function_parameters;
 string func_return_type;
 int current_offset = 0;
+int label_count = 1;
 
 ofstream treeout, errorout, logout;
 ofstream codeout, tempout; // keep writing data segment in codeout, code segment in tempout, lastly merge both in codeout
@@ -388,7 +389,7 @@ statement : var_declaration {
 		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($5);
 
 		int offset = sym->search($3->get_name(), 'A')->get_stack_offset();
-		print_id(base_indexed_mode(offset, $3->get_name()));
+		print_id(get_variable_address($3->get_name(), offset));
 	}
 	| RETURN expression SEMICOLON {
 		print_grammar_rule("statement", "RETURN expression SEMICOLON");
@@ -497,7 +498,7 @@ expression : logic_expression {
 			$$->set_data_type("INT");
 
 			// icg code
-			generate_code("MOV " + base_indexed_mode($1->get_stack_offset(), $1->get_name()) + ", AX");
+			generate_code("MOV " + get_variable_address($1) + ", AX");
 		}
 		else {
 			$$->set_data_type("FLOAT");
@@ -513,8 +514,6 @@ logic_expression : rel_expression {
 		$$->set_array($1->is_array());
 		$$->set_rule("logic_expression : rel_expression");
 		$$->add_child($1);
-
-		// rel_expression is on top of the stack
 	}
 	| rel_expression LOGICOP rel_expression {
 		print_grammar_rule("logic_expression", "rel_expression LOGICOP rel_expression");
@@ -545,13 +544,13 @@ rel_expression : simple_expression {
 		$$->set_array($1->is_array()); // will need in function argument type checking
 		$$->set_rule("rel_expression : simple_expression");
 		$$->add_child($1);
-
-		// simple_expression value is on top of the stack
 	}
-	| simple_expression RELOP simple_expression {
+	| simple_expression {
+		generate_code("MOV BX, AX"); // so that the second operand can be written to AX
+	} RELOP simple_expression {
 		print_grammar_rule("rel_expression", "simple_expression RELOP simple_expression");
 		$$ = new SymbolInfo("", "rel_expression");
-		if ($1->get_data_type() == "VOID" || $3->get_data_type() == "VOID") {
+		if ($1->get_data_type() == "VOID" || $4->get_data_type() == "VOID") {
 			show_error(SEMANTIC, VOID_USAGE, "", errorout);
 			$$->set_data_type("ERROR");
 		}
@@ -559,7 +558,10 @@ rel_expression : simple_expression {
 			$$->set_data_type("INT"); // result of any comparison should be boolean in fact
 		}
 		$$->set_rule("rel_expression : simple_expression RELOP simple_expression");
-		$$->add_child($1); $$->add_child($2); $$->add_child($3);
+		$$->add_child($1); $$->add_child($3); $$->add_child($4);
+
+		// icg code
+		generate_relop_code($3->get_name());
 	}	
 	;
 				
@@ -569,18 +571,21 @@ simple_expression : term {
 		$$->set_array($1->is_array());
 		$$->set_rule("simple_expression : term");
 		$$->add_child($1);
-
-		// term value is on top of the stack
 	}
-	| simple_expression ADDOP term {
+	| simple_expression {
+		generate_code("MOV BX, AX"); // so that the second operand can be written to AX
+	} ADDOP term {
 		print_grammar_rule("simple_expression", "simple_expression ADDOP term");
 		$$ = new SymbolInfo("", "simple_expression");
-		if ($1->get_data_type() == "VOID" || $3->get_data_type() == "VOID") {
+		if ($1->get_data_type() == "VOID" || $4->get_data_type() == "VOID") {
 			show_error(SEMANTIC, VOID_USAGE, "", errorout);
 		}
-		$$->set_data_type(type_cast($1->get_data_type(), $3->get_data_type()));
+		$$->set_data_type(type_cast($1->get_data_type(), $4->get_data_type()));
 		$$->set_rule("simple_expression : simple_expression ADDOP term");
-		$$->add_child($1); $$->add_child($2); $$->add_child($3);
+		$$->add_child($1); $$->add_child($3); $$->add_child($4);
+
+		// icg code
+		generate_addop_code($3->get_name());
 	}
 	;
 					
@@ -590,26 +595,26 @@ term : unary_expression {
 		$$->set_array($1->is_array());
 		$$->set_rule("term : unary_expression");
 		$$->add_child($1);
-
-		// unary_expression value is on top of the stack
 	}
-	| term MULOP unary_expression {
+	| term { 
+		generate_code("MOV BX, AX"); // so that the second operand can be written to AX
+	} MULOP unary_expression {
 		print_grammar_rule("term", "term MULOP unary_expression");
 		$$ = new SymbolInfo("", "term");
-		if ($1->get_data_type() == "VOID" || $3->get_data_type() == "VOID") {
+		if ($1->get_data_type() == "VOID" || $4->get_data_type() == "VOID") {
 			show_error(SEMANTIC, VOID_USAGE, "", errorout);
 			$$->set_data_type("ERROR");
 		}
-		else if ($1->get_data_type() == "ERROR" || $3->get_data_type() == "ERROR") {
+		else if ($1->get_data_type() == "ERROR" || $4->get_data_type() == "ERROR") {
 			// show_error(SEMANTIC, TYPE_ERROR, "", errorout);
 			$$->set_data_type("ERROR");
 		}
-		else if ($2->get_name() == "%") {
-			if ($1->get_data_type() == "FLOAT" || $3->get_data_type() == "FLOAT") {
+		else if ($3->get_name() == "%") {
+			if ($1->get_data_type() == "FLOAT" || $4->get_data_type() == "FLOAT") {
 				show_error(SEMANTIC, MOD_OPERAND, "", errorout);
 				$$->set_data_type("ERROR");
 			}
-			else if (is_zero($3->get_name())) {
+			else if (is_zero($4->get_name())) {
 				show_error(WARNING, MOD_BY_ZERO, "", errorout);
 				$$->set_data_type("ERROR");
 			}
@@ -617,20 +622,20 @@ term : unary_expression {
 				$$->set_data_type("INT");
 			}
 		}
-		else if ($2->get_name() == "/") {
-			if (is_zero($3->get_name())) {
+		else if ($3->get_name() == "/") {
+			if (is_zero($4->get_name())) {
 				show_error(WARNING, DIV_BY_ZERO, "", errorout);
 				$$->set_data_type("ERROR");
 			}
 			else {
-				$$->set_data_type(type_cast($1->get_data_type(), $3->get_data_type()));
+				$$->set_data_type(type_cast($1->get_data_type(), $4->get_data_type()));
 			}
 		}
-		else if ($2->get_name() == "*") {
-			$$->set_data_type(type_cast($1->get_data_type(), $3->get_data_type()));
+		else if ($3->get_name() == "*") {
+			$$->set_data_type(type_cast($1->get_data_type(), $4->get_data_type()));
 		}
 		$$->set_rule("term : term MULOP unary_expression");
-		$$->add_child($1); $$->add_child($2); $$->add_child($3);
+		$$->add_child($1); $$->add_child($3); $$->add_child($4);
 	}
 	;
 
@@ -644,6 +649,11 @@ unary_expression : ADDOP unary_expression {
 		else $$->set_data_type($2->get_data_type());
 		$$->set_rule("unary_expression : ADDOP unary_expression");
 		$$->add_child($1); $$->add_child($2);
+
+		// icg code
+		if ($1->get_name() == "-") {
+			generate_code("NEG AX");
+		}
 	}
 	| NOT unary_expression {
 		print_grammar_rule("unary_expression", "NOT unary_expression");
@@ -660,6 +670,9 @@ unary_expression : ADDOP unary_expression {
 		if (ok) $$->set_data_type("INT");
 		$$->set_rule("unary_expression : NOT unary_expression");
 		$$->add_child($1); $$->add_child($2);
+
+		// icg code
+		generate_logicop_code("NOT");
 	}
 	| factor {
 		print_grammar_rule("unary_expression", "factor");
@@ -667,8 +680,6 @@ unary_expression : ADDOP unary_expression {
 		$$->set_array($1->is_array());
 		$$->set_rule("unary_expression : factor");
 		$$->add_child($1);
-
-		// factor is on top of stack now, no code needed
 	}
 	;
 	
@@ -680,7 +691,7 @@ factor : variable {
 		$$->add_child($1);
 
 		// icg code
-		generate_code("MOV AX, " + base_indexed_mode($1->get_stack_offset(), $1->get_name()));
+		generate_code("MOV AX, " + get_variable_address($1));
 	}
 	| ID LPAREN argument_list RPAREN {
 		print_grammar_rule("factor", "ID LPAREN argument_list RPAREN");
@@ -750,6 +761,9 @@ factor : variable {
 		}
 		$$->set_rule("factor : variable INCOP");
 		$$->add_child($1); $$->add_child($2);
+
+		// icg code
+		generate_incop_code($1, "INC");
 	}
 	| variable DECOP {
 		print_grammar_rule("factor", "variable DECOP");
@@ -767,6 +781,9 @@ factor : variable {
 		}
 		$$->set_rule("factor : variable DECOP");
 		$$->add_child($1); $$->add_child($2);
+
+		// icg code
+		generate_incop_code($1, "DEC");
 	}
 	;
 	
