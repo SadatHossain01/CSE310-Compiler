@@ -230,7 +230,8 @@ bool is_zero(const string& str) {
     }
     return true;
 }
-void insert_function(const string& func_name, const string& type_specifier, const vector<Param>& param_list, bool is_definition) {
+void insert_function(const string& func_name, const string& type_specifier,
+                     const vector<Param>& param_list, bool is_definition) {
     SymbolInfo* function = new SymbolInfo(func_name, "FUNCTION", type_specifier);
     if (is_definition) function->set_func_type(DEFINITION);
     else {
@@ -320,6 +321,7 @@ void insert_symbols(const string& type, const vector<Param>& param_list, bool gl
         if (i != cur_list.size() - 1) str += ", ";
     }
     bool ok = check_type_specifier(type, str);
+    int local_var_cont = 0;
     if (ok) {
         for (int i = 0; i < cur_list.size(); i++) {
             // now we will set the data_type of all these symbols to $1
@@ -336,9 +338,10 @@ void insert_symbols(const string& type, const vector<Param>& param_list, bool gl
                     new_sym->set_stack_offset(-1);  // -10 means global
                 } else {
                     new_sym->set_stack_offset(current_offset - 2);
+                    local_var_cont++;
+                    // tempout << "\tSUB SP, 2 ; Line No: " << line_count << "\r\n";
                     current_offset -= 2;
                 }
-
                 sym->insert(new_sym);
             } else if (res->get_data_type() != cur_list[i].data_type) {
                 // cerr << "Previous: " << res->get_data_type() << " current: "
@@ -349,5 +352,8 @@ void insert_symbols(const string& type, const vector<Param>& param_list, bool gl
                 show_error(SEMANTIC, VARIABLE_REDEFINITION, cur_list[i].name, errorout);
             }
         }
+    }
+    if (local_var_cont > 0) {
+        tempout << "\tSUB SP, " << local_var_cont * 2 << " ; Line No: " << line_count << "\r\n";
     }
 }

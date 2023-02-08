@@ -50,13 +50,11 @@ void generate_final_assembly() {
 }
 
 void print_id(const string& s) {
-    tempout << "\tMOV SP, BP ; Line No: " << line_count << "\r\n";
-    tempout << "\tADD SP, " << current_offset << " ; Line No: " << line_count << "\r\n";
-    tempout << "\tPUSH AX ; Line No: " << line_count << "\r\n";
-    tempout << "\tMOV AX, " << s << " ; Line No: " << line_count << "\r\n";
-    tempout << "\tCALL PRINT_OUTPUT ; Line No: " << line_count << "\r\n";
-    tempout << "\tCALL PRINT_NEWLINE ; Line No: " << line_count << "\r\n";
-    tempout << "\tPOP AX ; Line No: " << line_count << "\r\n";
+    push_to_stack("AX");
+    generate_code("MOV AX, " + s);
+    generate_code("CALL PRINT_OUTPUT");
+    generate_code("CALL PRINT_NEWLINE");
+    generate_code("POP AX");
 }
 
 string get_variable_address(SymbolInfo* sym) {
@@ -65,9 +63,16 @@ string get_variable_address(SymbolInfo* sym) {
     if (offset == -1) return name;  // global variable
     else return "[BP" + (offset ? ((offset > 0 ? "+" : "") + to_string(offset)) : "") + "]";
 }
+
 string get_variable_address(const string& name, const int offset) {
     if (offset == -1) return name;  // global variable
     else return "[BP" + (offset ? ((offset > 0 ? "+" : "") + to_string(offset)) : "") + "]";
+}
+
+void push_to_stack(const string& name) {
+    // generate_code("MOV SP, BP");
+    // generate_code("ADD SP, " + to_string(current_offset));
+    generate_code("PUSH " + name);
 }
 
 void generate_code(const string& code, const string& comment) {
@@ -114,19 +119,20 @@ void generate_mulop_code(const string& op) {
     } else {
         // we want to do BX / AX
         // so take the dividend from BX to AX first
-        generate_code("MOV BX, CX");
+        generate_code("MOV CX, AX");
         generate_code("MOV AX, BX");
         generate_code("MOV BX, CX");
+        // since the divisor is BX, it will be a division of word form, hence dividend will be in
+        // DX:AX
+        generate_code("XOR DX, DX");
         generate_code("IDIV BX");
 
         if (op == "/") {
-            // quotient is in AL, so sign extend AL to AX
-            generate_code(
-                "CBW");  // extends the sign of AL to AH register,
-                         // http://www.c-jump.com/CIS77/MLabs/M11arithmetic/M11_0110_cbw_cwd_cdq.htm
+            // quotient is in AX
+            // nothing needed to be done
         } else if (op == "%") {
-            // remainder is in AH, so move it to AX
-            generate_code("SAR AH, 8");
+            // remainder is in DX
+            generate_code("MOV AX, DX");
         }
     }
 }

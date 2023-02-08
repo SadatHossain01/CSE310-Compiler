@@ -515,26 +515,33 @@ logic_expression : rel_expression {
 		$$->set_rule("logic_expression : rel_expression");
 		$$->add_child($1);
 	}
-	| rel_expression LOGICOP rel_expression {
+	| rel_expression {
+		// generate_code("MOV BX, AX"); // so that the second operand can be written to AX
+		push_to_stack("AX");
+	} LOGICOP rel_expression {
 		print_grammar_rule("logic_expression", "rel_expression LOGICOP rel_expression");
 		$$ = new SymbolInfo("", "logic_expression");
-		if ($1->get_data_type() == "VOID" || $3->get_data_type() == "VOID") {
+		if ($1->get_data_type() == "VOID" || $4->get_data_type() == "VOID") {
 			show_error(SEMANTIC, VOID_USAGE, "", errorout);
 			$$->set_data_type("ERROR");
 		}
-		else if ($1->get_data_type() == "ERROR" || $3->get_data_type() == "ERROR") {
+		else if ($1->get_data_type() == "ERROR" || $4->get_data_type() == "ERROR") {
 			// show_error(SEMANTIC, TYPE_ERROR, "", errorout);
 			$$->set_data_type("ERROR");
 		}
-		else if ($1->get_data_type() == "FLOAT" || $3->get_data_type() == "FLOAT") {
+		else if ($1->get_data_type() == "FLOAT" || $4->get_data_type() == "FLOAT") {
 			show_error(WARNING, LOGICAL_FLOAT, "", errorout);
 			$$->set_data_type("INT");
 		}
 		else {
 			$$->set_data_type("INT");
+
+			// icg code
+			generate_code("POP BX");
+			generate_logicop_code($4->get_name());
 		}
 		$$->set_rule("logic_expression : rel_expression LOGICOP rel_expression");
-		$$->add_child($1); $$->add_child($2); $$->add_child($3);
+		$$->add_child($1); $$->add_child($3); $$->add_child($4);
 	}
 	;
 			
@@ -546,7 +553,8 @@ rel_expression : simple_expression {
 		$$->add_child($1);
 	}
 	| simple_expression {
-		generate_code("MOV BX, AX"); // so that the second operand can be written to AX
+		// generate_code("MOV BX, AX"); // so that the second operand can be written to AX
+		push_to_stack("AX");
 	} RELOP simple_expression {
 		print_grammar_rule("rel_expression", "simple_expression RELOP simple_expression");
 		$$ = new SymbolInfo("", "rel_expression");
@@ -561,6 +569,7 @@ rel_expression : simple_expression {
 		$$->add_child($1); $$->add_child($3); $$->add_child($4);
 
 		// icg code
+		generate_code("POP BX");
 		generate_relop_code($3->get_name());
 	}	
 	;
@@ -573,7 +582,8 @@ simple_expression : term {
 		$$->add_child($1);
 	}
 	| simple_expression {
-		generate_code("MOV BX, AX"); // so that the second operand can be written to AX
+		// generate_code("MOV BX, AX"); // so that the second operand can be written to AX
+		push_to_stack("AX");
 	} ADDOP term {
 		print_grammar_rule("simple_expression", "simple_expression ADDOP term");
 		$$ = new SymbolInfo("", "simple_expression");
@@ -585,6 +595,7 @@ simple_expression : term {
 		$$->add_child($1); $$->add_child($3); $$->add_child($4);
 
 		// icg code
+		generate_code("POP BX");
 		generate_addop_code($3->get_name());
 	}
 	;
@@ -597,7 +608,8 @@ term : unary_expression {
 		$$->add_child($1);
 	}
 	| term { 
-		generate_code("MOV BX, AX"); // so that the second operand can be written to AX
+		// generate_code("MOV BX, AX"); // so that the second operand can be written to AX
+		push_to_stack("AX");
 	} MULOP unary_expression {
 		print_grammar_rule("term", "term MULOP unary_expression");
 		$$ = new SymbolInfo("", "term");
@@ -636,6 +648,10 @@ term : unary_expression {
 		}
 		$$->set_rule("term : term MULOP unary_expression");
 		$$->add_child($1); $$->add_child($3); $$->add_child($4);
+
+		// icg code 
+		generate_code("POP BX");
+		generate_mulop_code($3->get_name());
 	}
 	;
 
