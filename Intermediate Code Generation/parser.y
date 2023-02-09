@@ -219,7 +219,9 @@ compound_statement : LCURL_ statements RCURL {
 		// let, base offset of current scope is 6, meaning 3 variables declared in previous scope
 		// so, if we want to assign an offset to the next variable, it should be 8
 		// hence, we need to set the current_scope to the base offset of the latest one
+		int prev_offset = current_offset;
 		current_offset = sym->get_current_scope()->get_base_offset(); 
+		generate_code("ADD SP, " + to_string(current_offset - prev_offset));
 		sym->exit_scope();
 	}
 	| LCURL_ error RCURL {
@@ -229,7 +231,9 @@ compound_statement : LCURL_ statements RCURL {
 		$$->set_rule("compound_statement : LCURL RCURL");
 		$$->add_child($1); $$->add_child($3);
 
+		int prev_offset = current_offset;
 		current_offset = sym->get_current_scope()->get_base_offset(); 
+		generate_code("ADD SP, " + to_string(current_offset - prev_offset));
 		sym->exit_scope();
 	}
 	| LCURL_ RCURL {
@@ -239,7 +243,9 @@ compound_statement : LCURL_ statements RCURL {
 		$$->set_rule("compound_statement : LCURL RCURL");
 		$$->add_child($1); $$->add_child($2);
 		
+		int prev_offset = current_offset;
 		current_offset = sym->get_current_scope()->get_base_offset(); 
+		generate_code("ADD SP, " + to_string(current_offset - prev_offset));
 		sym->exit_scope();
 	}
 	;
@@ -387,7 +393,6 @@ statement : var_declaration {
 		}
 		$$->set_rule("statement : PRINTLN LPAREN ID RPAREN SEMICOLON");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($5);
-
 		int offset = sym->search($3->get_name(), 'A')->get_stack_offset();
 		print_id(get_variable_address($3->get_name(), offset));
 	}
