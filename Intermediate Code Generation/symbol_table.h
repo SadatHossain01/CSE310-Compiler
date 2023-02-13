@@ -13,8 +13,9 @@ struct Param {
     string name;
     string data_type;
     bool is_array = false;
-    Param(const string &name, const string &data_type, bool is_array = false)
-        : name(name), data_type(data_type), is_array(is_array) {}
+    int array_size = 0;
+    Param(const string &name, const string &data_type, bool is_array = false, int array_size = 0)
+        : name(name), data_type(data_type), is_array(is_array), array_size(array_size) {}
 };
 
 enum func_status { NONE, DECLARATION, DEFINITION };

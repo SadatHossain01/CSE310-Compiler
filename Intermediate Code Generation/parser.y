@@ -308,7 +308,7 @@ declaration_list : declaration_list COMMA ID {
 		print_grammar_rule("declaration_list", "declaration_list COMMA ID LSQUARE CONST_INT RSQUARE");
 		$$ = new SymbolInfo("", "declaration_list");
 		$$->set_param_list($1->get_param_list());
-		$$->add_param($3->get_name(), "ID", true);
+		$$->add_param($3->get_name(), "ID", true, stoi($5->get_name()));
 		$$->set_rule("declaration_list : declaration_list COMMA ID LSQUARE CONST_INT RSQUARE");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($5); $$->add_child($6);
 	}
@@ -322,7 +322,7 @@ declaration_list : declaration_list COMMA ID {
 	| ID LSQUARE CONST_INT RSQUARE {
 		print_grammar_rule("declaration_list", "ID LSQUARE CONST_INT RSQUARE");
 		$$ = new SymbolInfo("", "declaration_list");
-		$$->add_param($1->get_name(), "ID", true);
+		$$->add_param($1->get_name(), "ID", true, stoi($3->get_name()));
 		$$->set_rule("declaration_list : ID LSQUARE CONST_INT RSQUARE");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4);
 	}

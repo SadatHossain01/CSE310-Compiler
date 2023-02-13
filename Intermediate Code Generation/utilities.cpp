@@ -334,13 +334,25 @@ void insert_symbols(const string& type, const vector<Param>& param_list, bool gl
 
                 // if global scope, print to data segment
                 if (global_scope) {
-                    codeout << "\t" << cur_list[i].name << " DW 1 DUP (0000H)\r\n";
+                    if (cur_list[i].is_array) {
+                        codeout << "\t" << cur_list[i].name << " DW " << cur_list[i].array_size
+                                << " DUP (0000H)\r\n";
+                    } else {
+                        codeout << "\t" << cur_list[i].name << " DW 1 DUP (0000H)\r\n";
+                    }
                     new_sym->set_stack_offset(-1);  // -10 means global
                 } else {
                     new_sym->set_stack_offset(current_offset - 2);
-                    local_var_cont++;
-                    // tempout << "\tSUB SP, 2 ; Line No: " << line_count << "\r\n";
-                    current_offset -= 2;
+                    if (!cur_list[i].is_array) {
+                        local_var_cont++;
+                        // tempout << "\tSUB SP, 2 ; Line No: " << line_count << "\r\n";
+                        current_offset -= 2;
+                    } else {
+                        local_var_cont += cur_list[i].array_size;
+                        // tempout << "\tSUB SP, " << cur_list[i].array_size * 2 << " ; Line No: "
+                        // << line_count << "\r\n";
+                        current_offset -= cur_list[i].array_size * 2;
+                    }
                 }
                 sym->insert(new_sym);
             } else if (res->get_data_type() != cur_list[i].data_type) {
