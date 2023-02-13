@@ -10,19 +10,18 @@ void init_icg() {
 void generate_printing_function() {
     // first the number printing function
     tempout << "\r\nPRINT_OUTPUT PROC\r\n\tPUSH AX\r\n\tPUSH BX\r\n\tPUSH CX\r\n\tPUSH DX\r\n";
-    tempout
-        << "\r\n\t; dividend has to be in DX:AX\r\n\t; divisor in source, CX\r\n\tMOV CX, 10\r\n";
+    tempout << "\t; dividend has to be in DX:AX\r\n\t; divisor in source, CX\r\n\tMOV CX, 10\r\n";
     tempout << "\tXOR BL, BL ; BL will store the length of number\r\n\tCMP AX, 0\r\n\tJGE STACK_OP "
                "; number is positive\r\n";
-    tempout << "\tMOV BH, 1; number is negative\r\n\tNEG AX\r\n\r\nSTACK_OP:\r\n\tXOR DX, "
+    tempout << "\tMOV BH, 1; number is negative\r\n\tNEG AX\r\nSTACK_OP:\r\n\tXOR DX, "
                "DX\r\n\tDIV CX\r\n";
     tempout << "\t; quotient in AX, remainder in DX\r\n\tPUSH DX\r\n\tINC BL ; len++\r\n\tCMP AX, "
                "0\r\n\tJG STACK_OP\r\n";
-    tempout << "\r\n\tMOV AH, 02\r\n\tCMP BH, 1 ; if negative, print a '-' sign first\r\n\tJNE "
+    tempout << "\tMOV AH, 02\r\n\tCMP BH, 1 ; if negative, print a '-' sign first\r\n\tJNE "
                "PRINT_LOOP\r\n";
-    tempout << "\tMOV DL, '-'\r\n\tINT 21H\r\n\r\nPRINT_LOOP:\r\n\tPOP DX\r\n\tXOR DH, DH\r\n\tADD "
+    tempout << "\tMOV DL, '-'\r\n\tINT 21H\r\nPRINT_LOOP:\r\n\tPOP DX\r\n\tXOR DH, DH\r\n\tADD "
                "DL, '0'\r\n\tINT 21H\r\n";
-    tempout << "\tDEC BL\r\n\tCMP BL, 0\r\n\tJG PRINT_LOOP\r\n\r\n\tPOP DX\r\n\tPOP CX\r\n\tPOP "
+    tempout << "\tDEC BL\r\n\tCMP BL, 0\r\n\tJG PRINT_LOOP\r\n\tPOP DX\r\n\tPOP CX\r\n\tPOP "
                "BX\r\n\tPOP AX\r\n\tRET\r\nPRINT_OUTPUT ENDP\r\n";
 
     // now the newline printing function
@@ -61,17 +60,17 @@ string get_variable_address(SymbolInfo* sym) {
     int offset = sym->get_stack_offset();
     string name = sym->get_name();
     if (offset == -1) return name;  // global variable
-    else return "[BP" + (offset ? ((offset > 0 ? "+" : "") + to_string(offset)) : "") + "]";
+    else return "[BP" + (offset ? ((offset > 0 ? "-" : "") + to_string(offset)) : "") + "]";
 }
 
 string get_variable_address(const string& name, const int offset) {
     if (offset == -1) return name;  // global variable
-    else return "[BP" + (offset ? ((offset > 0 ? "+" : "") + to_string(offset)) : "") + "]";
+    else return "[BP" + (offset ? ((offset > 0 ? "-" : "") + to_string(offset)) : "") + "]";
 }
 
 void push_to_stack(const string& name) {
     // generate_code("MOV SP, BP");
-    // generate_code("ADD SP, " + to_string(current_offset));
+    // generate_code("SUB SP, " + to_string(current_offset));
     generate_code("PUSH " + name);
 }
 
@@ -93,7 +92,7 @@ void generate_logicop_code(const string& op) {
         generate_code("MOV AX, 1");
         generate_code("JMP L" + to_string(++label_count));
         tempout << "L" << label_count - 1 << ":\r\n";
-        generate_code("MOV AX, 0");
+        generate_code("XOR AX, AX");
         tempout << "L" << label_count++ << ":\r\n";
     } else {
         if (op == "&&") generate_code("AND AX, BX");
@@ -119,9 +118,11 @@ void generate_mulop_code(const string& op) {
     } else {
         // we want to do BX / AX
         // so take the dividend from BX to AX first
+        generate_code("PUSH CX");
         generate_code("MOV CX, AX");
         generate_code("MOV AX, BX");
         generate_code("MOV BX, CX");
+        generate_code("POP CX");
         // since the divisor is BX, it will be a division of word form, hence dividend will be in
         // DX:AX
         generate_code("XOR DX, DX");
@@ -152,6 +153,6 @@ void generate_relop_code(const string& op) {
     generate_code("MOV AX, 1");
     generate_code("JMP L" + to_string(++label_count));
     tempout << "L" << label_count - 1 << ":\r\n";
-    generate_code("MOV AX, 0");
+    generate_code("XOR AX, AX");
     tempout << "L" << label_count++ << ":\r\n";
 }

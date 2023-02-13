@@ -221,7 +221,7 @@ compound_statement : LCURL_ statements RCURL {
 		// hence, we need to set the current_scope to the base offset of the latest one
 		int prev_offset = current_offset;
 		current_offset = sym->get_current_scope()->get_base_offset(); 
-		generate_code("ADD SP, " + to_string(current_offset - prev_offset));
+		generate_code("ADD SP, " + to_string(prev_offset - current_offset));
 		sym->exit_scope();
 	}
 	| LCURL_ error RCURL {
@@ -233,7 +233,7 @@ compound_statement : LCURL_ statements RCURL {
 
 		int prev_offset = current_offset;
 		current_offset = sym->get_current_scope()->get_base_offset(); 
-		generate_code("ADD SP, " + to_string(current_offset - prev_offset));
+		generate_code("ADD SP, " + to_string(prev_offset - current_offset));
 		sym->exit_scope();
 	}
 	| LCURL_ RCURL {
@@ -245,7 +245,7 @@ compound_statement : LCURL_ statements RCURL {
 		
 		int prev_offset = current_offset;
 		current_offset = sym->get_current_scope()->get_base_offset(); 
-		generate_code("ADD SP, " + to_string(current_offset - prev_offset));
+		generate_code("ADD SP, " + to_string(prev_offset - current_offset));
 		sym->exit_scope();
 	}
 	;
@@ -308,7 +308,7 @@ declaration_list : declaration_list COMMA ID {
 		print_grammar_rule("declaration_list", "declaration_list COMMA ID LSQUARE CONST_INT RSQUARE");
 		$$ = new SymbolInfo("", "declaration_list");
 		$$->set_param_list($1->get_param_list());
-		$$->add_param($3->get_name(), "ID", true, stoi($5->get_name()));
+		$$->add_param(Param($3->get_name(), "ID", true, stoi($5->get_name())));
 		$$->set_rule("declaration_list : declaration_list COMMA ID LSQUARE CONST_INT RSQUARE");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($5); $$->add_child($6);
 	}
@@ -322,7 +322,7 @@ declaration_list : declaration_list COMMA ID {
 	| ID LSQUARE CONST_INT RSQUARE {
 		print_grammar_rule("declaration_list", "ID LSQUARE CONST_INT RSQUARE");
 		$$ = new SymbolInfo("", "declaration_list");
-		$$->add_param($1->get_name(), "ID", true, stoi($3->get_name()));
+		$$->add_param(Param($1->get_name(), "ID", true, stoi($3->get_name())));
 		$$->set_rule("declaration_list : ID LSQUARE CONST_INT RSQUARE");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4);
 	}
@@ -469,6 +469,9 @@ variable : ID {
 		else {
 			$$->set_data_type(res->get_data_type());
 			$$->set_array(false); // if a is an int array, a[5] is also an int, but not an array
+			$$->set_type("FROM_ARRAY");
+			$$->set_stack_offset(res->get_stack_offset()); 
+			generate_code("MOV CX, AX"); // save the index in CX
 		}
 		$$->set_rule("variable : ID LSQUARE expression RSQUARE");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4);
@@ -503,7 +506,27 @@ expression : logic_expression {
 			$$->set_data_type("INT");
 
 			// icg code
-			generate_code("MOV " + get_variable_address($1) + ", AX");
+			if ($1->get_type() != "FROM_ARRAY") {
+				generate_code("MOV " + get_variable_address($1) + ", AX");
+			}
+			else {
+				// so this is an array element
+				if ($1->get_stack_offset() == -1) {
+					// element of some global array
+					generate_code("LEA SI, " + $1->get_name());
+					generate_code("SHL CX, 1");
+					generate_code("ADD SI, CX");
+					generate_code("MOV [SI], AX");
+				}
+				else {
+					// element of some local array, index is in CX
+					generate_code("SHL CX, 1");
+					generate_code("ADD CX, " + to_string($1->get_stack_offset()));
+					generate_code("MOV DI, BP");
+					generate_code("SUB DI, CX");
+					generate_code("MOV [DI], AX");
+				}
+			}
 		}
 		else {
 			$$->set_data_type("FLOAT");
@@ -708,11 +731,30 @@ factor : variable {
 		print_grammar_rule("factor", "variable");
 		$$ = new SymbolInfo($1->get_name(), "factor", $1->get_data_type());
 		$$->set_array($1->is_array());
+		$$->set_type($1->get_type());
 		$$->set_rule("factor : variable");
 		$$->add_child($1);
 
 		// icg code
-		generate_code("MOV AX, " + get_variable_address($1));
+		if ($1->get_type() != "FROM_ARRAY") { // normal variable
+			generate_code("MOV AX, " + get_variable_address($1));
+		}
+		else {
+			if ($1->get_stack_offset() == -1) {
+				// content of global array
+				generate_code("LEA SI, " + $1->get_name());
+				generate_code("SHL CX, 1");
+				generate_code("ADD SI, CX");
+				generate_code("MOV AX, [SI]");
+			}
+			else {
+				generate_code("SHL CX, 1");
+				generate_code("ADD CX, " + to_string($1->get_stack_offset()));
+				generate_code("MOV DI, BP");
+				generate_code("SUB DI, CX");
+				generate_code("MOV AX, [DI]");
+			}
+		}
 	}
 	| ID LPAREN argument_list RPAREN {
 		print_grammar_rule("factor", "ID LPAREN argument_list RPAREN");
