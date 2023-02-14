@@ -1,7 +1,7 @@
 #include "icg_util.h"
 
 void init_icg() {
-    codeout << ".MODEL SMALL\r\n.STACK 100H\r\n\r\n.DATA\r\n";
+    codeout << ".MODEL SMALL\r\n.STACK 1000H\r\n\r\n.DATA\r\n";
     tempout << "\r\n.CODE\r\n";
     tempout << "MAIN PROC\r\n";
     tempout << "\tMOV AX, @DATA\r\n\tMOV DS, AX\r\n\tMOV BP, SP\r\n";
