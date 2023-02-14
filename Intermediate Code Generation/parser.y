@@ -6,6 +6,7 @@
 #include <cmath>
 #include <vector>
 #include <cassert>
+#include <unordered_map>
 #include "utilities.h"
 #include "icg_util.h"
 #include "symbol_table.h"
@@ -14,15 +15,13 @@ using namespace std;
 
 #define BUCKET_SIZE 11
 
-extern int line_count;
-extern int error_count;
-int syntax_error_line;
+extern int line_count, error_count;
+int syntax_error_line, current_offset = 0, label_count = 1;
+string func_return_type;
 SymbolTable *sym;
 extern FILE* yyin;
 vector<Param> current_function_parameters;
-string func_return_type;
-int current_offset = 0;
-int label_count = 1;
+unordered_map<int, int> label_map;
 
 ofstream treeout, errorout, logout;
 ofstream codeout, tempout; // keep writing data segment in codeout, code segment in tempout, lastly merge both in codeout

@@ -175,3 +175,17 @@ void generate_relop_code(const string& op) {
     generate_code("XOR AX, AX");
     tempout << "L" << label_count++ << ":\r\n";
 }
+
+vector<int> merge(const vector<int>& v1, const vector<int>& v2) {
+    vector<int> v;
+    v.reserve(v1.size() + v2.size());
+    v.insert(v.end(), v1.begin(), v1.end());
+    v.insert(v.end(), v2.begin(), v2.end());
+    return v;
+}
+
+void backpatch(const vector<int>& v, const int label) {
+    for (int i : v) {
+        label_map[i] = label;
+    }
+}
