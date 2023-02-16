@@ -550,12 +550,17 @@ expression : logic_expression {
 				// this is a boolean expression
 				backpatch($3->get_truelist(), "L" + to_string(label_count));
 				backpatch($3->get_falselist(), "L" + to_string(label_count + 1));
+				int tl = label_count;
 				print_label(label_count++);
 				generate_code("MOV AX, 1");
 				generate_code("JMP L" + to_string(label_count + 1));
+				int tf = label_count;
 				print_label(label_count++);
 				generate_code("XOR AX, AX");
 				print_label(label_count++);
+				backpatch($3->get_truelist(), "L" + to_string(tl));
+				backpatch($3->get_falselist(), "L" + to_string(tf));
+				backpatch($3->get_nextlist(), "L" + to_string(label_count));
 			}
 			if ($1->get_type() != "FROM_ARRAY") {
 				generate_code("MOV " + get_variable_address($1) + ", AX");
@@ -892,6 +897,19 @@ factor : variable {
 		$$->set_nextlist($2->get_nextlist());
 		$$->set_exp_evaluated($2->is_exp_evaluated());
 
+		backpatch($2->get_truelist(), "L" + to_string(label_count));
+		backpatch($2->get_falselist(), "L" + to_string(label_count + 1));
+		int tl = label_count;
+		print_label(label_count++);
+		generate_code("MOV AX, 1");
+		generate_code("JMP L" + to_string(label_count + 1));
+		int tf = label_count;
+		print_label(label_count++);
+		generate_code("XOR AX, AX");
+		print_label(label_count++);
+		backpatch($2->get_truelist(), "L" + to_string(tl));
+		backpatch($2->get_falselist(), "L" + to_string(tf));
+		backpatch($2->get_nextlist(), "L" + to_string(label_count));
 	}
 	| CONST_INT {
 		print_grammar_rule("factor", "CONST_INT");
