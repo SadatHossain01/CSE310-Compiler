@@ -1015,7 +1015,7 @@ N : {
 	$$ = new SymbolInfo();
 	generate_code("JMP");
 	$$->add_to_nextlist(temp_file_lc - 1);
-	cerr << "Generating a jump instruction at " << temp_file_lc - 1 << endl;
+	// cerr << "Generating a jump instruction at " << temp_file_lc - 1 << endl;
 }
 
 unary_boolean : {

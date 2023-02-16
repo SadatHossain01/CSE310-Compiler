@@ -57,7 +57,7 @@ void generate_final_assembly() {
     while (getline(tempin, line)) {
         line_no_here++;
         if (check_empty_jump(line)) {
-            cerr << "Empty jump found at line " << line_no_here << endl;
+            // cerr << "Empty jump found at line " << line_no_here << endl;
             while (line.back() < 'A' || line.back() > 'Z') line.pop_back();
             line += " " + label_map[line_no_here] + "\r\n";
         }
@@ -217,10 +217,10 @@ void generate_relop_code(const string& op, SymbolInfo* sym) {
         generate_code("CMP BX, AX");
         generate_code(jmpi);  // keeping label empty for now
     }
-    cerr << "Generating a jump instruction at " << temp_file_lc - 1 << endl;
+    // cerr << "Generating a jump instruction at " << temp_file_lc - 1 << endl;
     sym->add_to_truelist(temp_file_lc - 1);
     generate_code("JMP");
-    cerr << "Generating a jump instruction at " << temp_file_lc - 1 << endl;
+    // cerr << "Generating a jump instruction at " << temp_file_lc - 1 << endl;
     sym->add_to_falselist(temp_file_lc - 1);
 }
 
@@ -234,13 +234,13 @@ vector<int> merge(const vector<int>& v1, const vector<int>& v2) {
 
 void backpatch(const vector<int>& v, string label) {
     // show all contents of v to cerr
-    if (!v.empty()) {
-        cerr << "Backpatching ";
-        for (int i : v) {
-            cerr << i << " ";
-        }
-        cerr << "to label " << label << endl;
-    }
+    // if (!v.empty()) {
+    //     cerr << "Backpatching ";
+    //     for (int i : v) {
+    //         cerr << i << " ";
+    //     }
+    //     cerr << "to label " << label << endl;
+    // }
 
     for (int i : v) {
         label_map[i] = label;
