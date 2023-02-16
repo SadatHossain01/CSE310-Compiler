@@ -16,7 +16,7 @@ using namespace std;
 #define BUCKET_SIZE 11
 
 extern int line_count, error_count;
-int syntax_error_line, current_offset = 0, label_count = 1;
+int syntax_error_line, current_offset = 0, label_count = 1, printed_line_count = 0;
 string func_return_type;
 SymbolTable *sym;
 extern FILE* yyin;

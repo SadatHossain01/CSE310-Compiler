@@ -345,12 +345,9 @@ void insert_symbols(const string& type, const vector<Param>& param_list, bool gl
                     new_sym->set_stack_offset(current_offset + 2);
                     if (!cur_list[i].is_array) {
                         local_var_cont++;
-                        // tempout << "\tSUB SP, 2 ; Line No: " << line_count << "\r\n";
                         current_offset += 2;
                     } else {
                         local_var_cont += cur_list[i].array_size;
-                        // tempout << "\tSUB SP, " << cur_list[i].array_size * 2 << " ; Line No: "
-                        // << line_count << "\r\n";
                         current_offset += cur_list[i].array_size * 2;
                     }
                 }
@@ -366,6 +363,6 @@ void insert_symbols(const string& type, const vector<Param>& param_list, bool gl
         }
     }
     if (local_var_cont > 0) {
-        tempout << "\tSUB SP, " << local_var_cont * 2 << " ; Line No: " << line_count << "\r\n";
+        generate_code("SUB SP, " + to_string(local_var_cont * 2));
     }
 }

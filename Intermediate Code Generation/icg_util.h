@@ -7,7 +7,7 @@
 using namespace std;
 
 extern ofstream codeout, tempout;
-extern int line_count, current_offset, label_count;
+extern int line_count, current_offset, label_count, printed_line_count;
 extern unordered_map<int, int> label_map;
 
 void init_icg();

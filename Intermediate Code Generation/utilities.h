@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 
+#include "icg_util.h"
 #include "symbol_table.h"
 
 using std::endl;

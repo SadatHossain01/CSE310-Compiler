@@ -75,8 +75,11 @@ void push_to_stack(const string& name) {
 }
 
 void generate_code(const string& code, const string& comment) {
-    tempout << "\t" << code << " ; Line No: " << line_count
-            << (comment.empty() ? "" : ", " + comment) << "\r\n";
+    if (printed_line_count < line_count) {
+        tempout << "\t; Line No: " << line_count << "\r\n";
+        printed_line_count = line_count;
+    }
+    tempout << "\t" << code << (comment.empty() ? "" : "; " + comment) << "\r\n";
 }
 
 void generate_incop_code(SymbolInfo* sym, const string& op) {
