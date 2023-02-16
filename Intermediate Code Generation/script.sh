@@ -1,4 +1,4 @@
-yacc -d parser.y
+yacc -d parser.y -v
 echo 'Generated the parser C file'
 flex scanner.l
 echo 'Generated the scanner C file'

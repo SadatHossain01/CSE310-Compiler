@@ -21,15 +21,14 @@ enum func_status { NONE, DECLARATION, DEFINITION };
 
 class SymbolInfo {
    private:
-    string name, type, rule;
+    string name, type, rule, label;
     string data_type;  // should always be in uppercase
     func_status func_type = NONE;
     bool array = false, terminal = false;
-    int start_line = -1, end_line = -1, stack_offset = -1,
-        label;                                  // -1 offset means global variable
-    vector<Param> param_list;                   // name, data_type
-    vector<SymbolInfo *> children;              // for parse tree
-    vector<int> truelist, falselist, nextlist;  // list of line numbers
+    int start_line = -1, end_line = -1, stack_offset = -1;  // -1 offset means global variable
+    vector<Param> param_list;                               // name, data_type
+    vector<SymbolInfo *> children;                          // for parse tree
+    vector<int> truelist, falselist, nextlist;              // list of line numbers
     SymbolInfo *next = nullptr;
 
    public:
@@ -66,7 +65,7 @@ class SymbolInfo {
     vector<int> get_truelist() const { return truelist; }
     vector<int> get_falselist() const { return falselist; }
     vector<int> get_nextlist() const { return nextlist; }
-    int get_label() const { return label; }
+    string get_label() const { return label; }
     void add_to_truelist(int line) { truelist.push_back(line); }
     void add_to_falselist(int line) { falselist.push_back(line); }
     void add_to_nextlist(int line) { nextlist.push_back(line); }
@@ -76,7 +75,7 @@ class SymbolInfo {
     void set_name(const string &name) { this->name = name; }
     void set_type(const string &type) { this->type = type; }
     void set_stack_offset(int offset) { this->stack_offset = offset; }
-    void set_label(int label) { this->label = label; }
+    void set_label(string label) { this->label = label; }
     void set_data_type(const string &data_type) {
         if (this->data_type != "" && data_type == "") return;
         this->data_type = data_type;

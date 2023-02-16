@@ -6,7 +6,7 @@
 #include <cmath>
 #include <vector>
 #include <cassert>
-#include <unordered_map>
+#include <map>
 #include "utilities.h"
 #include "icg_util.h"
 #include "symbol_table.h"
@@ -17,11 +17,12 @@ using namespace std;
 
 extern int line_count, error_count;
 int syntax_error_line, current_offset = 0, label_count = 1, printed_line_count = 0;
+int temp_file_lc = 1;
 string func_return_type;
 SymbolTable *sym;
 extern FILE* yyin;
 vector<Param> current_function_parameters;
-unordered_map<int, int> label_map;
+map<int, string> label_map;
 
 ofstream treeout, errorout, logout;
 ofstream codeout, tempout; // keep writing data segment in codeout, code segment in tempout, lastly merge both in codeout
@@ -32,6 +33,11 @@ void yyerror(const string& s) {
 int yyparse(void);
 int yylex(void);
 
+string newLabel() {
+	string label = "L" + to_string(label_count);
+	label_count++;
+	return label;
+}
 
 %}
 
@@ -50,7 +56,7 @@ int yylex(void);
 } <symbol_info>
 
 %token <symbol_info> IF ELSE FOR WHILE DO BREAK RETURN SWITCH CASE DEFAULT CONTINUE PRINTLN ADDOP INCOP DECOP RELOP ASSIGNOP LOGICOP BITOP NOT LPAREN RPAREN LCURL RCURL LSQUARE RSQUARE COMMA SEMICOLON INT CHAR FLOAT DOUBLE VOID CONST_INT CONST_FLOAT ID MULOP
-%type <symbol_info> start program unit var_declaration func_declaration func_definition type_specifier parameter_list compound_statement statements declaration_list statement expression expression_statement logic_expression rel_expression simple_expression term unary_expression factor variable argument_list arguments LCURL_
+%type <symbol_info> start program unit var_declaration func_declaration func_definition type_specifier parameter_list compound_statement statements declaration_list statement expression expression_statement logic_expression rel_expression simple_expression term unary_expression factor variable argument_list arguments LCURL_ M N
 
 %%
 
@@ -61,6 +67,7 @@ start : { init_icg(); } program {
 		$$->add_child($2);
 		$$->print_tree_node(treeout);
 		tempout << "\tMOV AX, 4CH\r\n\tINT 21H\r\nMAIN ENDP\r\n";
+		temp_file_lc += 3;
 		generate_printing_function();
 		generate_final_assembly();
 	}
@@ -220,7 +227,7 @@ compound_statement : LCURL_ statements RCURL {
 		// hence, we need to set the current_scope to the base offset of the latest one
 		int prev_offset = current_offset;
 		current_offset = sym->get_current_scope()->get_base_offset(); 
-		generate_code("ADD SP, " + to_string(prev_offset - current_offset));
+		if (prev_offset != current_offset) generate_code("ADD SP, " + to_string(prev_offset - current_offset));
 		sym->exit_scope();
 	}
 	| LCURL_ error RCURL {
@@ -232,7 +239,7 @@ compound_statement : LCURL_ statements RCURL {
 
 		int prev_offset = current_offset;
 		current_offset = sym->get_current_scope()->get_base_offset(); 
-		generate_code("ADD SP, " + to_string(prev_offset - current_offset));
+		if (prev_offset != current_offset) generate_code("ADD SP, " + to_string(prev_offset - current_offset));
 		sym->exit_scope();
 	}
 	| LCURL_ RCURL {
@@ -244,7 +251,7 @@ compound_statement : LCURL_ statements RCURL {
 		
 		int prev_offset = current_offset;
 		current_offset = sym->get_current_scope()->get_base_offset(); 
-		generate_code("ADD SP, " + to_string(prev_offset - current_offset));
+		if (prev_offset != current_offset) generate_code("ADD SP, " + to_string(prev_offset - current_offset));
 		sym->exit_scope();
 	}
 	;
@@ -332,12 +339,16 @@ statements : statement {
 		$$ = new SymbolInfo($1->get_name(), "statements");
 		$$->set_rule("statements : statement");
 		$$->add_child($1);
+		$$->set_nextlist($1->get_nextlist());
 	}
-	| statements statement {
+	| statements M statement {
 		print_grammar_rule("statements", "statements statement");
 		$$ = new SymbolInfo($1->get_name(), "statements");
 		$$->set_rule("statements : statements statement");
-		$$->add_child($1); $$->add_child($2);
+		$$->add_child($1); $$->add_child($3);
+		backpatch($1->get_nextlist(), $2->get_label());
+		$$->set_nextlist($3->get_nextlist());
+		delete $2;
 	}
 	;
 	   
@@ -365,18 +376,29 @@ statement : var_declaration {
 		$$->set_rule("statement : FOR LPAREN expression_statement expression_statement expression RPAREN statement");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($5); $$->add_child($6); $$->add_child($7);
 	}
-	| IF LPAREN expression RPAREN statement %prec THEN {
+	| IF LPAREN expression RPAREN M statement %prec THEN {
 		// use the precedence of THEN here
 		print_grammar_rule("statement", "IF LPAREN expression RPAREN statement %prec THEN");
 		$$ = new SymbolInfo("", "statement");
 		$$->set_rule("statement : IF LPAREN expression RPAREN statement");
-		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($5);
+		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($6);
+
+		// icg code
+		$$->set_nextlist(merge($3->get_falselist(), $6->get_nextlist()));
+		backpatch($3->get_truelist(), $5->get_label());
+		delete $5;
 	}
-	| IF LPAREN expression RPAREN statement ELSE statement {
+	| IF LPAREN expression RPAREN M statement ELSE N M statement {
 		print_grammar_rule("statement", "IF LPAREN expression RPAREN statement ELSE statement");
 		$$ = new SymbolInfo("", "statement");
 		$$->set_rule("statement : IF LPAREN expression RPAREN statement ELSE statement");
-		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($5); $$->add_child($6); $$->add_child($7);
+		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($6); $$->add_child($7); $$->add_child($10);
+
+		// icg code
+		backpatch($3->get_truelist(), $5->get_label());
+		backpatch($3->get_falselist(), $9->get_label());
+		$$->set_nextlist(merge(merge($6->get_nextlist(), $8->get_nextlist()), $10->get_nextlist()));
+		delete $5; delete $8; delete $9;
 	}
 	| WHILE LPAREN expression RPAREN statement {
 		print_grammar_rule("statement", "WHILE LPAREN expression RPAREN statement");
@@ -481,6 +503,9 @@ expression : logic_expression {
 		print_grammar_rule("expression", "logic_expression");
 		$$ = new SymbolInfo($1->get_name(), "expression", $1->get_data_type());
 		$$->set_array($1->is_array());
+		$$->set_truelist($1->get_truelist());
+		$$->set_falselist($1->get_falselist());
+		$$->set_nextlist($1->get_nextlist());
 		$$->set_rule("expression : logic_expression");
 		$$->add_child($1);
 	}	
@@ -539,24 +564,27 @@ logic_expression : rel_expression {
 		print_grammar_rule("logic_expression", "rel_expression");
 		$$ = new SymbolInfo($1->get_name(), "logic_expression", $1->get_data_type());
 		$$->set_array($1->is_array());
+		$$->set_truelist($1->get_truelist());
+		$$->set_falselist($1->get_falselist());
+		$$->set_nextlist($1->get_nextlist());
 		$$->set_rule("logic_expression : rel_expression");
 		$$->add_child($1);
 	}
 	| rel_expression {
 		// generate_code("MOV BX, AX"); // so that the second operand can be written to AX
 		push_to_stack("AX");
-	} LOGICOP rel_expression {
+	} LOGICOP M rel_expression {
 		print_grammar_rule("logic_expression", "rel_expression LOGICOP rel_expression");
 		$$ = new SymbolInfo("", "logic_expression");
-		if ($1->get_data_type() == "VOID" || $4->get_data_type() == "VOID") {
+		if ($1->get_data_type() == "VOID" || $5->get_data_type() == "VOID") {
 			show_error(SEMANTIC, VOID_USAGE, "", errorout);
 			$$->set_data_type("ERROR");
 		}
-		else if ($1->get_data_type() == "ERROR" || $4->get_data_type() == "ERROR") {
+		else if ($1->get_data_type() == "ERROR" || $5->get_data_type() == "ERROR") {
 			// show_error(SEMANTIC, TYPE_ERROR, "", errorout);
 			$$->set_data_type("ERROR");
 		}
-		else if ($1->get_data_type() == "FLOAT" || $4->get_data_type() == "FLOAT") {
+		else if ($1->get_data_type() == "FLOAT" || $5->get_data_type() == "FLOAT") {
 			show_error(WARNING, LOGICAL_FLOAT, "", errorout);
 			$$->set_data_type("INT");
 		}
@@ -565,10 +593,20 @@ logic_expression : rel_expression {
 
 			// icg code
 			generate_code("POP BX");
-			generate_logicop_code($4->get_name());
+			if ($3->get_name() == "&&") {
+				$$->set_falselist(merge($1->get_falselist(), $5->get_falselist()));
+				$$->set_truelist($5->get_truelist());
+				backpatch($1->get_truelist(), $4->get_label());
+			}
+			else if ($3->get_name() == "||") {
+				$$->set_truelist(merge($1->get_truelist(), $5->get_truelist()));
+				$$->set_falselist($5->get_falselist());
+				backpatch($1->get_falselist(), $4->get_label());
+			}
 		}
 		$$->set_rule("logic_expression : rel_expression LOGICOP rel_expression");
-		$$->add_child($1); $$->add_child($3); $$->add_child($4);
+		delete $4;
+		$$->add_child($1); $$->add_child($3); $$->add_child($5);
 	}
 	;
 			
@@ -597,7 +635,7 @@ rel_expression : simple_expression {
 
 		// icg code
 		generate_code("POP BX");
-		generate_relop_code($3->get_name());
+		generate_relop_code($3->get_name(), $$);
 	}	
 	;
 				
@@ -911,6 +949,19 @@ LCURL_ : LCURL {
 		current_function_parameters.clear();
 	}
 	;
+
+M : {
+	$$ = new SymbolInfo();
+	$$->set_label(newLabel());
+	print_label($$->get_label());
+}
+
+N : {
+	$$ = new SymbolInfo();
+	generate_code("JMP");
+	$$->add_to_nextlist(temp_file_lc - 1);
+	cerr << "Generating a jump instruction at " << temp_file_lc - 1 << endl;
+}
  
 %%
 
