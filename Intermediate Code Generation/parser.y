@@ -511,6 +511,7 @@ expression : logic_expression {
 		$$->set_nextlist($1->get_nextlist());
 		$$->set_rule("expression : logic_expression");
 		$$->add_child($1);
+		$$->set_exp_evaluated($1->is_exp_evaluated());
 		expression = $$;
 	}	
 	| variable ASSIGNOP logic_expression {
@@ -557,6 +558,7 @@ expression : logic_expression {
 					generate_code("SUB DI, CX");
 					generate_code("MOV [DI], AX");
 				}
+				$$->set_exp_evaluated($3->is_exp_evaluated());
 			}
 		}
 		else {
