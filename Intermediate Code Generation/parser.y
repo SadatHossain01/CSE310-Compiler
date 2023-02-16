@@ -535,13 +535,24 @@ expression : logic_expression {
 			$$->set_data_type("INT");
 
 			// icg code
+			$$->set_truelist($3->get_truelist());
+			$$->set_falselist($3->get_falselist());
+			$$->set_nextlist($3->get_nextlist());
+			if (!$$->get_truelist().empty() || !$$->get_falselist().empty() || !$$->get_nextlist().empty()) {
+				// this is a boolean expression
+				backpatch($3->get_truelist(), "L" + to_string(label_count));
+				backpatch($3->get_falselist(), "L" + to_string(label_count + 1));
+				print_label(label_count++);
+				generate_code("MOV AX, 1");
+				generate_code("JMP L" + to_string(label_count + 1));
+				print_label(label_count++);
+				generate_code("XOR AX, AX");
+				print_label(label_count++);
+			}
 			if ($1->get_type() != "FROM_ARRAY") {
 				generate_code("MOV " + get_variable_address($1) + ", AX");
 			}
 			else {
-				$$->set_truelist($3->get_truelist());
-				$$->set_falselist($3->get_falselist());
-				$$->set_nextlist($3->get_nextlist());
 				// so this is an array element
 				if ($1->get_stack_offset() == -1) {
 					// element of some global array
@@ -628,6 +639,12 @@ rel_expression : simple_expression {
 		$$->set_rule("rel_expression : simple_expression");
 		$$->add_child($1);
 		$$->set_exp_evaluated($1->is_exp_evaluated());
+
+		// icg code
+		$$->set_truelist($1->get_truelist());
+		$$->set_falselist($1->get_falselist());
+		$$->set_nextlist($1->get_nextlist());
+		$$->set_exp_evaluated($1->is_exp_evaluated());
 	}
 	| simple_expression {
 		// generate_code("MOV BX, AX"); // so that the second operand can be written to AX
@@ -658,6 +675,12 @@ simple_expression : term {
 		$$->set_array($1->is_array());
 		$$->set_rule("simple_expression : term");
 		$$->add_child($1);
+
+		// icg code
+		$$->set_truelist($1->get_truelist());
+		$$->set_falselist($1->get_falselist());
+		$$->set_nextlist($1->get_nextlist());
+		$$->set_exp_evaluated($1->is_exp_evaluated());
 	}
 	| simple_expression {
 		// generate_code("MOV BX, AX"); // so that the second operand can be written to AX
@@ -684,6 +707,12 @@ term : unary_expression {
 		$$->set_array($1->is_array());
 		$$->set_rule("term : unary_expression");
 		$$->add_child($1);
+
+		// icg code
+		$$->set_truelist($1->get_truelist());
+		$$->set_falselist($1->get_falselist());
+		$$->set_nextlist($1->get_nextlist());
+		$$->set_exp_evaluated($1->is_exp_evaluated());
 	}
 	| term { 
 		// generate_code("MOV BX, AX"); // so that the second operand can be written to AX
@@ -774,6 +803,12 @@ unary_expression : ADDOP unary_expression {
 		$$->set_array($1->is_array());
 		$$->set_rule("unary_expression : factor");
 		$$->add_child($1);
+
+		// icg code
+		$$->set_truelist($1->get_truelist());
+		$$->set_falselist($1->get_falselist());
+		$$->set_nextlist($1->get_nextlist());
+		$$->set_exp_evaluated($1->is_exp_evaluated());
 	}
 	;
 	
@@ -842,6 +877,13 @@ factor : variable {
 		$$ = new SymbolInfo($2->get_name(), "factor", $2->get_data_type());
 		$$->set_rule("factor : LPAREN expression RPAREN");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3);
+
+		// icg code
+		$$->set_truelist($2->get_truelist());
+		$$->set_falselist($2->get_falselist());
+		$$->set_nextlist($2->get_nextlist());
+		$$->set_exp_evaluated($2->is_exp_evaluated());
+
 	}
 	| CONST_INT {
 		print_grammar_rule("factor", "CONST_INT");
