@@ -24,7 +24,7 @@ class SymbolInfo {
     string name, type, rule, label;
     string data_type;  // should always be in uppercase
     func_status func_type = NONE;
-    bool array = false, terminal = false;
+    bool array = false, terminal = false, exp_evaluated = false;
     int start_line = -1, end_line = -1, stack_offset = -1;  // -1 offset means global variable
     vector<Param> param_list;                               // name, data_type
     vector<SymbolInfo *> children;                          // for parse tree
@@ -58,6 +58,7 @@ class SymbolInfo {
     func_status get_func_type() const { return func_type; }
     bool is_array() const { return array; }
     bool is_terminal() const { return terminal; }
+    bool is_exp_evaluated() const { return exp_evaluated; }
     int get_start_line() const { return start_line; }
     int get_end_line() const { return end_line; }
     vector<Param> get_param_list() const { return param_list; }
@@ -72,6 +73,7 @@ class SymbolInfo {
     void set_truelist(const vector<int> &truelist) { this->truelist = truelist; }
     void set_falselist(const vector<int> &falselist) { this->falselist = falselist; }
     void set_nextlist(const vector<int> &nextlist) { this->nextlist = nextlist; }
+    void set_exp_evaluated(bool val) { exp_evaluated = val; }
     void set_name(const string &name) { this->name = name; }
     void set_type(const string &type) { this->type = type; }
     void set_stack_offset(int offset) { this->stack_offset = offset; }

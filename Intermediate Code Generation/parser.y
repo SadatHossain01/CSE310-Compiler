@@ -22,6 +22,7 @@ string func_return_type;
 SymbolTable *sym;
 extern FILE* yyin;
 vector<Param> current_function_parameters;
+SymbolInfo* expression;
 map<int, string> label_map;
 
 ofstream treeout, errorout, logout;
@@ -56,11 +57,13 @@ string newLabel() {
 } <symbol_info>
 
 %token <symbol_info> IF ELSE FOR WHILE DO BREAK RETURN SWITCH CASE DEFAULT CONTINUE PRINTLN ADDOP INCOP DECOP RELOP ASSIGNOP LOGICOP BITOP NOT LPAREN RPAREN LCURL RCURL LSQUARE RSQUARE COMMA SEMICOLON INT CHAR FLOAT DOUBLE VOID CONST_INT CONST_FLOAT ID MULOP
-%type <symbol_info> start program unit var_declaration func_declaration func_definition type_specifier parameter_list compound_statement statements declaration_list statement expression expression_statement logic_expression rel_expression simple_expression term unary_expression factor variable argument_list arguments LCURL_ M N
+%type <symbol_info> start program unit var_declaration func_declaration func_definition type_specifier parameter_list compound_statement statements declaration_list statement expression expression_statement logic_expression rel_expression simple_expression term unary_expression factor variable argument_list arguments LCURL_ M N unary_boolean
 
 %%
 
-start : { init_icg(); } program {
+start : { 
+		init_icg(); 
+	} program {
 		print_grammar_rule("start", "program");
 		$$ = new SymbolInfo("", "start");
 		$$->set_rule("start : program");
@@ -376,29 +379,29 @@ statement : var_declaration {
 		$$->set_rule("statement : FOR LPAREN expression_statement expression_statement expression RPAREN statement");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($5); $$->add_child($6); $$->add_child($7);
 	}
-	| IF LPAREN expression RPAREN M statement %prec THEN {
+	| IF LPAREN expression unary_boolean RPAREN M statement %prec THEN {
 		// use the precedence of THEN here
 		print_grammar_rule("statement", "IF LPAREN expression RPAREN statement %prec THEN");
 		$$ = new SymbolInfo("", "statement");
 		$$->set_rule("statement : IF LPAREN expression RPAREN statement");
-		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($6);
+		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($5); $$->add_child($7);
 
 		// icg code
-		$$->set_nextlist(merge($3->get_falselist(), $6->get_nextlist()));
-		backpatch($3->get_truelist(), $5->get_label());
-		delete $5;
+		$$->set_nextlist(merge($3->get_falselist(), $7->get_nextlist()));
+		backpatch($3->get_truelist(), $6->get_label());
+		delete $6;
 	}
-	| IF LPAREN expression RPAREN M statement ELSE N M statement {
+	| IF LPAREN expression unary_boolean RPAREN M statement ELSE N M statement {
 		print_grammar_rule("statement", "IF LPAREN expression RPAREN statement ELSE statement");
 		$$ = new SymbolInfo("", "statement");
 		$$->set_rule("statement : IF LPAREN expression RPAREN statement ELSE statement");
-		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($6); $$->add_child($7); $$->add_child($10);
+		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($5); $$->add_child($7); $$->add_child($8); $$->add_child($11);
 
 		// icg code
-		backpatch($3->get_truelist(), $5->get_label());
-		backpatch($3->get_falselist(), $9->get_label());
-		$$->set_nextlist(merge(merge($6->get_nextlist(), $8->get_nextlist()), $10->get_nextlist()));
-		delete $5; delete $8; delete $9;
+		backpatch($3->get_truelist(), $6->get_label());
+		backpatch($3->get_falselist(), $10->get_label());
+		$$->set_nextlist(merge(merge($7->get_nextlist(), $9->get_nextlist()), $11->get_nextlist()));
+		delete $6; delete $9; delete $10;
 	}
 	| WHILE LPAREN expression RPAREN statement {
 		print_grammar_rule("statement", "WHILE LPAREN expression RPAREN statement");
@@ -508,6 +511,7 @@ expression : logic_expression {
 		$$->set_nextlist($1->get_nextlist());
 		$$->set_rule("expression : logic_expression");
 		$$->add_child($1);
+		expression = $$;
 	}	
 	| variable ASSIGNOP logic_expression {
 		print_grammar_rule("expression", "variable ASSIGNOP logic_expression");
@@ -534,6 +538,9 @@ expression : logic_expression {
 				generate_code("MOV " + get_variable_address($1) + ", AX");
 			}
 			else {
+				$$->set_truelist($3->get_truelist());
+				$$->set_falselist($3->get_falselist());
+				$$->set_nextlist($3->get_nextlist());
 				// so this is an array element
 				if ($1->get_stack_offset() == -1) {
 					// element of some global array
@@ -557,6 +564,7 @@ expression : logic_expression {
 		}
 		$$->set_rule("expression : variable ASSIGNOP logic_expression");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3);
+		expression = $$;
 	}	
 	;
 			
@@ -567,6 +575,7 @@ logic_expression : rel_expression {
 		$$->set_truelist($1->get_truelist());
 		$$->set_falselist($1->get_falselist());
 		$$->set_nextlist($1->get_nextlist());
+		$$->set_exp_evaluated($1->is_exp_evaluated());
 		$$->set_rule("logic_expression : rel_expression");
 		$$->add_child($1);
 	}
@@ -616,6 +625,7 @@ rel_expression : simple_expression {
 		$$->set_array($1->is_array()); // will need in function argument type checking
 		$$->set_rule("rel_expression : simple_expression");
 		$$->add_child($1);
+		$$->set_exp_evaluated($1->is_exp_evaluated());
 	}
 	| simple_expression {
 		// generate_code("MOV BX, AX"); // so that the second operand can be written to AX
@@ -636,6 +646,7 @@ rel_expression : simple_expression {
 		// icg code
 		generate_code("POP BX");
 		generate_relop_code($3->get_name(), $$);
+		$$->set_exp_evaluated(true);
 	}	
 	;
 				
@@ -961,6 +972,15 @@ N : {
 	generate_code("JMP");
 	$$->add_to_nextlist(temp_file_lc - 1);
 	cerr << "Generating a jump instruction at " << temp_file_lc - 1 << endl;
+}
+
+unary_boolean : {
+	// icg code
+	if (!(expression->is_exp_evaluated())) {
+		// of the form if (i)
+		generate_relop_code("jnz", expression);
+	}
+	expression->set_exp_evaluated(true);
 }
  
 %%

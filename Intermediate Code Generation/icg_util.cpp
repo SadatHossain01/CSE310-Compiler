@@ -210,8 +210,13 @@ void generate_relop_code(const string& op, SymbolInfo* sym) {
     else if (op == ">=") jmpi = "JGE";
     else if (op == "==") jmpi = "JE";
     else if (op == "!=") jmpi = "JNE";
-    generate_code("CMP BX, AX");
-    generate_code(jmpi);  // keeping label empty for now
+    if (op == "jnz") {
+        generate_code("CMP AX, 0");
+        generate_code("JNE");
+    } else {
+        generate_code("CMP BX, AX");
+        generate_code(jmpi);  // keeping label empty for now
+    }
     cerr << "Generating a jump instruction at " << temp_file_lc - 1 << endl;
     sym->add_to_truelist(temp_file_lc - 1);
     generate_code("JMP");
