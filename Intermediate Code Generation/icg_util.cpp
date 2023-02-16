@@ -124,8 +124,9 @@ void print_label(int label) { print_label("L" + to_string(label)); }
 
 void generate_incop_code(SymbolInfo* sym, const string& op) {
     if (sym->get_type() != "FROM_ARRAY") {
-        generate_code("MOV AX, " + get_variable_address(sym));
-        generate_code(op + " " + get_variable_address(sym));
+        string address = get_variable_address(sym);
+        generate_code("MOV AX, " + address);
+        generate_code(op + " WORD PTR " + address);
     } else {
         if (sym->get_stack_offset() == -1) {
             // element of some global array
@@ -133,7 +134,7 @@ void generate_incop_code(SymbolInfo* sym, const string& op) {
             generate_code("SHL CX, 1");
             generate_code("ADD SI, CX");
             generate_code("MOV AX, [SI]");
-            generate_code(op + " [SI]");
+            generate_code(op + " WORD PTR [SI]");
         } else {
             // element of some local array, index is in CX
             generate_code("SHL CX, 1");
@@ -141,7 +142,7 @@ void generate_incop_code(SymbolInfo* sym, const string& op) {
             generate_code("MOV DI, BP");
             generate_code("SUB DI, CX");
             generate_code("MOV AX, [DI]");
-            generate_code(op + " [DI]");
+            generate_code(op + " WORD PTR [DI]");
         }
     }
 }
