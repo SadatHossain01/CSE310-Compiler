@@ -403,11 +403,19 @@ statement : var_declaration {
 		$$->set_nextlist(merge(merge($7->get_nextlist(), $9->get_nextlist()), $11->get_nextlist()));
 		delete $6; delete $9; delete $10;
 	}
-	| WHILE LPAREN expression RPAREN statement {
+	| WHILE M LPAREN expression unary_boolean RPAREN M statement {
 		print_grammar_rule("statement", "WHILE LPAREN expression RPAREN statement");
 		$$ = new SymbolInfo("", "statement");
 		$$->set_rule("statement : WHILE LPAREN expression RPAREN statement");
-		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($5);
+		$$->add_child($1); $$->add_child($3); $$->add_child($4); $$->add_child($6); $$->add_child($8);
+
+		// icg code
+		backpatch($8->get_nextlist(), $2->get_label());
+		backpatch($4->get_truelist(), $7->get_label());
+		for (auto i : $4->get_falselist()) cerr << i << endl;
+		$$->set_nextlist($4->get_falselist());
+		generate_code("JMP " + $2->get_label());
+		delete $2; delete $7;
 	}
 	| PRINTLN LPAREN ID RPAREN SEMICOLON {
 		print_grammar_rule("statement", "PRINTLN LPAREN ID RPAREN SEMICOLON");
