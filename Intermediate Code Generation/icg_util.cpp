@@ -149,13 +149,13 @@ void generate_incop_code(SymbolInfo* sym, const string& op) {
 void generate_logicop_code(const string& op) {
     if (op == "NOT") {
         generate_code("CMP AX, 0");
-        generate_code("JZ, L" + to_string(label_count++));
-        generate_code("L" + to_string(label_count - 1) + ":", "label");
+        generate_code("JE L" + to_string(label_count++));
+        print_label(label_count - 1);
         generate_code("MOV AX, 1");
         generate_code("JMP L" + to_string(++label_count));
-        generate_code("L" + to_string(label_count - 1) + ":", "label");
+        print_label(label_count - 1);
         generate_code("XOR AX, AX");
-        generate_code("L" + to_string(label_count++) + ":", "label");
+        print_label(label_count++);
 
     } else {
         if (op == "&&") generate_code("AND AX, BX");
