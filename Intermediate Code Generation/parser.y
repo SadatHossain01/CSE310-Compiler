@@ -450,6 +450,7 @@ expression_statement : SEMICOLON {
 		$$ = new SymbolInfo("", "expression_statement");
 		$$->set_rule("expression_statement : SEMICOLON");
 		$$->add_child($1);
+		pop_from_stack("AX");
 	}
 	| expression SEMICOLON {
 		print_grammar_rule("expression_statement", "expression SEMICOLON");
@@ -457,6 +458,7 @@ expression_statement : SEMICOLON {
 		$$->set_data_type($1->get_data_type()); // result of an expression will have a certain data type
 		$$->set_rule("expression_statement : expression SEMICOLON");
 		$$->add_child($1); $$->add_child($2);
+		pop_from_stack("AX");
 	}
 	| error SEMICOLON {
 		show_error(SYNTAX, S_EXP_STATEMENT, "", errorout, syntax_error_line);
@@ -464,6 +466,7 @@ expression_statement : SEMICOLON {
 		$$->set_rule("expression_statement : expression SEMICOLON");
 		SymbolInfo* error_token = create_error_token("expression : error", syntax_error_line);
 		$$->add_child(error_token); $$->add_child($2);
+		pop_from_stack("AX");
 	}
 	;
 	  
@@ -505,7 +508,8 @@ variable : ID {
 			$$->set_array(false); // if a is an int array, a[5] is also an int, but not an array
 			$$->set_type("FROM_ARRAY");
 			$$->set_stack_offset(res->get_stack_offset()); 
-			generate_code("MOV CX, AX"); // save the index in CX
+			pop_from_stack("CX"); // get the index
+			// generate_code("MOV CX, AX"); // save the index in CX
 		}
 		$$->set_rule("variable : ID LSQUARE expression RSQUARE");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4);
@@ -548,6 +552,7 @@ expression : logic_expression {
 			$$->set_truelist($3->get_truelist());
 			$$->set_falselist($3->get_falselist());
 			$$->set_nextlist($3->get_nextlist());
+			pop_from_stack("AX");
 			if (!$$->get_truelist().empty() || !$$->get_falselist().empty() || !$$->get_nextlist().empty()) {
 				// this is a boolean expression
 				backpatch($3->get_truelist(), "L" + to_string(label_count));
@@ -586,6 +591,7 @@ expression : logic_expression {
 				}
 				$$->set_exp_evaluated($3->is_exp_evaluated());
 			}
+			push_to_stack("AX");
 		}
 		else {
 			$$->set_data_type("FLOAT");
@@ -607,21 +613,18 @@ logic_expression : rel_expression {
 		$$->set_rule("logic_expression : rel_expression");
 		$$->add_child($1);
 	}
-	| rel_expression {
-		// generate_code("MOV BX, AX"); // so that the second operand can be written to AX
-		push_to_stack("AX");
-	} LOGICOP M rel_expression {
+	| rel_expression LOGICOP M rel_expression {
 		print_grammar_rule("logic_expression", "rel_expression LOGICOP rel_expression");
 		$$ = new SymbolInfo("", "logic_expression");
-		if ($1->get_data_type() == "VOID" || $5->get_data_type() == "VOID") {
+		if ($1->get_data_type() == "VOID" || $4->get_data_type() == "VOID") {
 			show_error(SEMANTIC, VOID_USAGE, "", errorout);
 			$$->set_data_type("ERROR");
 		}
-		else if ($1->get_data_type() == "ERROR" || $5->get_data_type() == "ERROR") {
+		else if ($1->get_data_type() == "ERROR" || $4->get_data_type() == "ERROR") {
 			// show_error(SEMANTIC, TYPE_ERROR, "", errorout);
 			$$->set_data_type("ERROR");
 		}
-		else if ($1->get_data_type() == "FLOAT" || $5->get_data_type() == "FLOAT") {
+		else if ($1->get_data_type() == "FLOAT" || $4->get_data_type() == "FLOAT") {
 			show_error(WARNING, LOGICAL_FLOAT, "", errorout);
 			$$->set_data_type("INT");
 		}
@@ -629,21 +632,22 @@ logic_expression : rel_expression {
 			$$->set_data_type("INT");
 
 			// icg code
-			generate_code("POP BX");
-			if ($3->get_name() == "&&") {
-				$$->set_falselist(merge($1->get_falselist(), $5->get_falselist()));
-				$$->set_truelist($5->get_truelist());
-				backpatch($1->get_truelist(), $4->get_label());
+			pop_from_stack("BX");
+			pop_from_stack("AX");
+			if ($2->get_name() == "&&") {
+				$$->set_falselist(merge($1->get_falselist(), $4->get_falselist()));
+				$$->set_truelist($4->get_truelist());
+				backpatch($1->get_truelist(), $3->get_label());
 			}
-			else if ($3->get_name() == "||") {
-				$$->set_truelist(merge($1->get_truelist(), $5->get_truelist()));
-				$$->set_falselist($5->get_falselist());
-				backpatch($1->get_falselist(), $4->get_label());
+			else if ($2->get_name() == "||") {
+				$$->set_truelist(merge($1->get_truelist(), $4->get_truelist()));
+				$$->set_falselist($4->get_falselist());
+				backpatch($1->get_falselist(), $3->get_label());
 			}
 		}
 		$$->set_rule("logic_expression : rel_expression LOGICOP rel_expression");
-		delete $4;
-		$$->add_child($1); $$->add_child($3); $$->add_child($5);
+		delete $3;
+		$$->add_child($1); $$->add_child($2); $$->add_child($4);
 	}
 	;
 			
@@ -661,13 +665,10 @@ rel_expression : simple_expression {
 		$$->set_nextlist($1->get_nextlist());
 		$$->set_exp_evaluated($1->is_exp_evaluated());
 	}
-	| simple_expression {
-		// generate_code("MOV BX, AX"); // so that the second operand can be written to AX
-		push_to_stack("AX");
-	} RELOP simple_expression {
+	| simple_expression RELOP simple_expression {
 		print_grammar_rule("rel_expression", "simple_expression RELOP simple_expression");
 		$$ = new SymbolInfo("", "rel_expression");
-		if ($1->get_data_type() == "VOID" || $4->get_data_type() == "VOID") {
+		if ($1->get_data_type() == "VOID" || $3->get_data_type() == "VOID") {
 			show_error(SEMANTIC, VOID_USAGE, "", errorout);
 			$$->set_data_type("ERROR");
 		}
@@ -675,11 +676,13 @@ rel_expression : simple_expression {
 			$$->set_data_type("INT"); // result of any comparison should be boolean in fact
 		}
 		$$->set_rule("rel_expression : simple_expression RELOP simple_expression");
-		$$->add_child($1); $$->add_child($3); $$->add_child($4);
+		$$->add_child($1); $$->add_child($2); $$->add_child($3);
 
 		// icg code
-		generate_code("POP BX");
-		generate_relop_code($3->get_name(), $$);
+		pop_from_stack("BX");
+		pop_from_stack("AX");
+		generate_relop_code($2->get_name(), $$);
+		push_to_stack("AX");
 		$$->set_exp_evaluated(true);
 	}	
 	;
@@ -697,22 +700,21 @@ simple_expression : term {
 		$$->set_nextlist($1->get_nextlist());
 		$$->set_exp_evaluated($1->is_exp_evaluated());
 	}
-	| simple_expression {
-		// generate_code("MOV BX, AX"); // so that the second operand can be written to AX
-		push_to_stack("AX");
-	} ADDOP term {
+	| simple_expression ADDOP term {
 		print_grammar_rule("simple_expression", "simple_expression ADDOP term");
 		$$ = new SymbolInfo("", "simple_expression");
-		if ($1->get_data_type() == "VOID" || $4->get_data_type() == "VOID") {
+		if ($1->get_data_type() == "VOID" || $3->get_data_type() == "VOID") {
 			show_error(SEMANTIC, VOID_USAGE, "", errorout);
 		}
-		$$->set_data_type(type_cast($1->get_data_type(), $4->get_data_type()));
+		$$->set_data_type(type_cast($1->get_data_type(), $3->get_data_type()));
 		$$->set_rule("simple_expression : simple_expression ADDOP term");
-		$$->add_child($1); $$->add_child($3); $$->add_child($4);
+		$$->add_child($1); $$->add_child($2); $$->add_child($3);
 
 		// icg code
-		generate_code("POP BX");
-		generate_addop_code($3->get_name());
+		pop_from_stack("BX");
+		pop_from_stack("AX");
+		generate_addop_code($2->get_name());
+		push_to_stack("AX");
 	}
 	;
 					
@@ -729,26 +731,23 @@ term : unary_expression {
 		$$->set_nextlist($1->get_nextlist());
 		$$->set_exp_evaluated($1->is_exp_evaluated());
 	}
-	| term { 
-		// generate_code("MOV BX, AX"); // so that the second operand can be written to AX
-		push_to_stack("AX");
-	} MULOP unary_expression {
+	| term MULOP unary_expression {
 		print_grammar_rule("term", "term MULOP unary_expression");
 		$$ = new SymbolInfo("", "term");
-		if ($1->get_data_type() == "VOID" || $4->get_data_type() == "VOID") {
+		if ($1->get_data_type() == "VOID" || $3->get_data_type() == "VOID") {
 			show_error(SEMANTIC, VOID_USAGE, "", errorout);
 			$$->set_data_type("ERROR");
 		}
-		else if ($1->get_data_type() == "ERROR" || $4->get_data_type() == "ERROR") {
+		else if ($1->get_data_type() == "ERROR" || $3->get_data_type() == "ERROR") {
 			// show_error(SEMANTIC, TYPE_ERROR, "", errorout);
 			$$->set_data_type("ERROR");
 		}
-		else if ($3->get_name() == "%") {
-			if ($1->get_data_type() == "FLOAT" || $4->get_data_type() == "FLOAT") {
+		else if ($2->get_name() == "%") {
+			if ($1->get_data_type() == "FLOAT" || $3->get_data_type() == "FLOAT") {
 				show_error(SEMANTIC, MOD_OPERAND, "", errorout);
 				$$->set_data_type("ERROR");
 			}
-			else if (is_zero($4->get_name())) {
+			else if (is_zero($3->get_name())) {
 				show_error(WARNING, MOD_BY_ZERO, "", errorout);
 				$$->set_data_type("ERROR");
 			}
@@ -756,24 +755,26 @@ term : unary_expression {
 				$$->set_data_type("INT");
 			}
 		}
-		else if ($3->get_name() == "/") {
-			if (is_zero($4->get_name())) {
+		else if ($2->get_name() == "/") {
+			if (is_zero($3->get_name())) {
 				show_error(WARNING, DIV_BY_ZERO, "", errorout);
 				$$->set_data_type("ERROR");
 			}
 			else {
-				$$->set_data_type(type_cast($1->get_data_type(), $4->get_data_type()));
+				$$->set_data_type(type_cast($1->get_data_type(), $3->get_data_type()));
 			}
 		}
-		else if ($3->get_name() == "*") {
-			$$->set_data_type(type_cast($1->get_data_type(), $4->get_data_type()));
+		else if ($2->get_name() == "*") {
+			$$->set_data_type(type_cast($1->get_data_type(), $3->get_data_type()));
 		}
 		$$->set_rule("term : term MULOP unary_expression");
-		$$->add_child($1); $$->add_child($3); $$->add_child($4);
+		$$->add_child($1); $$->add_child($2); $$->add_child($3);
 
 		// icg code 
-		generate_code("POP BX");
-		generate_mulop_code($3->get_name());
+		pop_from_stack("BX");
+		pop_from_stack("AX");
+		generate_mulop_code($2->get_name());
+		push_to_stack("AX");
 	}
 	;
 
@@ -790,7 +791,9 @@ unary_expression : ADDOP unary_expression {
 
 		// icg code
 		if ($1->get_name() == "-") {
+			pop_from_stack("AX");
 			generate_code("NEG AX");
+			push_to_stack("AX");
 		}
 	}
 	| NOT unary_expression {
@@ -810,7 +813,9 @@ unary_expression : ADDOP unary_expression {
 		$$->add_child($1); $$->add_child($2);
 
 		// icg code
+        pop_from_stack("AX");
 		generate_logicop_code("NOT");
+		push_to_stack("AX");
 	}
 	| factor {
 		print_grammar_rule("unary_expression", "factor");
@@ -855,6 +860,7 @@ factor : variable {
 				generate_code("MOV AX, [DI]");
 			}
 		}
+		push_to_stack("AX");
 	}
 	| ID LPAREN argument_list RPAREN {
 		print_grammar_rule("factor", "ID LPAREN argument_list RPAREN");
@@ -912,6 +918,7 @@ factor : variable {
 		backpatch($2->get_truelist(), "L" + to_string(tl));
 		backpatch($2->get_falselist(), "L" + to_string(tf));
 		backpatch($2->get_nextlist(), "L" + to_string(label_count));
+		push_to_stack("AX");
 	}
 	| CONST_INT {
 		print_grammar_rule("factor", "CONST_INT");
@@ -921,6 +928,7 @@ factor : variable {
 
 		// icg code
 		generate_code("MOV AX, " + $1->get_name());
+		push_to_stack("AX");
 	}
 	| CONST_FLOAT {
 		print_grammar_rule("factor", "CONST_FLOAT");
@@ -1050,7 +1058,9 @@ unary_boolean : {
 	// icg code
 	if (!(expression->is_exp_evaluated())) {
 		// of the form if (i)
+		pop_from_stack("AX");
 		generate_relop_code("jnz", expression);
+		push_to_stack("AX");
 	}
 	expression->set_exp_evaluated(true);
 }

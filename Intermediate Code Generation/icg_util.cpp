@@ -77,7 +77,7 @@ void print_id(const string& s) {
     generate_code("MOV AX, " + s);
     generate_code("CALL PRINT_OUTPUT");
     generate_code("CALL PRINT_NEWLINE");
-    generate_code("POP AX");
+    pop_from_stack("AX");
 }
 
 string get_variable_address(SymbolInfo* sym) {
@@ -151,6 +151,7 @@ void generate_incop_code(SymbolInfo* sym, const string& op) {
             generate_code(op + " WORD PTR [DI]");
         }
     }
+    push_to_stack("AX");
 }
 
 void generate_logicop_code(const string& op) {
@@ -176,7 +177,6 @@ void generate_addop_code(const string& op) {
         generate_code("ADD AX, BX");
     } else if (op == "-") {
         generate_code("SUB AX, BX");
-        generate_code("NEG AX");
     }
 }
 
@@ -186,13 +186,6 @@ void generate_mulop_code(const string& op) {
         generate_code("IMUL BX");  // result gets stored in DX:AX, only AX should do (including
                                    // negative result cases)
     } else {
-        // we want to do BX / AX
-        // so take the dividend from BX to AX first
-        generate_code("PUSH CX");
-        generate_code("MOV CX, AX");
-        generate_code("MOV AX, BX");
-        generate_code("MOV BX, CX");
-        generate_code("POP CX");
         // since the divisor is BX, it will be a division of word form, hence dividend will be in
         // DX:AX
         generate_code("XOR DX, DX");
@@ -221,7 +214,7 @@ void generate_relop_code(const string& op, SymbolInfo* sym) {
         generate_code("CMP AX, 0");
         generate_code("JNE");
     } else {
-        generate_code("CMP BX, AX");
+        generate_code("CMP AX, BX");
         generate_code(jmpi);  // keeping label empty for now
     }
     cerr << "Generating a jump instruction at " << temp_file_lc - 1 << endl;
