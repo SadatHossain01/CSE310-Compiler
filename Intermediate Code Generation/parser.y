@@ -375,11 +375,22 @@ statement : var_declaration {
 		$$->set_rule("statement : compound_statement");
 		$$->add_child($1);
 	}
-	| FOR LPAREN expression_statement expression_statement expression RPAREN statement {
+	| FOR LPAREN expression_statement M expression_statement M expression N RPAREN M statement N {
 		print_grammar_rule("statement", "FOR LPAREN expression_statement expression_statement expression RPAREN statement");
 		$$ = new SymbolInfo("", "statement");
 		$$->set_rule("statement : FOR LPAREN expression_statement expression_statement expression RPAREN statement");
-		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($5); $$->add_child($6); $$->add_child($7);
+		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($5); $$->add_child($7); $$->add_child($9); $$->add_child($11);
+
+		// icg code
+		$$->set_nextlist($5->get_falselist());
+		backpatch($3->get_nextlist(), $4->get_label());
+		backpatch($5->get_truelist(), $10->get_label());
+		backpatch($11->get_nextlist(), $6->get_label());
+		backpatch($7->get_nextlist(), $4->get_label());
+		backpatch($12->get_nextlist(), $6->get_label());
+		backpatch($8->get_nextlist(), $4->get_label());
+
+		delete $4; delete $6; delete $8; delete $10; delete $12;
 	}
 	| IF LPAREN expression unary_boolean RPAREN M statement %prec THEN {
 		// use the precedence of THEN here
@@ -458,6 +469,12 @@ expression_statement : SEMICOLON {
 		$$->set_data_type($1->get_data_type()); // result of an expression will have a certain data type
 		$$->set_rule("expression_statement : expression SEMICOLON");
 		$$->add_child($1); $$->add_child($2);
+
+		$$->set_nextlist($1->get_nextlist());
+		$$->set_truelist($1->get_truelist());
+		$$->set_falselist($1->get_falselist());
+		$$->set_exp_evaluated($1->is_exp_evaluated());
+
 		pop_from_stack("AX");
 	}
 	| error SEMICOLON {

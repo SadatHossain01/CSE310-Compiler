@@ -18,3 +18,4 @@ Intermediate Code Generation/*.txt
 Intermediate Code Generation/*.c
 Intermediate Code Generation/.~*
 Intermediate Code Generation/*.asm
+Intermediate Code Generation/*.output
