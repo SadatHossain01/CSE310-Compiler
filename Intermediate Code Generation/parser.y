@@ -572,8 +572,6 @@ expression : logic_expression {
 			pop_from_stack("AX");
 			if (!$$->get_truelist().empty() || !$$->get_falselist().empty() || !$$->get_nextlist().empty()) {
 				// this is a boolean expression
-				backpatch($3->get_truelist(), "L" + to_string(label_count));
-				backpatch($3->get_falselist(), "L" + to_string(label_count + 1));
 				int tl = label_count;
 				print_label(label_count++);
 				generate_code("MOV AX, 1");
@@ -630,18 +628,26 @@ logic_expression : rel_expression {
 		$$->set_rule("logic_expression : rel_expression");
 		$$->add_child($1);
 	}
-	| rel_expression LOGICOP M rel_expression {
+	| rel_expression {
+		// icg code
+		if ($1->is_exp_evaluated() == false) {
+			pop_from_stack("AX");
+			generate_relop_code("jnz", $1);
+			push_to_stack("AX");
+			$1->set_exp_evaluated(true);
+		}
+	} LOGICOP M rel_expression {
 		print_grammar_rule("logic_expression", "rel_expression LOGICOP rel_expression");
 		$$ = new SymbolInfo("", "logic_expression");
-		if ($1->get_data_type() == "VOID" || $4->get_data_type() == "VOID") {
+		if ($1->get_data_type() == "VOID" || $5->get_data_type() == "VOID") {
 			show_error(SEMANTIC, VOID_USAGE, "", errorout);
 			$$->set_data_type("ERROR");
 		}
-		else if ($1->get_data_type() == "ERROR" || $4->get_data_type() == "ERROR") {
+		else if ($1->get_data_type() == "ERROR" || $5->get_data_type() == "ERROR") {
 			// show_error(SEMANTIC, TYPE_ERROR, "", errorout);
 			$$->set_data_type("ERROR");
 		}
-		else if ($1->get_data_type() == "FLOAT" || $4->get_data_type() == "FLOAT") {
+		else if ($1->get_data_type() == "FLOAT" || $5->get_data_type() == "FLOAT") {
 			show_error(WARNING, LOGICAL_FLOAT, "", errorout);
 			$$->set_data_type("INT");
 		}
@@ -649,22 +655,31 @@ logic_expression : rel_expression {
 			$$->set_data_type("INT");
 
 			// icg code
+			if ($5->is_exp_evaluated() == false) {
+				pop_from_stack("AX");
+				generate_relop_code("jnz", $5);
+				push_to_stack("AX");
+				$5->set_exp_evaluated(true);
+			}
 			pop_from_stack("BX");
 			pop_from_stack("AX");
-			if ($2->get_name() == "&&") {
-				$$->set_falselist(merge($1->get_falselist(), $4->get_falselist()));
-				$$->set_truelist($4->get_truelist());
-				backpatch($1->get_truelist(), $3->get_label());
+			cerr << $4->get_label() << endl;
+
+			if ($3->get_name() == "&&") {
+				$$->set_falselist(merge($1->get_falselist(), $5->get_falselist()));
+				$$->set_truelist($5->get_truelist());
+				backpatch($1->get_truelist(), $4->get_label());
 			}
-			else if ($2->get_name() == "||") {
-				$$->set_truelist(merge($1->get_truelist(), $4->get_truelist()));
-				$$->set_falselist($4->get_falselist());
-				backpatch($1->get_falselist(), $3->get_label());
+			else if ($3->get_name() == "||") {
+				$$->set_truelist(merge($1->get_truelist(), $5->get_truelist()));
+				$$->set_falselist($5->get_falselist());
+				backpatch($1->get_falselist(), $4->get_label());
 			}
+			push_to_stack("AX");
 		}
 		$$->set_rule("logic_expression : rel_expression LOGICOP rel_expression");
-		delete $3;
-		$$->add_child($1); $$->add_child($2); $$->add_child($4);
+		delete $4;
+		$$->add_child($1); $$->add_child($3); $$->add_child($5);
 	}
 	;
 			
