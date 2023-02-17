@@ -337,12 +337,14 @@ declaration_list : declaration_list COMMA ID {
 	}
 	;
  		  
-statements : statement {
+statements : statement M {
 		print_grammar_rule("statements", "statement");
-		$$ = new SymbolInfo($1->get_name(), "statements");
+		$$ = new SymbolInfo($2->get_name(), "statements");
 		$$->set_rule("statements : statement");
 		$$->add_child($1);
 		$$->set_nextlist($1->get_nextlist());
+		backpatch($$->get_nextlist(), $2->get_label());
+		delete $2;
 	}
 	| statements M statement {
 		print_grammar_rule("statements", "statements statement");

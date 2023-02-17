@@ -98,6 +98,12 @@ void push_to_stack(const string& name) {
     generate_code("PUSH " + name);
 }
 
+void pop_from_stack(const string& name) {
+    generate_code("POP " + name);
+    // generate_code("MOV SP, BP");
+    // generate_code("SUB SP, " + to_string(current_offset));
+}
+
 void generate_code(const string& code, const string& comment) {
     if (printed_line_count < line_count) {
         tempout << "\t; Line No: " << line_count << "\r\n";
