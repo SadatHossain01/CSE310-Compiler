@@ -86,13 +86,39 @@ void optimize_code() {
     while (getline(fin, line)) {
         // cerr << "Line: " << line << endl;
         string trimmed_line = trim(line);
+        vector<string> operands = get_operands(trimmed_line);
         // cerr << "Trimmed Line: " << trimmed_line << endl;
+        // for (auto p : operands) cerr << p << ' ';
+        // cerr << "done" << endl;
         // cerr << "Ended" << endl;
-        if (trimmed_line.back() == ':') {
-            // this is a label
-            string label = trimmed_line.substr(0, trimmed_line.size() - 1);
-            // cerr << label << " found" << endl;
-            if (useful_labels.count(label) == 0) continue;
+        if (!operands.empty()) {
+            if (trimmed_line.back() == ':') {
+                // this is a label
+                string label = trimmed_line.substr(0, trimmed_line.size() - 1);
+                // cerr << label << " found" << endl;
+                if (useful_labels.count(label) == 0) continue;
+            } else if (operands.size() == 3 && operands.front() == "ADD" && operands[2] == "0")
+                continue;
+            else if (operands.size() == 3 && operands.front() == "IMUL" && operands[2] == "1")
+                continue;
+            else if (operands.front() == "PUSH") {
+                // check if next line is POP
+                vector<string> prev_operands = operands;
+                string prev_line = line;
+                if (getline(fin, line)) {
+                    trimmed_line = trim(line);
+                    operands = get_operands(trimmed_line);
+                    if (operands.front() == "POP" && operands[1] == prev_operands[1]) continue;
+                    else {
+                        fout << prev_line << endl;
+                        fout << line << endl;
+                        continue;
+                    }
+                } else {
+                    fout << prev_line << endl;
+                    continue;
+                }
+            }
         }
         fout << line << endl;
     }
@@ -294,6 +320,7 @@ vector<string> get_operands(const string& line) {
         int start = idx;
         while (idx < line.size() && line[idx] != ' ') idx++;
         if (idx > start) operands.push_back(line.substr(start, idx - start));
+        if (operands.back().back() == ',') operands.back().pop_back();
         idx++;
     }
     return operands;
