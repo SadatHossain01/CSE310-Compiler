@@ -34,3 +34,4 @@ void print_label(int label);
 string trim(const string& trim);
 void optimize_code();
 vector<string> get_operands(const string& line);
+void remove_unreachable_code();

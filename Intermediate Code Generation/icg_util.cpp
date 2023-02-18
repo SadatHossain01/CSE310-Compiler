@@ -81,7 +81,7 @@ void optimize_code() {
     ifstream fin;
     ofstream fout;
     fin.open("code.asm");
-    fout.open("optimized_code.asm");
+    fout.open("temp.asm");
     string line;
     while (getline(fin, line)) {
         // cerr << "Line: " << line << endl;
@@ -122,6 +122,32 @@ void optimize_code() {
         }
         fout << line << endl;
     }
+    fin.close();
+    fout.close();
+    remove_unreachable_code();
+}
+
+void remove_unreachable_code() {
+    ifstream fin;
+    ofstream fout;
+    fin.open("temp.asm");
+    fout.open("optimized_code.asm");
+    string line;
+    bool jump_on = false;
+    while (getline(fin, line)) {
+        string trimmed_line = trim(line);
+        vector<string> operands = get_operands(trimmed_line);
+        if (jump_on) {
+            if (trimmed_line.back() == ':') {
+                fout << line << endl;
+                jump_on = false;
+            }
+        } else {
+            fout << line << endl;
+            if (!operands.empty() && operands.front() == "JMP") jump_on = true;
+        }
+    }
+    remove("temp.asm");
     fin.close();
     fout.close();
 }
