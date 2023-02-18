@@ -32,18 +32,6 @@ void generate_printing_function() {
         << "\tMOV DL, 0AH\r\n\tINT 21H\r\n\tPOP DX\r\n\tPOP AX\r\n\tRET\r\nPRINT_NEWLINE ENDP\r\n";
 }
 
-bool check_empty_jump(const string& line) {
-    int size = line.size();
-    int idx = 0;
-    vector<char> c = {' ', '\t', '\r', '\n'};
-    while (idx < size && find(c.begin(), c.end(), line[idx]) != c.end()) idx++;
-    if (idx == size || line[idx] != 'J') return false;
-    // check if there is any word after this jump keyword, if yes, return false, else true
-    while (idx < size && find(c.begin(), c.end(), line[idx]) == c.end()) idx++;
-    while (idx < size && find(c.begin(), c.end(), line[idx]) != c.end()) idx++;
-    return idx == size;
-}
-
 void generate_final_assembly() {
     // append the content of temp.asm file to code.asm file
     codeout.close();
@@ -51,25 +39,63 @@ void generate_final_assembly() {
     ofstream codeappend;
     ifstream tempin;
     string line;
-    codeappend.open("code.asm", std::ios_base::app);
+    codeappend.open("code.asm", ios::app);
     tempin.open("temp.asm");
     int line_no_here = 0;
     while (getline(tempin, line)) {
         line_no_here++;
-        if (check_empty_jump(line)) {
-            cerr << "Empty jump found at line " << line_no_here << endl;
-            while (line.back() < 'A' || line.back() > 'Z') line.pop_back();
-            line += " " + label_map[line_no_here] + "\r\n";
+        // cerr << "Line: " << line << endl;
+        string trimmed_line = trim(line);
+        // cerr << "Trimmed: " << trimmed_line << endl;
+        vector<string> operands = get_operands(trimmed_line);
+        if (!trimmed_line.empty() && trimmed_line.front() == 'J' && operands.size() == 1) {
+            // cerr << "Empty jump found at line " << line_no_here << endl;
+            while (line.back() == '\t' || line.back() == ' ' || line.back() == '\r' ||
+                   line.back() == '\n')
+                line.pop_back();
+            line += " " + label_map[line_no_here];
+            useful_labels.insert(label_map[line_no_here]);
         }
-        codeappend << line;
+        codeappend << line << endl;
     }
+    useful_labels.insert("STACK_OP");
+    useful_labels.insert("PRINT_LOOP");
     codeappend << "\r\nEND MAIN\r\n";
     codeappend.close();
+    tempin.close();
     // print all of label_map
     // for (auto it = label_map.begin(); it != label_map.end(); it++) {
     //     cerr << it->first << " " << it->second << endl;
     // }
     // remove("temp.asm");  // delete the temporary file
+}
+
+void optimize_code() {
+    // read from code.asm, print to optimized_code.asm
+    // cerr << "Useful Labels:" << endl;
+    // for (auto p : useful_labels) {
+    //     cerr << p << endl;
+    // }
+    ifstream fin;
+    ofstream fout;
+    fin.open("code.asm");
+    fout.open("optimized_code.asm");
+    string line;
+    while (getline(fin, line)) {
+        // cerr << "Line: " << line << endl;
+        string trimmed_line = trim(line);
+        // cerr << "Trimmed Line: " << trimmed_line << endl;
+        // cerr << "Ended" << endl;
+        if (trimmed_line.back() == ':') {
+            // this is a label
+            string label = trimmed_line.substr(0, trimmed_line.size() - 1);
+            // cerr << label << " found" << endl;
+            if (useful_labels.count(label) == 0) continue;
+        }
+        fout << line << endl;
+    }
+    fin.close();
+    fout.close();
 }
 
 void print_id(const string& s) {
@@ -217,10 +243,10 @@ void generate_relop_code(const string& op, SymbolInfo* sym) {
         generate_code("CMP AX, BX");
         generate_code(jmpi);  // keeping label empty for now
     }
-    cerr << "Generating a jump instruction at " << temp_file_lc - 1 << endl;
+    // cerr << "Generating a jump instruction at " << temp_file_lc - 1 << endl;
     sym->add_to_truelist(temp_file_lc - 1);
     generate_code("JMP");
-    cerr << "Generating a jump instruction at " << temp_file_lc - 1 << endl;
+    // cerr << "Generating a jump instruction at " << temp_file_lc - 1 << endl;
     sym->add_to_falselist(temp_file_lc - 1);
 }
 
@@ -234,15 +260,39 @@ vector<int> merge(const vector<int>& v1, const vector<int>& v2) {
 
 void backpatch(const vector<int>& v, string label) {
     // show all contents of v to cerr
-    if (!v.empty()) {
-        cerr << "Backpatching ";
-        for (int i : v) {
-            cerr << i << " ";
-        }
-        cerr << "to label " << label << endl;
-    }
+    // if (!v.empty()) {
+    //     cerr << "Backpatching ";
+    //     for (int i : v) {
+    //         cerr << i << " ";
+    //     }
+    //     cerr << "to label " << label << endl;
+    // }
 
     for (int i : v) {
         label_map[i] = label;
     }
+}
+
+string trim(const string& line) {
+    vector<char> c = {' ', '\t', '\r', '\n'};
+    int start = 0;
+    int size = line.size();
+    while (start < size && find(c.begin(), c.end(), line[start]) != c.end()) start++;
+    if (start == size) return "";
+    int end = size - 1;
+    while (end > start && find(c.begin(), c.end(), line[end]) != c.end()) end--;
+    return line.substr(start, end - start + 1);
+}
+
+vector<string> get_operands(const string& line) {
+    // split the string, delimiter is space
+    vector<string> operands;
+    int idx = 0;
+    while (idx < line.size()) {
+        int start = idx;
+        while (idx < line.size() && line[idx] != ' ') idx++;
+        if (idx > start) operands.push_back(line.substr(start, idx - start));
+        idx++;
+    }
+    return operands;
 }

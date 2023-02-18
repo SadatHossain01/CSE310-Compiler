@@ -7,6 +7,7 @@
 #include <vector>
 #include <cassert>
 #include <map>
+#include <unordered_set>
 #include "utilities.h"
 #include "icg_util.h"
 #include "symbol_table.h"
@@ -24,6 +25,7 @@ extern FILE* yyin;
 vector<Param> current_function_parameters;
 SymbolInfo* expression;
 map<int, string> label_map;
+unordered_set<string> useful_labels;
 
 ofstream treeout, errorout, logout;
 ofstream codeout, tempout; // keep writing data segment in codeout, code segment in tempout, lastly merge both in codeout
@@ -73,6 +75,7 @@ start : {
 		temp_file_lc += 3;
 		generate_printing_function();
 		generate_final_assembly();
+		optimize_code();
 	}
 	;
 
