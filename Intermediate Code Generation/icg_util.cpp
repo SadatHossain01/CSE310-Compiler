@@ -48,13 +48,15 @@ void generate_final_assembly() {
         string trimmed_line = trim(line);
         // cerr << "Trimmed: " << trimmed_line << endl;
         vector<string> operands = get_operands(trimmed_line);
-        if (!trimmed_line.empty() && trimmed_line.front() == 'J' && operands.size() == 1) {
-            // cerr << "Empty jump found at line " << line_no_here << endl;
-            while (line.back() == '\t' || line.back() == ' ' || line.back() == '\r' ||
-                   line.back() == '\n')
-                line.pop_back();
-            line += " " + label_map[line_no_here];
-            useful_labels.insert(label_map[line_no_here]);
+        if (!trimmed_line.empty() && trimmed_line.front() == 'J') {
+            if (operands.size() == 1) {
+                // cerr << "Empty jump found at line " << line_no_here << endl;
+                while (line.back() == '\t' || line.back() == ' ' || line.back() == '\r' ||
+                       line.back() == '\n')
+                    line.pop_back();
+                line += " " + label_map[line_no_here];
+                useful_labels.insert(label_map[line_no_here]);
+            } else useful_labels.insert(operands[1]);
         }
         codeappend << line << endl;
     }
@@ -67,7 +69,7 @@ void generate_final_assembly() {
     // for (auto it = label_map.begin(); it != label_map.end(); it++) {
     //     cerr << it->first << " " << it->second << endl;
     // }
-    // remove("temp.asm");  // delete the temporary file
+    remove("temp.asm");  // delete the temporary file
 }
 
 void optimize_code() {

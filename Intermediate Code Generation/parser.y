@@ -428,7 +428,7 @@ statement : var_declaration {
 		// icg code
 		backpatch($8->get_nextlist(), $2->get_label());
 		backpatch($4->get_truelist(), $7->get_label());
-		for (auto i : $4->get_falselist()) cerr << i << endl;
+		// for (auto i : $4->get_falselist()) cerr << i << endl;
 		$$->set_nextlist($4->get_falselist());
 		generate_code("JMP " + $2->get_label());
 		delete $2; delete $7;
@@ -666,7 +666,7 @@ logic_expression : rel_expression {
 			}
 			pop_from_stack("BX");
 			pop_from_stack("AX");
-			cerr << $4->get_label() << endl;
+			// cerr << $4->get_label() << endl;
 
 			if ($3->get_name() == "&&") {
 				$$->set_falselist(merge($1->get_falselist(), $5->get_falselist()));
