@@ -141,7 +141,7 @@ void remove_unreachable_code() {
             if (trimmed_line.back() == ':') {
                 fout << line << endl;
                 jump_on = false;
-            }
+            } else if (trimmed_line.front() == ';') fout << line << endl;
         } else {
             fout << line << endl;
             if (!operands.empty() && operands.front() == "JMP") jump_on = true;
