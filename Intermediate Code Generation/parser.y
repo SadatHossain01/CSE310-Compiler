@@ -484,13 +484,30 @@ statement : var_declaration {
 		int offset = sym->search($3->get_name(), 'A')->get_stack_offset();
 		print_id(get_variable_address($3->get_name(), offset));
 	}
-	| RETURN expression SEMICOLON {
+	| RETURN expression {
+		pop_from_stack("AX");
+		if (!$2->get_truelist().empty() || !$2->get_falselist().empty() || !$2->get_nextlist().empty()) {
+			// this is a boolean expression
+			int tl = label_count;
+			print_label(label_count++);
+			generate_code("MOV AX, 1");
+			generate_code("JMP L" + to_string(label_count + 1));
+			int tf = label_count;
+			print_label(label_count++);
+			generate_code("XOR AX, AX");
+			print_label(label_count++);
+			backpatch($2->get_truelist(), "L" + to_string(tl));
+			backpatch($2->get_falselist(), "L" + to_string(tf));
+			backpatch($2->get_nextlist(), "L" + to_string(label_count));
+			push_to_stack("AX");
+		}		
+	} SEMICOLON {
 		pop_from_stack("AX"); // pop the return value
 	} N {
 		print_grammar_rule("statement", "RETURN expression SEMICOLON");
 		$$ = new SymbolInfo("", "statement");
 		$$->set_rule("statement : RETURN expression SEMICOLON");
-		$$->add_child($1); $$->add_child($2); $$->add_child($3);
+		$$->add_child($1); $$->add_child($2); $$->add_child($4);
 		// adding return type check here
 		if (func_return_type == "VOID") {
 			show_error(SEMANTIC, RETURNING_IN_VOID, "", errorout);
@@ -501,8 +518,8 @@ statement : var_declaration {
 
 		// icg code
 		found_return = true;
-		func_endlist = merge($5->get_nextlist(), func_endlist);
-		delete $5;
+		func_endlist = merge($6->get_nextlist(), func_endlist);
+		delete $6;
 	}
 	;
 	  
