@@ -159,7 +159,9 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {
 		$$->set_rule("func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($5); $$->add_child($7);
 	}
-	| type_specifier ID LPAREN error RPAREN { func_return_type = $1->get_data_type(); } compound_statement {
+	| type_specifier ID LPAREN error RPAREN { 
+		func_return_type = $1->get_data_type(); 
+	} compound_statement {
 		// not inserting the function if any error occurs in parameter list
 		print_grammar_rule("func_definition", "type_specifier ID LPAREN parameter_list RPAREN compound_statement");
 		$$ = new SymbolInfo("", "func_definition");
@@ -234,6 +236,7 @@ compound_statement : LCURL_ statements RCURL {
 		int prev_offset = current_offset;
 		current_offset = sym->get_current_scope()->get_base_offset(); 
 		if (prev_offset != current_offset) generate_code("ADD SP, " + to_string(prev_offset - current_offset));
+		$$->set_nextlist($2->get_nextlist());
 		sym->exit_scope();
 	}
 	| LCURL_ error RCURL {
@@ -346,7 +349,7 @@ statements : statement M {
 		$$->set_rule("statements : statement");
 		$$->add_child($1);
 		$$->set_nextlist($1->get_nextlist());
-		backpatch($$->get_nextlist(), $2->get_label());
+		backpatch($1->get_nextlist(), $2->get_label());
 		delete $2;
 	}
 	| statements M statement {
@@ -376,6 +379,7 @@ statement : var_declaration {
 		print_grammar_rule("statement", "compound_statement");
 		$$ = new SymbolInfo($1->get_name(), "statement", $1->get_data_type());
 		$$->set_rule("statement : compound_statement");
+		$$->set_nextlist($1->get_nextlist());
 		$$->add_child($1);
 	}
 	| FOR LPAREN expression_statement M expression_statement M expression N RPAREN M statement N {
