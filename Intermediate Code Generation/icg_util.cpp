@@ -49,8 +49,8 @@ void generate_final_assembly() {
         if (!trimmed_line.empty() && trimmed_line.front() == 'J') {
             if (operands.size() == 1) {
                 // cerr << "Empty jump found at line " << line_no_here << endl;
-                while (line.back() == '\t' || line.back() == ' ' || line.back() == '\r' ||
-                       line.back() == '\n')
+                while (!line.empty() && (line.back() == '\t' || line.back() == ' ' ||
+                                         line.back() == '\r' || line.back() == '\n'))
                     line.pop_back();
                 line += " " + label_map[line_no_here];
                 useful_labels.insert(label_map[line_no_here]);
@@ -136,10 +136,13 @@ void remove_unreachable_code() {
         string trimmed_line = trim(line);
         vector<string> operands = get_operands(trimmed_line);
         if (jump_on) {
-            if (trimmed_line.back() == ':') {
-                fout << line << endl;
-                jump_on = false;
-            } else if (trimmed_line.front() == ';') fout << line << endl;
+            if (!trimmed_line.empty()) {
+                if (trimmed_line.back() == ':' ||
+                    (!operands.empty() && operands.front() == "RET")) {
+                    fout << line << endl;
+                    jump_on = false;
+                } else if (trimmed_line.front() == ';') fout << line << endl;
+            }
         } else {
             fout << line << endl;
             if (!operands.empty() && operands.front() == "JMP") jump_on = true;
