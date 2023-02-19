@@ -18,14 +18,16 @@ using namespace std;
 
 extern int line_count, error_count;
 int syntax_error_line, current_offset = 0, label_count = 1, printed_line_count = 0;
-int temp_file_lc = 1;
-string func_return_type;
+int temp_file_lc = 1, number_of_arguments = 0, prev_offset;
+string func_return_type, current_func_name;
 SymbolTable *sym;
 extern FILE* yyin;
 vector<Param> current_function_parameters;
+vector<int> func_endlist;
 SymbolInfo* expression;
 map<int, string> label_map;
 unordered_set<string> useful_labels;
+bool found_return = false, function_on = false;
 
 ofstream treeout, errorout, logout;
 ofstream codeout, tempout; // keep writing data segment in codeout, code segment in tempout, lastly merge both in codeout
@@ -71,8 +73,6 @@ start : {
 		$$->set_rule("start : program");
 		$$->add_child($2);
 		$$->print_tree_node(treeout);
-		tempout << "\tMOV AX, 4CH\r\n\tINT 21H\r\nMAIN ENDP\r\n";
-		temp_file_lc += 3;
 		generate_printing_function();
 		generate_final_assembly();
 		optimize_code();
@@ -151,13 +151,30 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {
 			func_return_type = $1->get_data_type(); 
 			insert_function($2->get_name(), $1->get_data_type(), $4->get_param_list(), true); 
 			current_function_parameters.clear();
+
+			// icg code
+			function_on = true;
+			found_return = false;
+			init_function($2->get_name());
+			current_func_name = $2->get_name();
         	current_function_parameters = $4->get_param_list();
+			number_of_arguments = current_function_parameters.size();
 		} 
 		compound_statement {
 		print_grammar_rule("func_definition", "type_specifier ID LPAREN parameter_list RPAREN compound_statement");
 		$$ = new SymbolInfo("", "func_definition");
 		$$->set_rule("func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($5); $$->add_child($7);
+
+		// icg code
+		string label = newLabel();
+		print_label(label);
+		backpatch(func_endlist, label);
+		func_endlist.clear();
+		if (prev_offset != current_offset) generate_code("ADD SP, " + to_string(prev_offset - current_offset));
+		function_on = false;
+		return_from_function(current_func_name, number_of_arguments);
+		func_return_type = "NONE";
 	}
 	| type_specifier ID LPAREN error RPAREN { 
 		func_return_type = $1->get_data_type(); 
@@ -174,12 +191,29 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {
 			func_return_type = $1->get_data_type();
 			insert_function($2->get_name(), $1->get_data_type(), {}, true);
 			current_function_parameters.clear();
+
+			// icg code
+			function_on = true;
+			init_function($2->get_name());
+			current_func_name = $2->get_name();
+			number_of_arguments = 0;
+			found_return = false;
 		} 
 		compound_statement {
 		print_grammar_rule("func_definition", "type_specifier ID LPAREN RPAREN compound_statement");
 		$$ = new SymbolInfo("", "func_definition");
 		$$->set_rule("func_definition : type_specifier ID LPAREN RPAREN compound_statement");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4); $$->add_child($6);
+
+		// icg code
+		string label = newLabel();
+		print_label(label);
+		backpatch(func_endlist, label);
+		func_endlist.clear();
+		if (prev_offset != current_offset) generate_code("ADD SP, " + to_string(prev_offset - current_offset));
+		function_on = false;
+		return_from_function(current_func_name, number_of_arguments);
+		func_return_type = "NONE";
 	}
 	;				
 
@@ -233,9 +267,9 @@ compound_statement : LCURL_ statements RCURL {
 		// let, base offset of current scope is 6, meaning 3 variables declared in previous scope
 		// so, if we want to assign an offset to the next variable, it should be 8
 		// hence, we need to set the current_scope to the base offset of the latest one
-		int prev_offset = current_offset;
+		prev_offset = current_offset;
 		current_offset = sym->get_current_scope()->get_base_offset(); 
-		if (prev_offset != current_offset) generate_code("ADD SP, " + to_string(prev_offset - current_offset));
+		if (prev_offset != current_offset && !function_on) generate_code("ADD SP, " + to_string(prev_offset - current_offset));
 		$$->set_nextlist($2->get_nextlist());
 		sym->exit_scope();
 	}
@@ -246,9 +280,9 @@ compound_statement : LCURL_ statements RCURL {
 		$$->set_rule("compound_statement : LCURL RCURL");
 		$$->add_child($1); $$->add_child($3);
 
-		int prev_offset = current_offset;
+		prev_offset = current_offset;
 		current_offset = sym->get_current_scope()->get_base_offset(); 
-		if (prev_offset != current_offset) generate_code("ADD SP, " + to_string(prev_offset - current_offset));
+		if (prev_offset != current_offset && !function_on) generate_code("ADD SP, " + to_string(prev_offset - current_offset));
 		sym->exit_scope();
 	}
 	| LCURL_ RCURL {
@@ -258,9 +292,9 @@ compound_statement : LCURL_ statements RCURL {
 		$$->set_rule("compound_statement : LCURL RCURL");
 		$$->add_child($1); $$->add_child($2);
 		
-		int prev_offset = current_offset;
+		prev_offset = current_offset;
 		current_offset = sym->get_current_scope()->get_base_offset(); 
-		if (prev_offset != current_offset) generate_code("ADD SP, " + to_string(prev_offset - current_offset));
+		if (prev_offset != current_offset && !function_on) generate_code("ADD SP, " + to_string(prev_offset - current_offset));
 		sym->exit_scope();
 	}
 	;
@@ -279,7 +313,6 @@ var_declaration : type_specifier declaration_list SEMICOLON {
 		show_error(SYNTAX, S_DECL_VAR_DECLARATION, "", errorout, syntax_error_line);
 		$$->set_rule("var_declaration : type_specifier declaration_list SEMICOLON");
 		$$->add_child($1); $$->add_child($2); $$->add_child($4);
-
 	}
 	| type_specifier error SEMICOLON {
 		print_grammar_rule("var_declaration", "type_specifier declaration_list SEMICOLON");
@@ -373,6 +406,7 @@ statement : var_declaration {
 		print_grammar_rule("statement", "expression_statement");
 		$$ = new SymbolInfo($1->get_name(), "statement", $1->get_data_type());
 		$$->set_rule("statement : expression_statement");
+		$$->set_nextlist($1->get_nextlist());
 		$$->add_child($1);
 	}
 	| compound_statement {
@@ -382,22 +416,24 @@ statement : var_declaration {
 		$$->set_nextlist($1->get_nextlist());
 		$$->add_child($1);
 	}
-	| FOR LPAREN expression_statement M expression_statement M expression N RPAREN M statement N {
+	| FOR LPAREN expression_statement M expression_statement M expression {
+		pop_from_stack("AX"); // pop the last expression, as it won't be popped afterwards
+	} N RPAREN M statement N {
 		print_grammar_rule("statement", "FOR LPAREN expression_statement expression_statement expression RPAREN statement");
 		$$ = new SymbolInfo("", "statement");
 		$$->set_rule("statement : FOR LPAREN expression_statement expression_statement expression RPAREN statement");
-		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($5); $$->add_child($7); $$->add_child($9); $$->add_child($11);
+		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($5); $$->add_child($7); $$->add_child($10); $$->add_child($12);
 
 		// icg code
 		$$->set_nextlist($5->get_falselist());
 		backpatch($3->get_nextlist(), $4->get_label());
-		backpatch($5->get_truelist(), $10->get_label());
-		backpatch($11->get_nextlist(), $6->get_label());
-		backpatch($7->get_nextlist(), $4->get_label());
+		backpatch($5->get_truelist(), $11->get_label());
 		backpatch($12->get_nextlist(), $6->get_label());
-		backpatch($8->get_nextlist(), $4->get_label());
+		backpatch($7->get_nextlist(), $4->get_label());
+		backpatch($13->get_nextlist(), $6->get_label());
+		backpatch($9->get_nextlist(), $4->get_label());
 
-		delete $4; delete $6; delete $8; delete $10; delete $12;
+		delete $4; delete $6; delete $9; delete $11; delete $13;
 	}
 	| IF LPAREN expression unary_boolean RPAREN M statement %prec THEN {
 		// use the precedence of THEN here
@@ -449,6 +485,8 @@ statement : var_declaration {
 		print_id(get_variable_address($3->get_name(), offset));
 	}
 	| RETURN expression SEMICOLON {
+		pop_from_stack("AX"); // pop the return value
+	} N {
 		print_grammar_rule("statement", "RETURN expression SEMICOLON");
 		$$ = new SymbolInfo("", "statement");
 		$$->set_rule("statement : RETURN expression SEMICOLON");
@@ -460,6 +498,11 @@ statement : var_declaration {
 		else if (func_return_type == "INT" && $2->get_data_type() == "FLOAT") {
 			show_error(WARNING, FLOAT_TO_INT, "", errorout);
 		}
+
+		// icg code
+		found_return = true;
+		func_endlist = $5->get_nextlist();
+		delete $5;
 	}
 	;
 	  
@@ -468,6 +511,7 @@ expression_statement : SEMICOLON {
 		$$ = new SymbolInfo("", "expression_statement");
 		$$->set_rule("expression_statement : SEMICOLON");
 		$$->add_child($1);
+		
 		pop_from_stack("AX");
 	}
 	| expression SEMICOLON {
@@ -490,6 +534,7 @@ expression_statement : SEMICOLON {
 		$$->set_rule("expression_statement : expression SEMICOLON");
 		SymbolInfo* error_token = create_error_token("expression : error", syntax_error_line);
 		$$->add_child(error_token); $$->add_child($2);
+		
 		pop_from_stack("AX");
 	}
 	;
@@ -931,6 +976,10 @@ factor : variable {
 		}
 		$$->set_rule("factor : ID LPAREN argument_list RPAREN");
 		$$->add_child($1); $$->add_child($2); $$->add_child($3); $$->add_child($4);
+
+		// icg code
+		generate_code("CALL " + $1->get_name());
+		push_to_stack("AX"); // push the func_value to stack
 	}
 	| LPAREN expression RPAREN {
 		print_grammar_rule("factor", "LPAREN expression RPAREN");
@@ -1061,6 +1110,7 @@ LCURL_ : LCURL {
 		$$ = $1;
 		sym->enter_scope();
 		sym->get_current_scope()->set_base_offset(current_offset);
+		int offset = -2 - current_function_parameters.size() * 2;
 		for (const Param& they : current_function_parameters) {
 			if (they.name == "") { // nameless, no need to insert 
 				show_error(SYNTAX, S_PARAM_NAMELESS, "", errorout);
@@ -1068,6 +1118,8 @@ LCURL_ : LCURL {
 			}
 			SymbolInfo* another = new SymbolInfo(they.name, "ID", they.data_type);
 			another->set_array(they.is_array);
+			another->set_stack_offset(offset);
+			offset += 2;
 			if (!sym->insert(another)) {
 				// insertion failed
 				show_error(SEMANTIC, PARAM_REDEFINITION, another->get_name(), errorout);

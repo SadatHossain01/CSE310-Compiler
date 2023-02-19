@@ -3,9 +3,7 @@
 void init_icg() {
     codeout << ".MODEL SMALL\r\n.STACK 1000H\r\n\r\n.DATA\r\n";
     tempout << "\r\n.CODE\r\n";
-    tempout << "MAIN PROC\r\n";
-    tempout << "\tMOV AX, @DATA\r\n\tMOV DS, AX\r\n\tMOV BP, SP\r\n";
-    temp_file_lc = 7;
+    temp_file_lc = 3;
 }
 
 void generate_printing_function() {
@@ -164,7 +162,7 @@ string get_variable_address(SymbolInfo* sym) {
     int offset = sym->get_stack_offset();
     string name = sym->get_name();
     if (offset == -1) return name;  // global variable
-    else return "[BP" + (offset ? ((offset > 0 ? "-" : "") + to_string(offset)) : "") + "]";
+    else return "[BP" + (offset ? ((offset > 0 ? "-" : "+") + to_string(abs(offset))) : "") + "]";
 }
 
 string get_variable_address(const string& name, const int offset) {
@@ -184,13 +182,13 @@ void pop_from_stack(const string& name) {
     // generate_code("SUB SP, " + to_string(current_offset));
 }
 
-void generate_code(const string& code, const string& comment) {
+void generate_code(const string& code, const string& comment, bool tab) {
     if (printed_line_count < line_count) {
         tempout << "\t; Line No: " << line_count << "\r\n";
         printed_line_count = line_count;
         temp_file_lc++;
     }
-    tempout << "\t";
+    if (tab) tempout << "\t";
     tempout << code << (comment.empty() ? "" : "; " + comment) << "\r\n";
     temp_file_lc++;
 }
@@ -350,4 +348,29 @@ vector<string> get_operands(const string& line) {
         idx++;
     }
     return operands;
+}
+
+void init_function(const string& func_name) {
+    if (func_name == "main") {
+        generate_code("main PROC", "", false);
+        generate_code("MOV AX, @DATA");
+        generate_code("MOV DS, AX");
+    } else {
+        generate_code(func_name + " PROC", "", false);
+    }
+    push_to_stack("BP");
+    generate_code("MOV BP, SP");
+}
+
+void return_from_function(const string& func_name, int number_of_arguments) {
+    pop_from_stack("BP");
+    if (func_name == "main") {
+        generate_code("MOV AX, 4CH");
+        generate_code("INT 21H");
+        generate_code("main ENDP", "", false);
+    } else {
+        if (number_of_arguments == 0) generate_code("RET");
+        else generate_code("RET " + to_string(number_of_arguments * 2));
+        generate_code(func_name + " ENDP", "", false);
+    }
 }
