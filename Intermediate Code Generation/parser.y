@@ -501,7 +501,7 @@ statement : var_declaration {
 
 		// icg code
 		found_return = true;
-		func_endlist = $5->get_nextlist();
+		func_endlist = merge($5->get_nextlist(), func_endlist);
 		delete $5;
 	}
 	;
