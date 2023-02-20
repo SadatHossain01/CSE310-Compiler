@@ -27,7 +27,7 @@ vector<int> func_endlist;
 SymbolInfo* expression;
 map<int, string> label_map;
 unordered_set<string> useful_labels;
-bool found_return = false, function_on = false;
+bool found_return = false;
 
 ofstream treeout, errorout, logout;
 ofstream codeout, tempout; // keep writing data segment in codeout, code segment in tempout, lastly merge both in codeout
@@ -153,7 +153,6 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {
 			current_function_parameters.clear();
 
 			// icg code
-			function_on = true;
 			found_return = false;
 			init_function($2->get_name());
 			current_func_name = $2->get_name();
@@ -171,8 +170,7 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {
 		print_label(label);
 		backpatch(func_endlist, label);
 		func_endlist.clear();
-		if (prev_offset != current_offset) generate_code("ADD SP, " + to_string(prev_offset - current_offset));
-		function_on = false;
+		// if (prev_offset != current_offset) generate_code("ADD SP, " + to_string(prev_offset - current_offset));
 		return_from_function(current_func_name, number_of_arguments);
 		func_return_type = "NONE";
 	}
@@ -193,7 +191,6 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {
 			current_function_parameters.clear();
 
 			// icg code
-			function_on = true;
 			init_function($2->get_name());
 			current_func_name = $2->get_name();
 			number_of_arguments = 0;
@@ -210,8 +207,7 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {
 		print_label(label);
 		backpatch(func_endlist, label);
 		func_endlist.clear();
-		if (prev_offset != current_offset) generate_code("ADD SP, " + to_string(prev_offset - current_offset));
-		function_on = false;
+		// if (prev_offset != current_offset) generate_code("ADD SP, " + to_string(prev_offset - current_offset));
 		return_from_function(current_func_name, number_of_arguments);
 		func_return_type = "NONE";
 	}
@@ -257,20 +253,22 @@ parameter_list : parameter_list COMMA type_specifier ID {
 	}
 	;
 	
-compound_statement : LCURL_ statements RCURL {
+compound_statement : LCURL_ statements M RCURL {
 		print_grammar_rule("compound_statement", "LCURL statements RCURL");
 		$$ = new SymbolInfo("", "compound_statement");
 		sym->print('A', logout);
 		$$->set_rule("compound_statement : LCURL statements RCURL");
-		$$->add_child($1); $$->add_child($2); $$->add_child($3);
+		$$->add_child($1); $$->add_child($2); $$->add_child($4);
 
 		// let, base offset of current scope is 6, meaning 3 variables declared in previous scope
 		// so, if we want to assign an offset to the next variable, it should be 8
 		// hence, we need to set the current_scope to the base offset of the latest one
 		prev_offset = current_offset;
 		current_offset = sym->get_current_scope()->get_base_offset(); 
-		if (prev_offset != current_offset && !function_on) generate_code("ADD SP, " + to_string(prev_offset - current_offset));
+		// if (prev_offset != current_offset) generate_code("ADD SP, " + to_string(prev_offset - current_offset));
+		backpatch($2->get_nextlist(), $3->get_label());
 		$$->set_nextlist($2->get_nextlist());
+		delete $3;
 		sym->exit_scope();
 	}
 	| LCURL_ error RCURL {
@@ -282,7 +280,7 @@ compound_statement : LCURL_ statements RCURL {
 
 		prev_offset = current_offset;
 		current_offset = sym->get_current_scope()->get_base_offset(); 
-		if (prev_offset != current_offset && !function_on) generate_code("ADD SP, " + to_string(prev_offset - current_offset));
+		if (prev_offset != current_offset) generate_code("ADD SP, " + to_string(prev_offset - current_offset));
 		sym->exit_scope();
 	}
 	| LCURL_ RCURL {
@@ -294,7 +292,7 @@ compound_statement : LCURL_ statements RCURL {
 		
 		prev_offset = current_offset;
 		current_offset = sym->get_current_scope()->get_base_offset(); 
-		if (prev_offset != current_offset && !function_on) generate_code("ADD SP, " + to_string(prev_offset - current_offset));
+		if (prev_offset != current_offset) generate_code("ADD SP, " + to_string(prev_offset - current_offset));
 		sym->exit_scope();
 	}
 	;
@@ -376,14 +374,12 @@ declaration_list : declaration_list COMMA ID {
 	}
 	;
  		  
-statements : statement M {
+statements : statement {
 		print_grammar_rule("statements", "statement");
-		$$ = new SymbolInfo($2->get_name(), "statements");
+		$$ = new SymbolInfo($1->get_name(), "statements");
 		$$->set_rule("statements : statement");
 		$$->add_child($1);
 		$$->set_nextlist($1->get_nextlist());
-		backpatch($1->get_nextlist(), $2->get_label());
-		delete $2;
 	}
 	| statements M statement {
 		print_grammar_rule("statements", "statements statement");
@@ -485,8 +481,8 @@ statement : var_declaration {
 		print_id(get_variable_address($3->get_name(), offset));
 	}
 	| RETURN expression {
-		pop_from_stack("AX");
 		if (!$2->get_truelist().empty() || !$2->get_falselist().empty() || !$2->get_nextlist().empty()) {
+			pop_from_stack("AX");
 			// this is a boolean expression
 			int tl = label_count;
 			print_label(label_count++);

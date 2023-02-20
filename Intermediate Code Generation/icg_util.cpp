@@ -366,6 +366,7 @@ void init_function(const string& func_name) {
 }
 
 void return_from_function(const string& func_name, int number_of_arguments) {
+    generate_code("MOV SP, BP");
     pop_from_stack("BP");
     if (func_name == "main") {
         generate_code("MOV AX, 4CH");
