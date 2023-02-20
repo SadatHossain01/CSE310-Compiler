@@ -60,7 +60,7 @@ void generate_final_assembly() {
     }
     useful_labels.insert("STACK_OP");
     useful_labels.insert("PRINT_LOOP");
-    codeappend << "\r\nEND MAIN\r\n";
+    codeappend << "\r\nEND main\r\n";
     codeappend.close();
     tempin.close();
     // print all of label_map

@@ -590,7 +590,7 @@ variable : ID {
 			$$->set_array(false); // if a is an int array, a[5] is also an int, but not an array
 			$$->set_type("FROM_ARRAY");
 			$$->set_stack_offset(res->get_stack_offset()); 
-			pop_from_stack("CX"); // get the index
+			// pop_from_stack("CX"); // get the index
 			// generate_code("MOV CX, AX"); // save the index in CX
 		}
 		$$->set_rule("variable : ID LSQUARE expression RSQUARE");
@@ -656,6 +656,7 @@ expression : logic_expression {
 				// so this is an array element
 				if ($1->get_stack_offset() == -1) {
 					// element of some global array
+					pop_from_stack("CX");
 					generate_code("LEA SI, " + $1->get_name());
 					generate_code("SHL CX, 1");
 					generate_code("ADD SI, CX");
@@ -663,6 +664,7 @@ expression : logic_expression {
 				}
 				else {
 					// element of some local array, index is in CX
+					pop_from_stack("CX");
 					generate_code("SHL CX, 1");
 					generate_code("ADD CX, " + to_string($1->get_stack_offset()));
 					generate_code("MOV DI, BP");
@@ -944,12 +946,14 @@ factor : variable {
 		else {
 			if ($1->get_stack_offset() == -1) {
 				// content of global array
+				pop_from_stack("CX");
 				generate_code("LEA SI, " + $1->get_name());
 				generate_code("SHL CX, 1");
 				generate_code("ADD SI, CX");
 				generate_code("MOV AX, [SI]");
 			}
 			else {
+				pop_from_stack("CX");
 				generate_code("SHL CX, 1");
 				generate_code("ADD CX, " + to_string($1->get_stack_offset()));
 				generate_code("MOV DI, BP");
