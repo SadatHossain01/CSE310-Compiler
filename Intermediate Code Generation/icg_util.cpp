@@ -269,7 +269,8 @@ void generate_mulop_code(const string& op) {
     } else {
         // since the divisor is BX, it will be a division of word form, hence dividend will be in
         // DX:AX
-        generate_code("XOR DX, DX");
+        // generate_code("XOR DX, DX");
+        generate_code("CWD");
         generate_code("IDIV BX");
 
         if (op == "/") {
