@@ -238,14 +238,17 @@ void generate_incop_code(SymbolInfo* sym, const string& op) {
 void generate_logicop_code(const string& op) {
     if (op == "NOT") {
         generate_code("CMP AX, 0");
-        generate_code("JE L" + to_string(label_count++));
-        print_label(label_count - 1);
+        int l1 = label_count;
+        generate_code("JE L" + to_string(l1));
+        int l2 = label_count + 1;
+        generate_code("JMP L" + to_string(l2));
+        print_label(l1);
         generate_code("MOV AX, 1");
-        generate_code("JMP L" + to_string(++label_count));
-        print_label(label_count - 1);
+        generate_code("JMP L" + to_string(l2 + 1));
+        print_label(l2);
         generate_code("XOR AX, AX");
-        print_label(label_count++);
-
+        print_label(l2 + 1);
+        label_count += 3;
     } else {
         if (op == "&&") generate_code("AND AX, BX");
         else if (op == "||") generate_code("OR AX, BX");
@@ -269,7 +272,6 @@ void generate_mulop_code(const string& op) {
     } else {
         // since the divisor is BX, it will be a division of word form, hence dividend will be in
         // DX:AX
-        // generate_code("XOR DX, DX");
         generate_code("CWD");
         generate_code("IDIV BX");
 
@@ -378,4 +380,18 @@ void return_from_function(const string& func_name, int number_of_arguments) {
         else generate_code("RET " + to_string(number_of_arguments * 2));
         generate_code(func_name + " ENDP", "", false);
     }
+}
+
+void generate_code_for_unary_boolean(SymbolInfo* exp) {
+    int tl = label_count;
+    print_label(label_count++);
+    generate_code("MOV AX, 1");
+    generate_code("JMP L" + to_string(label_count + 1));
+    int tf = label_count;
+    print_label(label_count++);
+    generate_code("XOR AX, AX");
+    print_label(label_count++);
+    backpatch(exp->get_truelist(), "L" + to_string(tl));
+    backpatch(exp->get_falselist(), "L" + to_string(tf));
+    backpatch(exp->get_nextlist(), "L" + to_string(label_count));
 }

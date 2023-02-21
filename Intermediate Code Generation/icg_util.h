@@ -31,6 +31,7 @@ vector<int> merge(const vector<int>& v1, const vector<int>& v2);
 void backpatch(const vector<int>& v, string label);
 void print_label(string label);
 void print_label(int label);
+void generate_code_for_unary_boolean(SymbolInfo* exp);
 string trim(const string& trim);
 void optimize_code();
 vector<string> get_operands(const string& line);

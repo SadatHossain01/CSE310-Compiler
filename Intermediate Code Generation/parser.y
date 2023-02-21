@@ -481,20 +481,10 @@ statement : var_declaration {
 		print_id(get_variable_address($3->get_name(), offset));
 	}
 	| RETURN expression {
-		if (!$2->get_truelist().empty() || !$2->get_falselist().empty() || !$2->get_nextlist().empty()) {
+		if (!($2->get_truelist().empty()) || !($2->get_falselist().empty()) || !($2->get_nextlist().empty())) {
 			pop_from_stack("AX");
 			// this is a boolean expression
-			int tl = label_count;
-			print_label(label_count++);
-			generate_code("MOV AX, 1");
-			generate_code("JMP L" + to_string(label_count + 1));
-			int tf = label_count;
-			print_label(label_count++);
-			generate_code("XOR AX, AX");
-			print_label(label_count++);
-			backpatch($2->get_truelist(), "L" + to_string(tl));
-			backpatch($2->get_falselist(), "L" + to_string(tf));
-			backpatch($2->get_nextlist(), "L" + to_string(label_count));
+			generate_code_for_unary_boolean($2);
 			push_to_stack("AX");
 		}		
 	} SEMICOLON {
@@ -635,19 +625,11 @@ expression : logic_expression {
 			$$->set_falselist($3->get_falselist());
 			$$->set_nextlist($3->get_nextlist());
 			pop_from_stack("AX");
-			if (!$$->get_truelist().empty() || !$$->get_falselist().empty() || !$$->get_nextlist().empty()) {
+			if (!($3->get_truelist().empty()) || !($3->get_falselist().empty()) || !($3->get_nextlist().empty())) {
 				// this is a boolean expression
-				int tl = label_count;
-				print_label(label_count++);
-				generate_code("MOV AX, 1");
-				generate_code("JMP L" + to_string(label_count + 1));
-				int tf = label_count;
-				print_label(label_count++);
-				generate_code("XOR AX, AX");
-				print_label(label_count++);
-				backpatch($3->get_truelist(), "L" + to_string(tl));
-				backpatch($3->get_falselist(), "L" + to_string(tf));
-				backpatch($3->get_nextlist(), "L" + to_string(label_count));
+				pop_from_stack("AX");
+				generate_code_for_unary_boolean($3);
+				push_to_stack("AX");
 			}
 			if ($1->get_type() != "FROM_ARRAY") {
 				generate_code("MOV " + get_variable_address($1) + ", AX");
@@ -912,9 +894,16 @@ unary_expression : ADDOP unary_expression {
 		$$->add_child($1); $$->add_child($2);
 
 		// icg code
-        pop_from_stack("AX");
-		generate_logicop_code("NOT");
-		push_to_stack("AX");
+		if (!($2->get_truelist().empty()) || !($2->get_falselist().empty()) || !($2->get_nextlist().empty())) {
+			// this is a boolean expression
+			$$->set_truelist($2->get_falselist());
+			$$->set_falselist($2->get_truelist());
+		}
+		else {
+			pop_from_stack("AX");
+			generate_logicop_code("NOT");
+			push_to_stack("AX");
+		}
 	}
 	| factor {
 		print_grammar_rule("unary_expression", "factor");
@@ -1010,20 +999,11 @@ factor : variable {
 		$$->set_nextlist($2->get_nextlist());
 		$$->set_exp_evaluated($2->is_exp_evaluated());
 
-		backpatch($2->get_truelist(), "L" + to_string(label_count));
-		backpatch($2->get_falselist(), "L" + to_string(label_count + 1));
-		int tl = label_count;
-		print_label(label_count++);
-		generate_code("MOV AX, 1");
-		generate_code("JMP L" + to_string(label_count + 1));
-		int tf = label_count;
-		print_label(label_count++);
-		generate_code("XOR AX, AX");
-		print_label(label_count++);
-		backpatch($2->get_truelist(), "L" + to_string(tl));
-		backpatch($2->get_falselist(), "L" + to_string(tf));
-		backpatch($2->get_nextlist(), "L" + to_string(label_count));
-		push_to_stack("AX");
+		if (!($2->get_truelist().empty()) || !($2->get_falselist().empty()) || !($2->get_nextlist().empty())) {
+			pop_from_stack("AX");
+			generate_code_for_unary_boolean($2);
+			push_to_stack("AX");
+		}
 	}
 	| CONST_INT {
 		print_grammar_rule("factor", "CONST_INT");
