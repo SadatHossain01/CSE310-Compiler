@@ -213,26 +213,30 @@ void generate_incop_code(SymbolInfo* sym, const string& op) {
     if (sym->get_type() != "FROM_ARRAY") {
         string address = get_variable_address(sym);
         generate_code("MOV AX, " + address);
+        push_to_stack("AX");
         generate_code(op + " W." + address);
     } else {
         if (sym->get_stack_offset() == -1) {
             // element of some global array
+            pop_from_stack("CX");
             generate_code("LEA SI, " + sym->get_name());
             generate_code("SHL CX, 1");
             generate_code("ADD SI, CX");
             generate_code("MOV AX, [SI]");
+            push_to_stack("AX");
             generate_code(op + " W.[SI]");
         } else {
             // element of some local array, index is in CX
+            pop_from_stack("CX");
             generate_code("SHL CX, 1");
             generate_code("ADD CX, " + to_string(sym->get_stack_offset()));
             generate_code("MOV DI, BP");
             generate_code("SUB DI, CX");
             generate_code("MOV AX, [DI]");
+            push_to_stack("AX");
             generate_code(op + " W.[DI]");
         }
     }
-    push_to_stack("AX");
 }
 
 void generate_logicop_code(const string& op) {
